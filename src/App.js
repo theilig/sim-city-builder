@@ -1,26 +1,19 @@
-import logo from './logo.svg';
 import './App.css';
-import Good from "./Good.js";
+import GoodsList from "./GoodsList.js";
+import ShoppingList from './ShoppingList';
+import React, { useState } from 'react';
 
 function App() {
-  var goods = {
-    'metal': {},
-    'wood': {},'plastic': {},'seeds': {},'mineral': {},'chemical': {},
-    'toilet paper': {},
-    'sugar&spices': {},'glass': {},'animal feed': {},'nails': {},
-    'wood planks': {},
-    'bricks': {},'cement': {},'glue': {},'paint': {},'hammer': {},
-    'measuring tape': {},'shovel': {},
-    'utensils': {},'ladder': {},'vegetables': {},'flour': {},'fruit': {},
-    'cream': {},'chairs': {},
-    'tables': {},'grass': {},'trees': {},'outdoor furniture': {},
-    'reusable bags': {}
-  };
+  const [shoppingLists, setShoppingLists] = useState([])
+  function addShoppingList(goodsNeeded) {
+    var newShoppingLists = [...shoppingLists]
+    newShoppingLists.push(goodsNeeded);
+    setShoppingLists(newShoppingLists)
+  }
   return (
     <div>
-      {Object.keys(goods).map(good => (
-        <Good name={good} />
-      ))}
+      <GoodsList addShoppingList={addShoppingList} />
+      {shoppingLists.map((list, index) => <ShoppingList list={list} key={index} />)}
     </div>
   )
 }

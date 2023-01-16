@@ -1,12 +1,5 @@
-import React, { useState } from 'react';
 function Good(props) {
-    const [timesClicked, setTimesClicked] = useState(0)
-    function goodWasClicked() {
-        setTimesClicked(timesClicked+1);
-        alert('You clicked ' + props.name);
-    }
-    
-    return (<button onClick={() => goodWasClicked()}>{props.name + timesClicked}</button>)
+    return (<button onClick={() => props.goodWasClicked(props.name)}>{props.name + props.count}</button>)
 }
 
 export default Good;
