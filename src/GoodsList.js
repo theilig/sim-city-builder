@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Good from './Good';
+import goods from "./Production"
 function GoodsList(props) {
     const [currentList, setCurrentList] = useState({});
     function updateCount(goodName, total) {
@@ -10,22 +11,6 @@ function GoodsList(props) {
     function goodWasClicked(goodName) {
         updateCount(goodName, (currentList[goodName] || 0) + 1)
     }
-    var goods = {
-        'metal': {},
-        'wood': {},'plastic': {},'seeds': {},'mineral': {},'chemical': {},
-        'toilet paper': {},
-        'sugar&spices': {},'glass': {},'animal feed': {},'nails': {},
-        'wood planks': {},
-        'bricks': {},'cement': {},'glue': {},'paint': {},'hammer': {},
-        'measuring tape': {},'shovel': {},
-        'utensils': {},'ladder': {},'vegetables': {},'flour': {},'fruit': {},
-        'cream': {},'chairs': {},
-        'tables': {},'grass': {},'trees': {},'outdoor furniture': {},
-        'reusable bags': {},
-        'beef': {},
-        'cherry cheesecake': {},
-        'donuts': {},'smoothes': {},'bread rolls': {},'corn': {},'cheese': {},'fabric': {},
-    };
     function makeShoppingList(e) {
         props.addShoppingList(currentList);
         setCurrentList({})
