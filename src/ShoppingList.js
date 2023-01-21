@@ -8,8 +8,9 @@ function ShoppingList(props) {
                 } else {
                     return props.list[key] + " " + key;
                 }
-            }).join(" and ")
+            }).join(" and ") + " start: " + props.start + " end: " + props.end
             }
+            <button onClick={() => props.removeStorage(props.list)}>done</button>
         </div>
     )
 }
