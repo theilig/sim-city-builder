@@ -4,7 +4,7 @@ import ShoppingList from './ShoppingList';
 import {addOrder} from "./Production";
 import OperationList from "./OperationList";
 import React, { useState } from 'react';
-import goods from "./Production"
+import buildingLimits from "./Production"
 import Storage from "./Storage";
 
 function getLength(operations) {
@@ -25,33 +25,51 @@ function App() {
   const [expectedTimes, setExpectedTimes] = useState([])
   const [inStorage, setInStorage] = useState({})
   const [runningOperations, setRunningOperations] = useState({})
-  function startOperation(operation, building) {
-    let newRunning = {...runningOperations}
+  function startOperation(operation) {
+    const building = operation.building
+    let newRunning = cloneOperations(runningOperations)
     if (newRunning[building] === undefined) {
       newRunning[building] = [operation]
     } else {
       newRunning[building].push(operation)
     }
     delete operation.nonce
+    operation.slideTime = 0
     operation.runningId = newRunning[building].length - 1
+    let startTime = 0
+    let buildingLimit = buildingLimits[operation.building] || 1
+    if (buildingLimit === 1 && runningOperations[building]) {
+      runningOperations[building].forEach(op => startTime = op.end)
+    }
+    operation.start = startTime
+    operation.end = operation.duration + operation.start
     setRunningOperations(newRunning)
-    calculateOperations(shoppingLists, newRunning)
+    const newStorage = removeStorage(operation.ingredients)
+    calculateOperations(shoppingLists, newRunning, newStorage)
   }
 
-  function finishOperation(operation, building) {
-    let newRunning = {...runningOperations}
+  function finishOperation(operation) {
+    const building = operation.building
+    let newRunning = cloneOperations(runningOperations)
     let buildingOperations = []
+    let startTime = 0
+    let buildingLimit = buildingLimits[operation.building] || 1
     runningOperations[building].forEach(op => {
       if (op.runningId !== operation.runningId) {
         buildingOperations.push(op)
+        if (buildingLimit === 1) {
+          op.start = startTime
+          op.end = op.start + op.duration
+          startTime = op.end
+        }
       }
     })
     let newGoods = {}
     newGoods[operation.name] = 1
-    addStorage(newGoods)
+    const newInStorage = addStorage(newGoods)
     newRunning[building] = buildingOperations
     setRunningOperations(newRunning)
-    calculateOperations(shoppingLists, newRunning)
+    calculateOperations(shoppingLists, newRunning, newInStorage)
   }
 
   function addStorage(goods) {
@@ -67,6 +85,8 @@ function App() {
       }
     })
     setInStorage(newInStorage)
+    calculateOperations(shoppingLists, runningOperations, newInStorage)
+    return newInStorage
   }
 
   function removeStorage(goods) {
@@ -80,13 +100,17 @@ function App() {
       }
     })
     setInStorage(newInStorage)
+    calculateOperations(shoppingLists, runningOperations, newInStorage)
+    return newInStorage
   }
 
 
   function removeShoppingList(index) {
     let newShoppingLists = [...shoppingLists]
+    const newStorage = removeStorage(shoppingLists[index])
     newShoppingLists.splice(index, 1)
     setShoppingLists(newShoppingLists)
+    calculateOperations(newShoppingLists, runningOperations, newStorage)
   }
 
   function addShoppingList(goodsNeeded) {
@@ -95,25 +119,30 @@ function App() {
     }
     let newShoppingLists = [...shoppingLists]
     newShoppingLists.push(goodsNeeded);
-    calculateOperations(newShoppingLists, runningOperations)
+    calculateOperations(newShoppingLists, runningOperations, inStorage)
   }
 
-  function calculateOperations(shoppingLists, running) {
-    let totalOperations = {...running}
-    let remainingStorage = {...inStorage}
+  function cloneOperations(operations) {
+    return JSON.parse(JSON.stringify(operations))
+  }
+
+  function calculateOperations(shoppingLists, running, storage) {
+    let totalOperations = cloneOperations(running)
+    let remainingStorage = {...storage}
     shoppingLists.sort((a, b) => {
-      const aOps = addOrder(a, {...running}, inStorage)
-      const bOps = addOrder(b, {...running}, inStorage)
+      const aOps = addOrder(a, cloneOperations(running), 0, storage, cloneOperations(running))
+      const bOps = addOrder(b, cloneOperations(running), 0, storage, cloneOperations(running))
       return aOps['timeOfCompletion'] - bOps['timeOfCompletion']
     })
     setShoppingLists(shoppingLists)
+    let newExpectedTimes = []
     shoppingLists.forEach((list, index) => {
-      const result = addOrder(list, totalOperations, index, remainingStorage)
+      const result = addOrder(list, totalOperations, index, remainingStorage, cloneOperations(running))
       totalOperations = result['operations']
       remainingStorage = result['remainingStorage']
+      newExpectedTimes[index] = {start: 0, end: 0} // will get populated below unless all items are in storage
     })
     setOperationList(totalOperations)
-    let newExpectedTimes = []
     Object.keys(totalOperations).forEach(building => {
       totalOperations[building].forEach(op => {
         const current = newExpectedTimes[op['priority']]
@@ -139,6 +168,7 @@ function App() {
       <GoodsList addShoppingList={addShoppingList} addStorage={addStorage} removeStorage={removeStorage}/>
       {shoppingLists.map((list, index) =>
           <ShoppingList list={list} key={index} index={index}
+                        remove={() => removeShoppingList(index)}
                         start={expectedTimes[index]['start']}
                         end={expectedTimes[index]['end']}
                         removeStorage={removeStorage}

@@ -10,7 +10,7 @@ function ShoppingList(props) {
                 }
             }).join(" and ") + " start: " + props.start + " end: " + props.end
             }
-            <button onClick={() => props.removeStorage(props.list)}>done</button>
+            <button onClick={() => props.remove()}>done</button>
         </div>
     )
 }

@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
 import Operation from "./Operation";
 function Building(props) {
-    const pipeline = props.pipeline.sort((a, b) => {
-        return a.start - b.start
-    })
     return (<div style={{display: "flex", flexDirection: "column"}}>
         <table>
             <thead>
@@ -12,7 +9,7 @@ function Building(props) {
                 </tr>
             </thead>
             <tbody>
-                {pipeline.map((op, index) => {
+                {props.pipeline.map((op, index) => {
                     return (
                         <Operation operation={op} key={index}
                             startOp={props.startOp} finishOp={props.finishOp} building={props.name} />

@@ -3,24 +3,24 @@ const buildingLimits = {
     'Green Factory': 5
 }
 const goods = {
-    'metal': {'ingredients': {}, 'duration': 60, 'building': 'Factory'},
-    'wood': {'ingredients': {}, 'duration': 180, 'building': 'Factory'},
-    'plastic': {'ingredients': {}, 'duration': 540, 'building': 'Factory'},
-    'seeds': {'ingredients': {}, 'duration': 1200, 'building': 'Factory'},
-    'minerals': {'ingredients': {}, 'duration': 1800, 'building': 'Factory'},
-    'chemicals': {'ingredients': {}, 'duration': 7200, 'building': 'Factory'},
-    'toilet paper rolls': {'ingredients': {}, 'duration': 10800, 'building': 'Factory'},
-    'sugar&spices': {'ingredients': {}, 'duration': 14400, 'building': 'Factory'},
-    'glass': {'ingredients': {}, 'duration': 18000, 'singular': 'glass', 'building': 'Factory'},
-    'animal feed': {'ingredients': {}, 'duration': 21600, 'building': 'Factory'},
-    'nails': {'ingredients': {'metal': 2}, 'duration': 270, 'building': 'Building Supplies Store'},
-    'wood planks': {'ingredients': {'wood': 2}, 'duration': 1620, 'building': 'Building Supplies Store'},
-    'bricks': {'ingredients': {'minerals': 2}, 'duration': 1080, 'building': 'Building Supplies Store'},
-    'cement': {'ingredients': {'minerals': 2, 'chemicals': 1}, 'duration': 2700, 'building': 'Building Supplies Store'},
-    'glue': {'ingredients': {'plastic': 1, 'chemicals': 2}, 'duration': 3240, 'building': 'Building Supplies Store'},
-    'paint': {'ingredients': {'plastic': 1, 'chemicals': 2}, 'duration': 3240, 'building': 'Building Supplies Store'},
-    'hammers': {'ingredients': {'metal': 1, 'wood': 1}, 'duration': 756, 'building': 'Hardware Store'},
-    'measuring tapes': {'ingredients': {'plastic': 1, 'metal': 1}, 'duration': 1080, 'building': 'Hardware Store'},
+    metal: {ingredients: {}, duration: 60, building: 'Factory'},
+    wood: {ingredients: {}, duration: 180, building: 'Factory'},
+    plastic: {ingredients: {}, duration: 540, building: 'Factory'},
+    seeds: {ingredients: {}, duration: 1200, building: 'Factory'},
+    minerals: {ingredients: {}, duration: 1800, building: 'Factory'},
+    chemicals: {ingredients: {}, duration: 7200, building: 'Factory'},
+    'toilet paper rolls': {ingredients: {}, duration: 10800, building: 'Factory'},
+    'sugar&spices': {ingredients: {}, duration: 14400, building: 'Factory'},
+    glass: {ingredients: {}, duration: 18000, singular: 'glass', building: 'Factory'},
+    'animal feed': {ingredients: {}, duration: 21600, building: 'Factory'},
+    nails: {ingredients: {metal: 2}, duration: 270, building: 'Building Supplies Store'},
+    'wood planks': {ingredients: {wood: 2}, duration: 1620, building: 'Building Supplies Store'},
+    bricks: {ingredients: {minerals: 2}, duration: 1080, building: 'Building Supplies Store'},
+    cement: {ingredients: {minerals: 2, chemicals: 1}, duration: 2700, building: 'Building Supplies Store'},
+    glue: {ingredients: {plastic: 1, chemicals: 2}, duration: 3240, building: 'Building Supplies Store'},
+    paint: {ingredients: {plastic: 1, chemicals: 2}, duration: 3240, building: 'Building Supplies Store'},
+    hammers: {ingredients: {metal: 1, wood: 1}, duration: 756, building: 'Hardware Store'},
+    'measuring tapes': {ingredients: {plastic: 1, metal: 1}, duration: 1080, building: 'Hardware Store'},
     'shovels': {'ingredients': {'plastic': 1, 'metal': 1, 'wood': 1}, 'duration': 1620, 'building': 'Hardware Store'},
     'utensils': {'ingredients': {'plastic': 2, 'metal': 2, 'wood': 2}, 'duration': 2430, 'building': 'Hardware Store'},
     'ladders': {'ingredients': {'metal': 2, 'wood planks': 2}, 'duration': 3240, 'building': 'Hardware Store'},
@@ -44,15 +44,18 @@ const goods = {
     'bread rolls': {'ingredients': {'flour': 2, 'cream': 1}, 'duration': 3600, 'building': 'Donut Shop'},
     'cherry cheesecake slices': {'ingredients': {'flour': 1, 'fruit': 1, 'cheese': 1}, 'duration': 5400, 'building': 'Donut Shop'},
     'frozen yogurts': {'ingredients': {'fruit': 1, 'cream': 1, 'sugar&spices': 1}, 'duration': 14400, 'building': 'Donut Shop'},
-    'baseball cap': {'ingredients': {'toilet paper rolls': 2, 'measuring tape': 1}, 'duration': 3600, 'building': 'Fashion Store'},
+    'baseball caps': {'ingredients': {'toilet paper rolls': 2, 'measuring tapes': 1}, 'duration': 3600, 'building': 'Fashion Store'},
     'red shoes': {'ingredients': {'plastic': 1, 'glue': 1, 'toilet paper rolls': 1}, 'duration': 4500, 'building': 'Fashion Store'},
-    'watch': {'ingredients': {'plastic': 2, 'glass': 1, 'chemical': 1}, 'duration': 5400, 'building': 'Fashion Store'},
+    'watches': {singular: 'watch', 'ingredients': {'plastic': 2, 'glass': 1, chemicals: 1}, 'duration': 5400, 'building': 'Fashion Store'},
     'fabric': {'ingredients': {}, 'duration': 360, 'building': 'Green Factory'},
     'reusable bags': {'ingredients': {'fabric': 2}, 'duration': 1200, 'building': 'Eco Shop'},
-    'ice cream sandwiches': {'singular': 'ice cream sandwich', 'ingredients': {'bread roll': 1, 'cream': 1}, 'duration': 840, 'building': 'Fast Food Restaurant'},
+    'ice cream sandwiches': {'singular': 'ice cream sandwich', 'ingredients': {'bread rolls': 1, 'cream': 1}, 'duration': 840, 'building': 'Fast Food Restaurant'},
 };
 
 function canSlide(currentOperation, amount, nonceRegistry) {
+    if (currentOperation.nonce === undefined || currentOperation.slideTime === undefined) {
+        return false
+    }
     for (let index = currentOperation.nonces.length; index > 0; index -= 1) {
         const nonce = currentOperation.nonces[index - 1]
         if (nonceRegistry[nonce].slideTime > amount) {
@@ -77,12 +80,18 @@ function getAvailableTime(operationList, earliest, duration, nonceRegistry) {
                 let slideIndex = index
                 while (slideSuccess && slideIndex < operationList.length) {
                     let slidingOperation = operationList[index]
-                    slideSuccess = canSlide(slidingOperation, slideAmount, nonceRegistry)
-                    slideIndex += 1
-                    if (slideIndex < operationList.length) {
-                        slideAmount = operationList[slideIndex].start - slidingOperation.end + slideAmount
-                        if (slideAmount <= 0) {
-                            slideIndex = operationList.length
+                    if (slidingOperation.slideTime === undefined) {
+                        slideSuccess = false
+                    } else {
+                        slideSuccess = canSlide(slidingOperation, slideAmount, nonceRegistry)
+                    }
+                    if (slideSuccess) {
+                        slideIndex += 1
+                        if (slideIndex < operationList.length) {
+                            slideAmount = operationList[slideIndex].start - slidingOperation.end + slideAmount
+                            if (slideAmount <= 0) {
+                                slideIndex = operationList.length
+                            }
                         }
                     }
                 }
@@ -190,15 +199,15 @@ function addOperation(operation, operations) {
     })
     if (!finalBuildingName) {
         finalBuildingName = buildingName
-        currentOperation['start'] += firstAvailableTime
-        currentOperation['end'] += firstAvailableTime
+        currentOperation['start'] = firstAvailableTime
+        currentOperation['end'] = firstAvailableTime + currentOperation['duration']
     }
     newOperations = insertOperation(operations, currentOperation, finalBuildingName)
     return newOperations
 }
 
-export function addOrder(order, operations, priority, remainingStorage, timeOffset = 0, nonces = []) {
-    let maxTimeOffset = timeOffset
+export function addOrder(order, operations, priority, remainingStorage, running, nonces = []) {
+    let maxTimeOffset = 0
     let goodsAdded = []
     if (operations['nonceRegistry'] === undefined) {
         operations['nonceRegistry'] = []
@@ -209,24 +218,43 @@ export function addOrder(order, operations, priority, remainingStorage, timeOffs
             if (localStorage[key] && localStorage[key] > 0) {
                 localStorage[key] -= 1
             } else {
-                let myNonces = []
-                if (nonces) {
-                    myNonces = [...nonces]
+                let foundRunning = undefined
+                Object.keys(running).forEach(building => {
+                    if (foundRunning === undefined) {
+                        let foundIndex = undefined
+                        running[building].forEach((op, index) => {
+                            if (foundIndex === undefined && op.name === key) {
+                                foundIndex = index
+                            }
+                        })
+                        if (foundIndex !== undefined) {
+                            foundRunning = running[building][foundIndex]
+                            running[building].splice(foundIndex, 1)
+                        }
+                    }
+                })
+                if (foundRunning) {
+                    goodsAdded.push(foundRunning)
+                } else {
+                    let myNonces = []
+                    if (nonces) {
+                        myNonces = [...nonces]
+                    }
+                    let good = {...goods[key]}
+                    myNonces.push(operations['nonceRegistry'].length)
+                    operations['nonceRegistry'].push(good)
+                    let result = addOrder(goods[key]['ingredients'], operations, priority, localStorage, running, myNonces)
+                    operations = result['operations']
+                    localStorage = result['storage']
+                    good['start'] = result['timeOfCompletion']
+                    good['end'] = result['timeOfCompletion'] + goods[key]['duration']
+                    good['name'] = key
+                    good['priority'] = priority
+                    good['nonces'] = myNonces;
+                    good['slideTime'] = 0
+                    goodsAdded.push(good)
+                    operations = addOperation(good, operations)
                 }
-                let good = {...goods[key]}
-                myNonces.push(operations['nonceRegistry'].length)
-                operations['nonceRegistry'].push(good)
-                let result = addOrder(goods[key]['ingredients'], operations, priority, localStorage, timeOffset, myNonces)
-                operations = result['operations']
-                localStorage = result['storage']
-                good['start'] = result['timeOfCompletion']
-                good['end'] = result['timeOfCompletion'] + goods[key]['duration']
-                good['name'] = key
-                good['priority'] = priority
-                good['nonces'] = myNonces;
-                good['slideTime'] = 0
-                goodsAdded.push(good)
-                operations = addOperation(good, operations)
             }
         }
     })
