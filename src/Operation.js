@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 function Operation(props) {
     function showButton() {
         if (props.operation.runningId !== undefined) {
@@ -10,7 +10,6 @@ function Operation(props) {
     return (
         <tr>
             <td style={{textAlign: "left"}}>{props.operation.name}</td>
-            <td style={{textAlign: "right"}}>{props.operation.start}</td>
             <td style={{textAlign: "right"}}>{props.operation.end}</td>
             <td>{showButton()}</td>
         </tr>

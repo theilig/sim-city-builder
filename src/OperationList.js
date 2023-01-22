@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Building from "./Building";
 function OperationList(props) {
     let combined = {}
@@ -8,7 +8,19 @@ function OperationList(props) {
             combined[alteredBuilding] = props.operations[building]
         } else {
             combined[alteredBuilding] = combined[alteredBuilding].concat(props.operations[building])
-            combined[alteredBuilding].sort((a, b) => a.start - b.start)
+            combined[alteredBuilding].sort((a, b) => {
+                if (a.start === b.start) {
+                    if (a.runningId === undefined) {
+                        return 1
+                    } else if (b.runningId === undefined) {
+                        return -1
+                    } else {
+                        return a.runningId - b.runningId
+                    }
+                } else {
+                    return a.start - b.start
+                }
+            })
         }
     })
     return (

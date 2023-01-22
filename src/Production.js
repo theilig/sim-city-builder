@@ -1,5 +1,5 @@
 const buildingLimits = {
-    'Factory': 15,
+    'Factory': 18,
     'Green Factory': 5
 }
 const goods = {
@@ -234,6 +234,7 @@ export function addOrder(order, operations, priority, remainingStorage, running,
                     }
                 })
                 if (foundRunning) {
+                    foundRunning.priorty = priority
                     goodsAdded.push(foundRunning)
                 } else {
                     let myNonces = []

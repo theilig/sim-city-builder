@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 function ShoppingList(props) {
     return (
         <div>
@@ -8,7 +8,7 @@ function ShoppingList(props) {
                 } else {
                     return props.list[key] + " " + key;
                 }
-            }).join(" and ") + " start: " + props.start + " end: " + props.end
+            }).join(" and ") + " ready in " + props.end + " seconds"
             }
             <button onClick={() => props.remove()}>done</button>
         </div>
