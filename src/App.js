@@ -3,21 +3,9 @@ import GoodsList from "./GoodsList.js";
 import ShoppingList from './ShoppingList';
 import {addOrder} from "./Production";
 import OperationList from "./OperationList";
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import buildingLimits from "./Production"
 import Storage from "./Storage";
-
-function getLength(operations) {
-  let maxEnd = 0
-  Object.keys(operations).forEach(building => {
-    operations[building].forEach(operation => {
-      if (operation['end'] > maxEnd) {
-        maxEnd = operation['end']
-      }
-    })
-  })
-  return maxEnd
-}
 
 function App() {
   const [shoppingLists, setShoppingLists] = useState([])
@@ -36,6 +24,7 @@ function App() {
     delete operation.nonce
     operation.slideTime = 0
     operation.runningId = newRunning[building].length - 1
+    operation.runTime = Date.now()
     let startTime = 0
     let buildingLimit = buildingLimits[operation.building] || 1
     if (buildingLimit === 1 && runningOperations[building]) {
@@ -122,44 +111,81 @@ function App() {
     calculateOperations(newShoppingLists, runningOperations, inStorage)
   }
 
-  function cloneOperations(operations) {
+  const cloneOperations = (operations) => {
     return JSON.parse(JSON.stringify(operations))
   }
 
-  function calculateOperations(shoppingLists, running, storage) {
-    let totalOperations = cloneOperations(running)
-    let remainingStorage = {...storage}
-    shoppingLists.sort((a, b) => {
+  const sortShoppingLists = (shoppingLists, running, storage) => {
+    let newLists = [...shoppingLists]
+    newLists.sort((a, b) => {
       const aOps = addOrder(a, cloneOperations(running), 0, storage, cloneOperations(running))
       const bOps = addOrder(b, cloneOperations(running), 0, storage, cloneOperations(running))
       return aOps['timeOfCompletion'] - bOps['timeOfCompletion']
     })
-    setShoppingLists(shoppingLists)
-    let newExpectedTimes = []
+    return newLists
+  }
+
+  // This function assumes lists are already priority sorted, and will pass the index as a priority to addOrder
+  const scheduleLists = useCallback((shoppingLists, fixedOperations, storage) => {
+    // the fixed operations serve two purposes, one is as a seed of the list of all operations running
+    // the second is a list of which ones are unassigned, and will mutate as orders grab them
+    let unassignedOperations = cloneOperations(fixedOperations)
+    let scheduledOperations = cloneOperations(fixedOperations)
+    let unassignedStorage = {...storage}
+
     shoppingLists.forEach((list, index) => {
-      const result = addOrder(list, totalOperations, index, remainingStorage, cloneOperations(running))
-      totalOperations = result['operations']
-      remainingStorage = result['remainingStorage']
-      newExpectedTimes[index] = {start: 0, end: 0} // will get populated below unless all items are in storage
+      const result = addOrder(list, scheduledOperations, index, unassignedStorage, unassignedOperations)
+      scheduledOperations = result['operations']
+      unassignedStorage = result['storage']
     })
-    setOperationList(totalOperations)
-    Object.keys(totalOperations).forEach(building => {
-      totalOperations[building].forEach(op => {
-        const current = newExpectedTimes[op['priority']]
-        if ( current === undefined) {
-          newExpectedTimes[op['priority']] = {'start': op['start'], 'end': op['end']}
-        } else {
-          if (current['start'] > op['start']) {
-            newExpectedTimes[op['priority']]['start'] = op['start']
-          }
-          if (current['end'] < op['end']) {
-            newExpectedTimes[op['priority']]['end'] = op['end']
-          }
+    return scheduledOperations
+  }, [])
+
+  const calculateExpectedTimes = (operations, numberOfLists) => {
+    let expectedTimes = Array(numberOfLists).fill(0)
+    Object.keys(operations).forEach(building => {
+      operations[building].forEach(operation => {
+        const current = expectedTimes[operation.priority]
+        if (current === undefined || current < operation.end) {
+          expectedTimes[operation.priority] = operation.end
         }
       })
     })
-    setExpectedTimes(newExpectedTimes)
+    return expectedTimes
   }
+
+  const calculateOperations = (shoppingLists, running, storage) => {
+    const newShoppingLists = sortShoppingLists(shoppingLists, running, storage)
+    setShoppingLists(newShoppingLists)
+    const newOperations = scheduleLists(newShoppingLists, running, storage)
+    setOperationList(newOperations)
+    setExpectedTimes(calculateExpectedTimes(newOperations, newShoppingLists.length))
+  }
+
+  useEffect(() => {
+    const updateRunning = () => {
+      let newRunning = cloneOperations(runningOperations)
+      Object.keys(newRunning).forEach(building => {
+        newRunning[building].forEach(op => {
+          const currentTime = Date.now()
+          op.end = Math.floor(op.end - (currentTime - op.runTime) / 1000)
+          if (op.end < 0) {
+            op.end = 0
+          }
+          op.runTime = currentTime
+        })
+      })
+      return newRunning
+    }
+    const interval = setInterval(() => {
+      const newRunning = updateRunning()
+      const newOperations = scheduleLists(shoppingLists, newRunning, inStorage)
+      setOperationList(newOperations)
+      setExpectedTimes(calculateExpectedTimes(newOperations, shoppingLists.length))
+      setRunningOperations(newRunning)
+    }, 10000)
+    return () => clearInterval(interval)
+  }, [scheduleLists, shoppingLists, inStorage, runningOperations])
 
   let visualOpList = {...operationList}
   delete visualOpList['nonceRegistry']
@@ -169,8 +195,7 @@ function App() {
       {shoppingLists.map((list, index) =>
           <ShoppingList list={list} key={index} index={index}
                         remove={() => removeShoppingList(index)}
-                        start={expectedTimes[index]['start']}
-                        end={expectedTimes[index]['end']}
+                        end={expectedTimes[index]}
                         removeStorage={removeStorage}
           />)}
       <OperationList key={"oplist"} operations={visualOpList} startOp={startOperation} finishOp={finishOperation} />
