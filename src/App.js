@@ -56,7 +56,11 @@ function App() {
     let newGoods = {}
     newGoods[operation.name] = 1
     const newInStorage = addStorage(newGoods)
-    newRunning[building] = buildingOperations
+    if (buildingOperations.length > 0) {
+      newRunning[building] = buildingOperations
+    } else {
+      delete newRunning[building]
+    }
     setRunningOperations(newRunning)
     calculateOperations(shoppingLists, newRunning, newInStorage)
   }

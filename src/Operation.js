@@ -1,5 +1,5 @@
 import React from 'react';
-import { displayName } from './Production';
+import { displayName, secondsToTime } from './Production';
 
 function Operation(props) {
     function showButton() {
@@ -12,7 +12,7 @@ function Operation(props) {
     return (
         <tr>
             <td style={{textAlign: "left"}}>{props.operation.count + " " + displayName(props.operation.name, props.operation.count)}</td>
-            <td style={{textAlign: "right"}}>{props.operation.end}</td>
+            <td style={{textAlign: "right"}}>{secondsToTime(props.operation.end)}</td>
             <td>{showButton()}</td>
         </tr>
     )

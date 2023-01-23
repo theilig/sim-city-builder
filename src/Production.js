@@ -53,6 +53,30 @@ const goods = {
     'pizzas': {'ingredients': [{'flour': 1}, {cheese: 1}, {beef: 1}], 'duration': 1440},
 };
 
+export function secondsToTime(timeInSeconds) {
+    const hours = Math.floor(timeInSeconds / 3600)
+    const minutes = Math.floor((timeInSeconds - hours * 3600) / 60)
+    const seconds = timeInSeconds - minutes * 60 - hours * 3600
+    
+    let timeString = ""
+    if (hours > 1) {
+        timeString = hours + " hrs "
+    } else if (hours === 1) {
+        timeString = hours + " hr "
+    }
+    if (minutes > 1) {
+        timeString += minutes + " mins "
+    } else if (minutes === 1) {
+        timeString += minutes + " min "
+    }
+    if (hours === 0 && seconds > 1) {
+        timeString += seconds + " secs"
+    } else if (hours === 0 && seconds === 1) {
+        timeString += seconds + " sec"
+    }
+    return timeString
+}
+
 export function displayName(key, count) {
     if (count === 1) {
         if (goods[key].singular) {
