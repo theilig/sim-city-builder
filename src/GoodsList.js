@@ -36,10 +36,10 @@ function GoodsList(props) {
                 <button onClick={makeShoppingList} style={{"display": "grid", "width": "100px", "backgroundColor":"goldenrod"}}>
                     make
                 </button>
-                <button onClick={addGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"goldenrod"}}>
+                <button onClick={addGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"aqua"}}>
                     have
                 </button>
-                <button onClick={removeGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"goldenrod"}}>
+                <button onClick={removeGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"rosybrown"}}>
                     gone
                 </button>
             </div>

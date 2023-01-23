@@ -1,4 +1,6 @@
 import React from 'react';
+import { displayName } from './Production';
+
 function Operation(props) {
     function showButton() {
         if (props.operation.runningId !== undefined) {
@@ -9,7 +11,7 @@ function Operation(props) {
     }
     return (
         <tr>
-            <td style={{textAlign: "left"}}>{props.operation.name}</td>
+            <td style={{textAlign: "left"}}>{props.operation.count + " " + displayName(props.operation.name, props.operation.count)}</td>
             <td style={{textAlign: "right"}}>{props.operation.end}</td>
             <td>{showButton()}</td>
         </tr>
