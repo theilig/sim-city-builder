@@ -10,7 +10,9 @@ function OperationList(props) {
             combined[alteredBuilding] = combined[alteredBuilding].concat(props.operations[building])
             combined[alteredBuilding].sort((a, b) => {
                 if (a.start === b.start) {
-                    if (a.runningId === undefined) {
+                    if (a.runningId === undefined && b.runningId === undefined) {
+                        return a.priority - b.priority
+                    } else if (a.runningId === undefined) {
                         return 1
                     } else if (b.runningId === undefined) {
                         return -1
