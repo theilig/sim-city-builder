@@ -9,6 +9,7 @@ import Storage from "./Storage";
 
 function App() {
   const [shoppingLists, setShoppingLists] = useState([])
+  const [loaded, setLoaded] = useState(false)
   const [operationList, setOperationList] = useState({})
   const [expectedTimes, setExpectedTimes] = useState([])
   const [inStorage, setInStorage] = useState({})
@@ -78,6 +79,7 @@ function App() {
       }
     })
     setInStorage(newInStorage)
+    localStorage.setItem("simStorage", JSON.stringify(newInStorage))
     calculateOperations(shoppingLists, runningOperations, newInStorage)
     return newInStorage
   }
@@ -93,6 +95,7 @@ function App() {
       }
     })
     setInStorage(newInStorage)
+    localStorage.setItem("simStorage", JSON.stringify(newInStorage))
     calculateOperations(shoppingLists, runningOperations, newInStorage)
     return newInStorage
   }
@@ -103,6 +106,7 @@ function App() {
     const newStorage = removeStorage(shoppingLists[index])
     newShoppingLists.splice(index, 1)
     setShoppingLists(newShoppingLists)
+    localStorage.setItem("simShoppingLists", JSON.stringify(newShoppingLists))
     calculateOperations(newShoppingLists, runningOperations, newStorage)
   }
 
@@ -112,6 +116,7 @@ function App() {
     }
     let newShoppingLists = [...shoppingLists]
     newShoppingLists.push(goodsNeeded);
+    localStorage.setItem("simShoppingLists", JSON.stringify(newShoppingLists))
     calculateOperations(newShoppingLists, runningOperations, inStorage)
   }
 
@@ -167,6 +172,20 @@ function App() {
   }
 
   useEffect(() => {
+    if (!loaded) {
+      const loadedShoppingLists = JSON.parse(localStorage.getItem("simShoppingLists"))
+      if (loadedShoppingLists) {
+        setShoppingLists(loadedShoppingLists)
+      }
+      const storage = JSON.parse(localStorage.getItem("simStorage"))
+      if (storage) {
+        setInStorage(storage)
+      }
+      const newOperations = scheduleLists(shoppingLists, {}, storage)
+      setOperationList(newOperations)
+      setExpectedTimes(calculateExpectedTimes(newOperations, loadedShoppingLists.length))
+      setLoaded(true)
+    }
     const updateRunning = () => {
       let newRunning = cloneOperations(runningOperations)
       Object.keys(newRunning).forEach(building => {
