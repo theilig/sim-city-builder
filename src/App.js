@@ -22,7 +22,6 @@ function App() {
     } else {
       newRunning[building].push(operation)
     }
-    delete operation.nonce
     operation.slideTime = 0
     operation.runningId = newRunning[building].length - 1
     operation.runTime = Date.now()
@@ -142,33 +141,36 @@ function App() {
     let scheduledOperations = cloneOperations(fixedOperations)
     let unassignedStorage = {...storage}
 
+    let opsByList = []
     shoppingLists.forEach((list, index) => {
       const result = addOrder(list, scheduledOperations, index, unassignedStorage, unassignedOperations)
-      scheduledOperations = result['operations']
+      scheduledOperations = result['allOperations']
       unassignedStorage = result['storage']
+      opsByList[index] = result['operationsForOrder']
     })
-    return scheduledOperations
+    return {operations: scheduledOperations, operationsByList: opsByList}
   }, [])
 
-  const calculateExpectedTimes = (operations, numberOfLists) => {
-    let expectedTimes = Array(numberOfLists).fill(0)
-    Object.keys(operations).forEach(building => {
-      operations[building].forEach(operation => {
-        const current = expectedTimes[operation.priority]
-        if (current === undefined || current < operation.end) {
-          expectedTimes[operation.priority] = operation.end
+  const calculateExpectedTimes = (operationsByList) => {
+    let expected = []
+    operationsByList.forEach((list, index) => {
+      expected[index] = 0
+      list.forEach(op => {
+        if (op.end > expected[index]) {
+          expected[index] = op.end
         }
       })
     })
-    return expectedTimes
+    return expected
   }
 
   const calculateOperations = (shoppingLists, running, storage) => {
     const newShoppingLists = sortShoppingLists(shoppingLists, running, storage)
     setShoppingLists(newShoppingLists)
-    const newOperations = scheduleLists(newShoppingLists, running, storage)
+    const result = scheduleLists(newShoppingLists, running, storage)
+    const newOperations = result.operations
     setOperationList(newOperations)
-    setExpectedTimes(calculateExpectedTimes(newOperations, newShoppingLists.length))
+    setExpectedTimes(calculateExpectedTimes(result.operationsByList))
   }
 
   useEffect(() => {
@@ -181,9 +183,10 @@ function App() {
       if (storage) {
         setInStorage(storage)
       }
-      const newOperations = scheduleLists(shoppingLists, {}, storage)
+      const result = scheduleLists(shoppingLists, {}, storage)
+      const newOperations = result.operations
       setOperationList(newOperations)
-      setExpectedTimes(calculateExpectedTimes(newOperations, loadedShoppingLists.length))
+      setExpectedTimes(calculateExpectedTimes(result.operationsByList))
       setLoaded(true)
     }
     const updateRunning = () => {
@@ -202,16 +205,16 @@ function App() {
     }
     const interval = setInterval(() => {
       const newRunning = updateRunning()
-      const newOperations = scheduleLists(shoppingLists, newRunning, inStorage)
+      const result = scheduleLists(shoppingLists, {}, inStorage)
+      const newOperations = result.operations
       setOperationList(newOperations)
-      setExpectedTimes(calculateExpectedTimes(newOperations, shoppingLists.length))
+      setExpectedTimes(calculateExpectedTimes(result.operationsByList))
       setRunningOperations(newRunning)
     }, 10000)
     return () => clearInterval(interval)
-  }, [scheduleLists, shoppingLists, inStorage, runningOperations])
+  }, [loaded, scheduleLists, shoppingLists, inStorage, runningOperations])
 
   let visualOpList = {...operationList}
-  delete visualOpList['nonceRegistry']
   return (
     <div>
       <GoodsList addShoppingList={addShoppingList} addStorage={addStorage} removeStorage={removeStorage}/>

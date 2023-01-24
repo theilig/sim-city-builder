@@ -11,7 +11,11 @@ function OperationList(props) {
             combined[alteredBuilding].sort((a, b) => {
                 if (a.start === b.start) {
                     if (a.runningId === undefined && b.runningId === undefined) {
-                        return a.priority - b.priority
+                        if (a.slideTime === b.slideTime) {
+                            return a.priority - b.priority
+                        } else {
+                            return a.slideTime - b.slideTime
+                        }
                     } else if (a.runningId === undefined) {
                         return 1
                     } else if (b.runningId === undefined) {
