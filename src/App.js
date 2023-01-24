@@ -109,7 +109,7 @@ function App() {
     calculateOperations(newShoppingLists, runningOperations, newStorage)
   }
 
-  function addShoppingList(goodsNeeded) {
+  function addShoppingList(goodsNeeded, region) {
     if (Object.keys(goodsNeeded).length === 0) {
       return;
     }
