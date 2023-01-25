@@ -1,59 +1,8 @@
+import goods from "./Goods.js"
 const buildingLimits = {
     'Factory': 18,
     'Green Factory': 5
 }
-const goods = {
-    'animal feed': {ingredients: {}, duration: 21600, building: 'Factory'},
-    'baseball caps': {ingredients: {'toilet paper rolls': 2, 'measuring tapes': 1}, duration: 3600, building: 'Fashion Store'},
-    beef: {ingredients: {'animal feed': 3}, duration: 8100, building: 'Farmer\'s Market'},
-    'bread rolls': {ingredients: {flour: 2, cream: 1}, duration: 3600, building: 'Donut Shop'},
-    bricks: {ingredients: {minerals: 2}, duration: 1080, building: 'Building Supplies Store'},
-    cement: {ingredients: {minerals: 2, chemicals: 1}, duration: 2700, building: 'Building Supplies Store'},
-    chairs: {ingredients: {nails: 1, hammers: 1, wood: 2}, duration: 1080, building: 'Furniture Store'},
-    cheese: {ingredients: {'animal feed': 2}, duration: 5640, building: 'Farmer\'s Market'},
-    chemicals: {ingredients: {}, duration: 7200, building: 'Factory'},
-    'cherry cheesecake slices': {ingredients: {flour: 1, fruit: 1, cheese: 1}, duration: 5400, building: 'Donut Shop'},
-    corn: {ingredients: {'minerals': 1, seeds: 4}, duration: 3240, building: 'Farmer\'s Market'},
-    cream: {ingredients: {'animal feed': 1}, duration: 4020, building: 'Farmer\'s Market'},
-    cupboard: {ingredients: {'wood planks': 2, 'glass': 2, 'paint': 1}, duration: 2430, building: 'Furniture Store'},
-    donuts: {ingredients: {flour: 1, 'sugar&spices': 1}, duration: 2700, building: 'Donut Shop'},
-    'electrical components': {ingredients: {}, duration: 25200, building: 'Factory'},
-    fabric: {ingredients: {}, duration: 360, building: 'Green Factory'},
-    'fire pits': {ingredients: {'bricks': 2, 'shovels': 1, 'cement': 2}, duration: 14400, building: 'Gardening Supplies'},
-    flour: {ingredients: {seeds: 2, 'toilet paper rolls': 2}, duration: 1620, building: 'Farmer\'s Market'},
-    trees: {ingredients: {seeds: 2, shovels: 1}, duration: 5400, building: 'Gardening Supplies'},
-    'frozen yogurts': {ingredients: {fruit: 1, cream: 1, 'sugar&spices': 1}, duration: 14400, building: 'Donut Shop'},
-    fruit: {ingredients: {seeds: 2, trees: 1}, duration: 4860, building: 'Farmer\'s Market'},
-    glass: {ingredients: {}, duration: 18000, singular: 'glass', building: 'Factory'},
-    glue: {ingredients: {plastic: 1, chemicals: 2}, duration: 3240, building: 'Building Supplies Store'},
-    grass: {'singular': 'grass', ingredients: {seeds: 1, 'shovels': 1}, duration: 1800, building: 'Gardening Supplies'},
-    hammers: {ingredients: {metal: 1, wood: 1}, duration: 756, building: 'Hardware Store'},
-    'ice cream sandwiches': {'singular': 'ice cream sandwich', ingredients: {'bread rolls': 1, cream: 1}, 'duration': 840, building: 'Fast Food Restaurant'},
-    'kitchen/bathroom tiles': {ingredients: {'toilet paper rolls': 2, 'measuring tapes': 2}, duration: 4020, building: 'Furniture Store'},
-    ladders: {ingredients: {metal: 2, 'wood planks': 2}, duration: 3240, building: 'Hardware Store'},
-    'measuring tapes': {ingredients: {plastic: 1, metal: 1}, duration: 1080, building: 'Hardware Store'},
-    metal: {ingredients: {}, duration: 60, building: 'Factory'},
-    minerals: {ingredients: {}, duration: 1800, building: 'Factory'},
-    nails: {ingredients: {metal: 2}, duration: 270, building: 'Building Supplies Store'},
-    'outdoor furniture': {ingredients: {plastic: 2, 'toilet paper rolls': 2, 'wood planks': 2}, duration: 8100, building: 'Gardening Supplies'},
-    paint: {ingredients: {plastic: 1, chemicals: 2}, duration: 3240, building: 'Building Supplies Store'},
-    pizzas: {ingredients: [{flour: 1}, {cheese: 1}, {beef: 1}], duration: 1440},
-    plastic: {ingredients: {}, duration: 540, building: 'Factory'},
-    'red shoes': {ingredients: {plastic: 1, glue: 1, 'toilet paper rolls': 1}, duration: 4500, building: 'Fashion Store'},
-    'reusable bags': {ingredients: {fabric: 2}, duration: 1200, building: 'Eco Shop'},
-    seeds: {ingredients: {}, duration: 1200, building: 'Factory'},
-    shovels: {ingredients: {plastic: 1, metal: 1, wood: 1}, duration: 1620, building: 'Hardware Store'},
-    'smoothies': {ingredients: {vegetables: 1, fruit: 1}, duration: 1800, building: 'Donut Shop'},
-    'sugar&spices': {ingredients: {}, duration: 14400, building: 'Factory'},
-    tables: {ingredients: {'wood planks': 1, nails: 2, hammers: 1}, duration: 1620, building: 'Furniture Store'},
-    'toilet paper rolls': {ingredients: {}, duration: 10800, building: 'Factory'},
-    utensils: {ingredients: {plastic: 2, metal: 2, wood: 2}, duration: 2430, building: 'Hardware Store'},
-    vegetables: {ingredients: {seeds: 2}, duration: 1080, building: 'Farmer\'s Market'},
-    watches: {singular: 'watch', ingredients: {plastic: 2, glass: 1, chemicals: 1}, duration: 5400, building: 'Fashion Store'},
-    wood: {ingredients: {}, duration: 180, building: 'Factory'},
-    'wood planks': {ingredients: {wood: 2}, duration: 1620, building: 'Building Supplies Store'},
-};
-
 export function secondsToTime(timeInSeconds) {
     const hours = Math.floor(timeInSeconds / 3600)
     const minutes = Math.floor((timeInSeconds - hours * 3600) / 60)
@@ -225,7 +174,7 @@ export function addOrder(order, operations, priority, remainingStorage, running)
     let existingOperations = []
     let localStorage = {...remainingStorage}
     Object.keys(order).forEach(key => {
-        for (let i=0; i < order[key]; i+=1) {
+        for (let i=0; i < order[key]; i += 1) {
             if (localStorage[key] && localStorage[key] > 0) {
                 localStorage[key] -= 1
                 existingOperations.push({name: key, end: 0, start: 0, slideTime: 0, fromStorage: true})
@@ -249,7 +198,6 @@ export function addOrder(order, operations, priority, remainingStorage, running)
                     foundRunning.priority = priority
                     childOperations[goodsAdded.length] = []
                     goodsAdded.push(foundRunning)
-                    existingOperations.push(foundRunning)
                 } else {
                     let good = {...goods[key]}
                     let result = addOrder(goods[key]['ingredients'], operations, priority, localStorage, running)

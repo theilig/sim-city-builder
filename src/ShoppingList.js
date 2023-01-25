@@ -6,10 +6,16 @@ function ShoppingList(props) {
         timeString = " now"
     }
 
+    let style = {color: "purple"}
+    if (props.list.region === 'Design') {
+        style = {color: "blue"}
+    } else if (props.list.region === 'Green Valley') {
+        style = {color: "green"}
+    }
     return (
-        <div>
-            {"You want " + Object.keys(props.list).map(key =>{
-                return props.list[key] + " " + displayName(key, props.list[key])
+        <div style={style}>
+            {"You want " + Object.keys(props.list.items).map(key =>{
+                return props.list.items[key] + " " + displayName(key, props.list.items[key])
             }).join(" and ") + " ready" + timeString
             }
             <button onClick={() => props.remove()}>done</button>

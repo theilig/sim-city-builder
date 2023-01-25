@@ -65,7 +65,32 @@ function App() {
     calculateOperations(shoppingLists, newRunning, newInStorage)
   }
 
-  function addStorage(goods) {
+  // in case you hit have instead of hitting done below
+  function haveStorage(goods) {
+    let newRunning = {...runningOperations}
+    Object.keys(goods).forEach((good) => {
+      let remainingToFind = goods[good]
+      if (newRunning[good.building !== undefined]) {
+        let remainingRunningInBuilding = []
+        newRunning[good.building].forEach(op => {
+          if (remainingToFind > 0 && op.name === good) {
+            remainingToFind -= 1
+          } else {
+            remainingRunningInBuilding.push(op)
+          }
+        })
+        newRunning[good.building] = remainingRunningInBuilding
+      }
+    })
+    setRunningOperations(newRunning)
+    addStorage(goods, newRunning)
+  }
+
+  function addStorage(goods, newRunning = undefined) {
+    if (newRunning === undefined) {
+      newRunning = runningOperations
+    }
+
     let newInStorage = {...inStorage}
     Object.keys(goods).forEach((good) => {
       if (newInStorage[good] === undefined) {
@@ -79,7 +104,8 @@ function App() {
     })
     setInStorage(newInStorage)
     localStorage.setItem("simStorage", JSON.stringify(newInStorage))
-    calculateOperations(shoppingLists, runningOperations, newInStorage)
+    setRunningOperations(newRunning)
+    calculateOperations(shoppingLists, newRunning, newInStorage)
     return newInStorage
   }
 
@@ -102,7 +128,7 @@ function App() {
 
   function removeShoppingList(index) {
     let newShoppingLists = [...shoppingLists]
-    const newStorage = removeStorage(shoppingLists[index])
+    const newStorage = removeStorage(shoppingLists[index].items)
     newShoppingLists.splice(index, 1)
     setShoppingLists(newShoppingLists)
     localStorage.setItem("simShoppingLists", JSON.stringify(newShoppingLists))
@@ -114,7 +140,7 @@ function App() {
       return;
     }
     let newShoppingLists = [...shoppingLists]
-    newShoppingLists.push(goodsNeeded);
+    newShoppingLists.push({items: goodsNeeded, region: region});
     localStorage.setItem("simShoppingLists", JSON.stringify(newShoppingLists))
     calculateOperations(newShoppingLists, runningOperations, inStorage)
   }
@@ -126,8 +152,8 @@ function App() {
   const sortShoppingLists = (shoppingLists, running, storage) => {
     let newLists = [...shoppingLists]
     newLists.sort((a, b) => {
-      const aOps = addOrder(a, cloneOperations(running), 0, storage, cloneOperations(running))
-      const bOps = addOrder(b, cloneOperations(running), 0, storage, cloneOperations(running))
+      const aOps = addOrder(a.items, cloneOperations(running), 0, storage, cloneOperations(running))
+      const bOps = addOrder(b.items, cloneOperations(running), 0, storage, cloneOperations(running))
       return aOps['timeOfCompletion'] - bOps['timeOfCompletion']
     })
     return newLists
@@ -143,7 +169,7 @@ function App() {
 
     let opsByList = []
     shoppingLists.forEach((list, index) => {
-      const result = addOrder(list, scheduledOperations, index, unassignedStorage, unassignedOperations)
+      const result = addOrder(list.items, scheduledOperations, index, unassignedStorage, unassignedOperations)
       scheduledOperations = result['allOperations']
       unassignedStorage = result['storage']
       opsByList[index] = result['operationsForOrder']
@@ -205,7 +231,7 @@ function App() {
     }
     const interval = setInterval(() => {
       const newRunning = updateRunning()
-      const result = scheduleLists(shoppingLists, {}, inStorage)
+      const result = scheduleLists(shoppingLists, newRunning, inStorage)
       const newOperations = result.operations
       setOperationList(newOperations)
       setExpectedTimes(calculateExpectedTimes(result.operationsByList))
@@ -217,7 +243,8 @@ function App() {
   let visualOpList = {...operationList}
   return (
     <div>
-      <GoodsList addShoppingList={addShoppingList} addStorage={addStorage} removeStorage={removeStorage}/>
+      <Storage key={"storage"} goods={inStorage} />
+      <GoodsList addShoppingList={addShoppingList} addStorage={haveStorage} removeStorage={removeStorage}/>
       {shoppingLists.map((list, index) =>
           <ShoppingList list={list} key={index} index={index}
                         remove={() => removeShoppingList(index)}
@@ -225,7 +252,6 @@ function App() {
                         removeStorage={removeStorage}
           />)}
       <OperationList key={"oplist"} operations={visualOpList} startOp={startOperation} finishOp={finishOperation} />
-      <Storage key={"storage"} goods={inStorage} />
     </div>
   )
 }
