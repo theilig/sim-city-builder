@@ -6,11 +6,11 @@ function ShoppingList(props) {
         timeString = " now"
     }
 
-    let style = {color: "purple"}
+    let style = {color: "#6699ff"}
     if (props.list.region === 'Design') {
-        style = {color: "blue"}
+        style = {color: "khaki"}
     } else if (props.list.region === 'Green Valley') {
-        style = {color: "green"}
+        style = {color: "greenyellow"}
     }
     return (
         <div style={style}>
