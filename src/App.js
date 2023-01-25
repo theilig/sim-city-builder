@@ -151,12 +151,31 @@ function App() {
 
   const sortShoppingLists = (shoppingLists, running, storage) => {
     let newLists = [...shoppingLists]
-    newLists.sort((a, b) => {
-      const aOps = addOrder(a.items, cloneOperations(running), 0, storage, cloneOperations(running))
-      const bOps = addOrder(b.items, cloneOperations(running), 0, storage, cloneOperations(running))
-      return aOps['timeOfCompletion'] - bOps['timeOfCompletion']
+    let buildingsStarted = []
+    let cumulativeStartTime = []
+    let priorityKeys = []
+    newLists.forEach((list, index) => {
+      buildingsStarted[index] = 0
+      cumulativeStartTime[index] = 0
+      const ops = addOrder(list.items, cloneOperations(running), 0, storage, cloneOperations(running))
+      Object.keys(ops).forEach(building => {
+        if (!building.includes('Factory') && ops[building].length > 0) {
+          buildingsStarted[index] += 1
+          cumulativeStartTime[index] += ops[building][0].start
+        }
+      })
+      priorityKeys.push(index)
     })
-    return newLists
+    priorityKeys.sort((a, b) => {
+      if (buildingsStarted[a] !== buildingsStarted[b]) {
+        return buildingsStarted[b] - buildingsStarted[a]
+      } else {
+        return cumulativeStartTime[a] - cumulativeStartTime[b]
+      }
+    })
+    const sortedList = []
+    priorityKeys.forEach(key => sortedList.push(newLists[key]))
+    return sortedList
   }
 
   // This function assumes lists are already priority sorted, and will pass the index as a priority to addOrder
@@ -220,7 +239,7 @@ function App() {
       Object.keys(newRunning).forEach(building => {
         newRunning[building].forEach(op => {
           const currentTime = Date.now()
-          op.end = Math.floor(op.end - (currentTime - op.runTime) / 1000)
+          op.end = Math.round(op.end - (currentTime - op.runTime) / 1000)
           if (op.end < 0) {
             op.end = 0
           }

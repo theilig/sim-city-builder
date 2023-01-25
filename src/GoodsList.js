@@ -26,9 +26,9 @@ function GoodsList(props) {
         setCurrentList({})
     }
     const buildingStyles = {
-        'Factory': {width: '306px'}, 'Building Supplies Store': {width: "207px"}, 'Hardware Store': {width: '256px'}, 
-        'Farmer\'s Market': {width: '226px'}, 'Furniture Store': {width: "234px"}, 'Gardening Supply Store': {},
-        'Donut Shop': {width: '281px'}, 'Fashion Store': {}, 'Fast Food Restaurant': {}, 
+        'Factory': {width: '306px'}, 'Building Supplies Store': {width: "207px"}, 'Hardware Store': {width: '256px'},
+        'Farmer\'s Market': {width: '226px'}, 'Furniture Store': {width: "234px"}, 'Gardening Supplies': {},
+        'Donut Shop': {width: '281px'}, 'Fashion Store': {}, 'Fast Food Restaurant': {},
         'Eco Shop': {}, 'Green Factory': {}
     }
     return (
