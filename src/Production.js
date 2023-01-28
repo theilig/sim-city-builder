@@ -1,6 +1,6 @@
 import goods from "./Goods.js"
 const buildingLimits = {
-    'Factory': 18,
+    'Factory': 22,
     'Green Factory': 5
 }
 export function secondsToTime(timeInSeconds) {
@@ -124,6 +124,15 @@ function insertOperation(operations, operation, building) {
     }
     newOperations[building] = newPipeline
     return newOperations
+}
+
+export function createOperation(goodName) {
+    let good = {...goods[goodName]}
+    good['start'] = 0
+    good['end'] = goods[goodName]['duration']
+    good['name'] = goodName
+    good['slideTime'] = 0
+    return good
 }
 
 function addOperation(operation, operations) {

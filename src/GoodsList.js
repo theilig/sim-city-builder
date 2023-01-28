@@ -21,6 +21,11 @@ function GoodsList(props) {
         props.removeStorage(currentList)
         setCurrentList({})
     }
+
+    function makeGoods() {
+        props.makeGoods(currentList)
+        setCurrentList({})
+    }
     function makeShoppingList(region) {
         props.addShoppingList(currentList, region);
         setCurrentList({})
@@ -61,6 +66,12 @@ function GoodsList(props) {
                 </button>
                 <button onClick={removeGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"rosybrown"}}>
                     gone
+                </button>
+                <button onClick={makeGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"rosybrown"}}>
+                    make goods
+                </button>
+                <button onClick={props.clear} style={{"display": "grid", "width": "100px", "backgroundColor":"rosybrown"}}>
+                    clear
                 </button>
             </div>
         </div>

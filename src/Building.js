@@ -2,22 +2,23 @@ import React from 'react';
 import Operation from "./Operation";
 function Building(props) {
     let visualPipeline = []
+    let combiners = {}
     props.pipeline.forEach(op => {
-        let compress = false
-        let last = visualPipeline.length - 1
-        if (last >= 0 && op.name === visualPipeline[last].name) {
-            let lastOp = visualPipeline[last]
-            if (lastOp.runningId !== undefined && op.runningId !== undefined) {
-                compress = true
-            } else if (lastOp.runningId === op.runningId) {
-                compress = true
-            }
-        }
-        if (compress) {
-            visualPipeline[last].count += 1
+        let canCombine = true
+        if (combiners[op.name] !== undefined) {
+            let combiningOp = combiners[op.name]
+            canCombine = canCombine && !(combiningOp.start <= 0 && op.start > 0)
+            canCombine = canCombine && !(combiningOp.runningId !== undefined && op.runningId === undefined)
+            canCombine = canCombine && !(combiningOp.runningId === undefined && op.runningId !== undefined)
         } else {
-            visualPipeline.push(op)
+            canCombine = false
+        }
+        if (canCombine) {
+            combiners[op.name].count += 1
+        } else {
             op.count = 1
+            visualPipeline.push(op)
+            combiners[op.name] = op
         }
     })
     return (<div style={{display: "flex", flexDirection: "column"}}>

@@ -16,6 +16,9 @@ function Operation(props) {
     if (props.operation.slideTime === 0 && props.operation.start === 0 && props.operation.runningId === undefined) {
         style = {boxShadow: "0px 0px 0px 3px rgb(255, 0, 0)"}
     }
+    if (props.operation.start === 0 && props.operation.runningId === undefined) {
+        style = {boxShadow: "0px 0px 0px 3px rgb(255, 255, 0)"}
+    }
 
     return (
         <tr style={style}>

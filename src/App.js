@@ -1,7 +1,7 @@
 import './App.css';
 import GoodsList from "./GoodsList.js";
 import ShoppingList from './ShoppingList';
-import {addOrder} from "./Production";
+import {addOrder, createOperation} from "./Production";
 import OperationList from "./OperationList";
 import React, { useState, useEffect, useCallback } from 'react';
 import buildingLimits from "./Production"
@@ -14,27 +14,70 @@ function App() {
   const [expectedTimes, setExpectedTimes] = useState([])
   const [inStorage, setInStorage] = useState({})
   const [runningOperations, setRunningOperations] = useState({})
-  function startOperation(operation) {
+
+  function clear() {
+    setShoppingLists([])
+    setOperationList({})
+    setRunningOperations({})
+    setInStorage({})
+  }
+
+  function addToRunning(operation, running) {
     const building = operation.building
-    let newRunning = cloneOperations(runningOperations)
-    if (newRunning[building] === undefined) {
-      newRunning[building] = [operation]
+    let buildingLimit = buildingLimits[operation.building] || 1
+    let startTime = 0
+    if (running[building] === undefined) {
+      running[building] = [operation]
     } else {
-      newRunning[building].push(operation)
+      if (buildingLimit === 1 && running[building].length > 0) {
+        startTime = running[building][running[building].length - 1].end
+      }
+      running[building].push(operation)
     }
     operation.slideTime = 0
-    operation.runningId = newRunning[building].length - 1
+    operation.runningId = running[building].length
     operation.runTime = Date.now()
-    let startTime = 0
-    let buildingLimit = buildingLimits[operation.building] || 1
-    if (buildingLimit === 1 && runningOperations[building]) {
-      runningOperations[building].forEach(op => startTime = op.end)
-    }
     operation.start = startTime
     operation.end = operation.duration + operation.start
-    setRunningOperations(newRunning)
-    const newStorage = removeStorage(operation.ingredients)
-    calculateOperations(shoppingLists, newRunning, newStorage)
+  }
+
+  function removeStorageOrRunning(itemsNeeded, storage, running) {
+    let pulledFromStorage = {}
+    Object.keys(itemsNeeded).forEach((good) => {
+      const op = createOperation(good)
+      let needToRemove = itemsNeeded[good]
+      if (storage[good] !== undefined) {
+        needToRemove -= storage[good]
+        pulledFromStorage[good] = Math.min(storage[good], itemsNeeded[good])
+      }
+      if (needToRemove > 0) {
+        Object.keys(running).forEach(building => {
+          if (building.startsWith(op.building)) {
+            let runningOperations = running[building]
+            if (runningOperations !== undefined) {
+              let newRunningOperations = []
+              runningOperations.forEach(runningOp => {
+                if (op.name === runningOp.name && needToRemove > 0) {
+                  needToRemove -= 1
+                } else {
+                  newRunningOperations.push(runningOp)
+                }
+              })
+              running[building] = newRunningOperations
+            }
+          }
+        })
+      }
+    })
+    return ({running: running, storage: removeStorage(pulledFromStorage)})
+  }
+
+  function startOperation(operation) {
+    let newRunning = cloneOperations(runningOperations)
+    addToRunning(operation, newRunning)
+    const result = removeStorageOrRunning(operation.ingredients, inStorage, newRunning)
+    setRunningOperations(result.running)
+    calculateOperations(shoppingLists, result.running, result.storage)
   }
 
   function finishOperation(operation) {
@@ -63,6 +106,18 @@ function App() {
     }
     setRunningOperations(newRunning)
     calculateOperations(shoppingLists, newRunning, newInStorage)
+  }
+
+  function makeGoods(goods) {
+    let newRunning = cloneOperations(runningOperations)
+    Object.keys(goods).forEach((good) => {
+      for (let i = 0; i < goods[good]; i += 1) {
+        const newOperation = createOperation(good)
+        addToRunning(newOperation, newRunning)
+      }
+    })
+    setRunningOperations(newRunning)
+    calculateOperations(shoppingLists, newRunning, inStorage)
   }
 
   // in case you hit have instead of hitting done below
@@ -128,11 +183,13 @@ function App() {
 
   function removeShoppingList(index) {
     let newShoppingLists = [...shoppingLists]
-    const newStorage = removeStorage(shoppingLists[index].items)
+    let newRunning = cloneOperations(runningOperations)
+    const result = removeStorageOrRunning(shoppingLists[index].items, inStorage, newRunning)
+    setRunningOperations(result.running)
     newShoppingLists.splice(index, 1)
     setShoppingLists(newShoppingLists)
     localStorage.setItem("simShoppingLists", JSON.stringify(newShoppingLists))
-    calculateOperations(newShoppingLists, runningOperations, newStorage)
+    calculateOperations(newShoppingLists, result.running, result.storage)
   }
 
   function addShoppingList(goodsNeeded, region) {
@@ -151,31 +208,12 @@ function App() {
 
   const sortShoppingLists = (shoppingLists, running, storage) => {
     let newLists = [...shoppingLists]
-    let buildingsStarted = []
-    let cumulativeStartTime = []
-    let priorityKeys = []
-    newLists.forEach((list, index) => {
-      buildingsStarted[index] = 0
-      cumulativeStartTime[index] = 0
-      const ops = addOrder(list.items, cloneOperations(running), 0, storage, cloneOperations(running))
-      Object.keys(ops).forEach(building => {
-        if (!building.includes('Factory') && ops[building].length > 0) {
-          buildingsStarted[index] += 1
-          cumulativeStartTime[index] += ops[building][0].start
-        }
-      })
-      priorityKeys.push(index)
+    newLists.sort((a, b) => {
+      const aOps = addOrder(a.items, cloneOperations(running), 0, storage, cloneOperations(running))
+      const bOps = addOrder(b.items, cloneOperations(running), 0, storage, cloneOperations(running))
+      return aOps['timeOfCompletion'] - bOps['timeOfCompletion']
     })
-    priorityKeys.sort((a, b) => {
-      if (buildingsStarted[a] !== buildingsStarted[b]) {
-        return buildingsStarted[b] - buildingsStarted[a]
-      } else {
-        return cumulativeStartTime[a] - cumulativeStartTime[b]
-      }
-    })
-    const sortedList = []
-    priorityKeys.forEach(key => sortedList.push(newLists[key]))
-    return sortedList
+    return newLists
   }
 
   // This function assumes lists are already priority sorted, and will pass the index as a priority to addOrder
@@ -263,7 +301,8 @@ function App() {
   return (
     <div>
       <Storage key={"storage"} goods={inStorage} />
-      <GoodsList addShoppingList={addShoppingList} addStorage={haveStorage} removeStorage={removeStorage}/>
+      <GoodsList addShoppingList={addShoppingList} addStorage={haveStorage} removeStorage={removeStorage}
+                 makeGoods={makeGoods} clear={clear}/>
       {shoppingLists.map((list, index) =>
           <ShoppingList list={list} key={index} index={index}
                         remove={() => removeShoppingList(index)}
