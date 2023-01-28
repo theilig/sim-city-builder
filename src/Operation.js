@@ -13,16 +13,16 @@ function Operation(props) {
     if (props.operation.end === 0) {
         style = {boxShadow: "0px 0px 0px 3px rgb(0, 255, 0)"}
     }
-    if (props.operation.slideTime === 0 && props.operation.start === 0 && props.operation.runningId === undefined) {
-        style = {boxShadow: "0px 0px 0px 3px rgb(255, 0, 0)"}
-    }
     if (props.operation.start === 0 && props.operation.runningId === undefined) {
         style = {boxShadow: "0px 0px 0px 3px rgb(255, 255, 0)"}
+    }
+    if (props.operation.slideTime === 0 && props.operation.start === 0 && props.operation.runningId === undefined) {
+        style = {boxShadow: "0px 0px 0px 3px rgb(255, 0, 0)"}
     }
 
     return (
         <tr style={style}>
-            <td style={{textAlign: "left"}}>{props.operation.count + " " + displayName(props.operation.name, props.operation.count)}</td>
+            <td style={{textAlign: "left"}} title={secondsToTime(props.operation.start) + ' ' + props.operation.slideTime}>{props.operation.count + " " + displayName(props.operation.name, props.operation.count)}</td>
             <td style={{textAlign: "right"}}>{secondsToTime(props.operation.end)}</td>
             <td>{showButton()}</td>
         </tr>

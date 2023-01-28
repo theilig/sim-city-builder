@@ -206,12 +206,55 @@ function App() {
     return JSON.parse(JSON.stringify(operations))
   }
 
+  const computeScore = (currentGuess, lists, storage) => {
+    let orderedLists = []
+    currentGuess.forEach(index => orderedLists.push(lists[index]))
+    const result = scheduleLists(orderedLists, cloneOperations(runningOperations), {...storage})
+    let expectedTimes = calculateExpectedTimes(result.operationsByList)
+    let total = 0
+    expectedTimes.forEach(expected => total += expected)
+    return total
+  }
+
   const sortShoppingLists = (shoppingLists, running, storage) => {
+    let currentGuess = []
     let newLists = [...shoppingLists]
     newLists.sort((a, b) => {
       const aOps = addOrder(a.items, cloneOperations(running), 0, storage, cloneOperations(running))
       const bOps = addOrder(b.items, cloneOperations(running), 0, storage, cloneOperations(running))
       return aOps['timeOfCompletion'] - bOps['timeOfCompletion']
+    })
+    let singleOrders = shoppingLists.forEach((list, index) => {
+//      const soo = addOrder(list.items, cloneOperations(running), 0, {...storage}, cloneOperations(running))
+      currentGuess.push(index)
+//      return soo.allOperations
+    })
+    let alreadyTried = {}
+    let score = computeScore(currentGuess, newLists, storage)
+    alreadyTried[currentGuess.join(',')] = true
+    for (let tries = 0; tries < 10; tries += 1) {
+      let targetA = Math.floor(Math.random() * currentGuess.length);
+      let targetB = Math.floor(Math.random() * currentGuess.length);
+      if (targetA !== targetB) {
+        let newGuess = [...currentGuess]
+        newGuess[targetA] = currentGuess[targetB]
+        newGuess[targetB] = currentGuess[targetA]
+        if (alreadyTried[newGuess.join(',')] === undefined) {
+          const newScore = computeScore(newGuess, newLists, storage)
+          alreadyTried[newGuess.join(',')] = true
+          if (newScore < score) {
+            score = newScore
+            currentGuess = newGuess
+          }
+        }
+      }
+    }
+    currentGuess.forEach((guess, index) => {
+      if (index !== guess) {
+        const tmp = newLists[index]
+        newLists[index] = newLists[guess]
+        newLists[guess] = tmp
+      }
     })
     return newLists
   }

@@ -41,7 +41,7 @@ export function displayName(key, count) {
 }
 
 function canSlide(currentOperation, amount) {
-    return currentOperation.slideTime >= amount
+    return currentOperation.runningId === undefined && currentOperation.slideTime >= amount
 }
 
 function getAvailableTime(operationList, earliest, duration) {
