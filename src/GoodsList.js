@@ -67,10 +67,10 @@ function GoodsList(props) {
                 <button onClick={removeGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"rosybrown"}}>
                     gone
                 </button>
-                <button onClick={makeGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"rosybrown"}}>
+                <button onClick={makeGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"darksalmon"}}>
                     make goods
                 </button>
-                <button onClick={props.clear} style={{"display": "grid", "width": "100px", "backgroundColor":"rosybrown"}}>
+                <button onClick={props.clear} style={{"display": "grid", "width": "100px", "backgroundColor":"tomato"}}>
                     clear
                 </button>
             </div>
