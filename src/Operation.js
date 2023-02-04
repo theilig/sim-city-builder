@@ -4,26 +4,40 @@ import { displayName, secondsToTime } from './Production';
 function Operation(props) {
     function showButton() {
         if (props.operation.runningId !== undefined) {
-            return <button onClick={() => props.finishOp(props.operation, props.building)}>done</button>
+            return <button
+                onClick={() => props.finishOp(props.operation, props.building)}
+                onContextMenu={() => props.speedUp(props.operation)}
+            >done</button>
         } else {
             return <button onClick={() => props.startOp(props.operation, props.building)}>start</button>
         }
     }
-    let style = {}
+    let style = {boxShadow: "0px 0px 0px 3px rgb(130, 130, 130)"}
     if (props.operation.end === 0) {
         style = {boxShadow: "0px 0px 0px 3px rgb(0, 255, 0)"}
     }
-    if (props.operation.start === 0 && props.operation.runningId === undefined) {
+    if (props.operation.goodToGo && Object.keys(props.operation.ingredients).length > 0 && props.operation.runningId === undefined) {
+        style = {boxShadow: "0px 0px 0px 3px rgb(255, 255, 0)"}
+    }
+    if (props.operation.nextUp === true && Object.keys(props.operation.ingredients).length === 0 && props.operation.runningId === undefined) {
         style = {boxShadow: "0px 0px 0px 3px rgb(255, 255, 0)"}
     }
     if (props.operation.slideTime === 0 && props.operation.start === 0 && props.operation.runningId === undefined) {
         style = {boxShadow: "0px 0px 0px 3px rgb(255, 0, 0)"}
     }
+    if (props.operation.runningId !== undefined) {
+        style = {background: "#eeeeee"}
+    }
+    let displayTime = secondsToTime(props.operation.start)
+    if (props.operation.runningId !== undefined || props.operation.start === 0) {
+        displayTime = secondsToTime(props.operation.end)
+    }
+
 
     return (
         <tr style={style}>
-            <td style={{textAlign: "left"}} title={secondsToTime(props.operation.start) + ' ' + props.operation.slideTime}>{props.operation.count + " " + displayName(props.operation.name, props.operation.count)}</td>
-            <td style={{textAlign: "right"}}>{secondsToTime(props.operation.end)}</td>
+            <td style={{textAlign: "left"}}>{props.operation.count + " " + displayName(props.operation.name, props.operation.count)}</td>
+            <td style={{textAlign: "right"}}>{displayTime}</td>
             <td>{showButton()}</td>
         </tr>
     )

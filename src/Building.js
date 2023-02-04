@@ -1,15 +1,22 @@
 import React from 'react';
 import Operation from "./Operation";
+import {buildingLimits} from "./Production"
+
 function Building(props) {
     let visualPipeline = []
     let combiners = {}
-    props.pipeline.forEach(op => {
+    const limit = buildingLimits[props.name]
+    props.pipeline.forEach((op, index) => {
+        if ((index < (props.pipelineSize || 1) || index < (limit || 1)) && op.runningId === undefined) {
+            op.nextUp = true
+        }
         let canCombine = true
         if (combiners[op.name] !== undefined) {
             let combiningOp = combiners[op.name]
-            canCombine = canCombine && !(combiningOp.start <= 0 && op.start > 0)
             canCombine = canCombine && !(combiningOp.runningId !== undefined && op.runningId === undefined)
             canCombine = canCombine && !(combiningOp.runningId === undefined && op.runningId !== undefined)
+            canCombine = canCombine && !(combiningOp.nextUp !== op.nextUp)
+            canCombine = canCombine && !(combiningOp.runningId !== undefined && combiningOp.end <= 0 && op.end > 0)
         } else {
             canCombine = false
         }
@@ -32,7 +39,9 @@ function Building(props) {
                 {visualPipeline.map((op, index) => {
                     return (
                         <Operation operation={op} key={index}
-                            startOp={props.startOp} finishOp={props.finishOp} building={props.name} />
+                            startOp={props.startOp} finishOp={props.finishOp} building={props.name}
+                            speedUp={props.speedUp}
+                        />
                     )
                 })}
             </tbody>

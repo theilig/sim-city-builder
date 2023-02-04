@@ -1,5 +1,6 @@
 import React from 'react';
 import {displayName, secondsToTime} from './Production'
+import ListOps from "./ListOps";
 function ShoppingList(props) {
     let timeString = " in " + secondsToTime(props.end)
     if (props.end <= 0) {
@@ -13,12 +14,17 @@ function ShoppingList(props) {
         style = {color: "greenyellow"}
     }
     return (
-        <div style={style}>
-            {"You want " + Object.keys(props.list.items).map(key =>{
-                return props.list.items[key] + " " + displayName(key, props.list.items[key])
-            }).join(" and ") + " ready" + timeString
-            }
-            <button onClick={() => props.remove()}>done</button>
+        <div onClick={() => props.expandOrCollapse(props.index, props.expanded)}>
+            <div style={style}>
+                {"You want " + Object.keys(props.list.items).map(key =>{
+                    return props.list.items[key] + " " + displayName(key, props.list.items[key])
+                }).join(" and ") + " ready" + timeString
+                }
+                <button onClick={() => props.remove()}>done</button>
+            </div>
+            <div>
+                {props.expanded && <ListOps operations={props.operations} />}
+            </div>
         </div>
     )
 }

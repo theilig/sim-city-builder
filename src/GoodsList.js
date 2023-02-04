@@ -8,8 +8,12 @@ function GoodsList(props) {
         newList[goodName] = total;
         setCurrentList(newList)
     }
-    function goodWasClicked(goodName) {
-        updateCount(goodName, (currentList[goodName] || 0) + 1)
+    function goodWasClicked(goodName, rightButton) {
+        if (rightButton) {
+            updateCount(goodName, (currentList[goodName] || 1)  - 1)
+        } else {
+            updateCount(goodName, (currentList[goodName] || 0) + 1)
+        }
     }
 
     function addGoods() {
@@ -34,7 +38,7 @@ function GoodsList(props) {
         'Factory': {width: '306px'}, 'Building Supplies Store': {width: "207px"}, 'Hardware Store': {width: '256px'},
         'Farmer\'s Market': {width: '226px'}, 'Furniture Store': {width: "234px"}, 'Gardening Supplies': {},
         'Donut Shop': {width: '281px'}, 'Fashion Store': {}, 'Fast Food Restaurant': {},
-        'Eco Shop': {}, 'Green Factory': {}
+        'Eco Shop': {}, 'Green Factory': {}, 'Home Appliances': {}
     }
     return (
         <div>
