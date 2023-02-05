@@ -20,6 +20,7 @@ function App() {
   const [expandedList, setExpandedList] = useState(-1)
   const [validatedPrioritySwitches, setPrioritySwitches] = useState([])
   const [priorityOrder, setPriorityOrder] = useState([])
+  const [listSortBy, setListSortBy] = useState('time')
 
   document.addEventListener("contextmenu", (event) => {
     event.preventDefault();
@@ -46,6 +47,14 @@ function App() {
     setRunningOperations({})
     setPrioritySwitches([])
     setInStorage({})
+  }
+
+  function changeListSortBy() {
+    if (listSortBy === 'time') {
+      setListSortBy('index')
+    } else {
+      setListSortBy('time')
+    }
   }
 
   function expandOrCollapse(index, expanded) {
@@ -232,17 +241,26 @@ function App() {
     return newInStorage
   }
 
-
-  function removeShoppingList(index) {
-    let newShoppingLists = [...shoppingLists]
+  function finishShoppingList(index) {
     let newRunning = cloneOperations(runningOperations)
     const result = removeStorageOrRunning(shoppingLists[index].items, inStorage, newRunning)
     setPrioritySwitches([])
     setRunningOperations(result.running)
+    removeShoppingList(index)
+  }
+
+  function removeShoppingList(index, running, storage) {
+    if (running === undefined) {
+      running = runningOperations
+    }
+    if (storage === undefined) {
+      storage = inStorage
+    }
+    let newShoppingLists = [...shoppingLists]
     newShoppingLists.splice(index, 1)
     setShoppingLists(newShoppingLists)
     localStorage.setItem("simShoppingLists", JSON.stringify(newShoppingLists))
-    updateLists(newShoppingLists, result.running, result.storage, [])
+    updateLists(newShoppingLists, running, storage, [])
   }
 
   function addShoppingList(goodsNeeded, region) {
@@ -258,13 +276,30 @@ function App() {
 
   const sortShoppingLists = (shoppingLists, running, storage) => {
     let priorityOrder = []
-    shoppingLists.forEach((list, index) =>  {
-      const result = addOrder(list.items, cloneOperations(running), 0, storage, cloneOperations(running))
-      priorityOrder.push({index: index, timeOfCompletion: result.timeOfCompletion})
-    })
-    priorityOrder.sort((a, b) => {
-      return a.timeOfCompletion - b.timeOfCompletion
-    })
+    let prioritized = {}
+    let localStorage = {...storage}
+    let localOperations = cloneOperations(running)
+    let localRunning = cloneOperations(running)
+    for (let i = 0; i < shoppingLists.length; i += 1) {
+      let localPriorityOrder = []
+      for (let index = 0; index < shoppingLists.length; index += 1) {
+        const list = shoppingLists[index]
+        if (!prioritized[index]) {
+          const result = addOrder(list.items, cloneOperations(localRunning), 0, storage, cloneOperations(localRunning))
+          localPriorityOrder.push({index: index, timeOfCompletion: result.timeOfCompletion})
+        }
+      }
+      localPriorityOrder.sort((a, b) => {
+        return a.timeOfCompletion - b.timeOfCompletion
+      })
+      let prioritizedIndex = localPriorityOrder[0].index
+      priorityOrder.push(localPriorityOrder[0])
+      const addOrderResult = addOrder(shoppingLists[prioritizedIndex].items, localOperations, 0, localStorage, localRunning)
+      prioritized[prioritizedIndex] = true
+      localRunning = addOrderResult.running
+      localStorage = addOrderResult.storage
+      localOperations = addOrderResult.allOperations
+    }
     return priorityOrder
   }
 
@@ -334,7 +369,8 @@ function App() {
       const switchedExpected = calculateExpectedTimes(switchedResult.operationsByList)
       let delta = 0
       for (let i = 0; i < currentExpected.length; i += 1) {
-        delta += currentExpected[i] - switchedExpected[i]
+        if (currentExpected[i] > switchedExpected[i]) {}
+        delta += Math.sqrt(currentExpected[i]) - Math.sqrt(switchedExpected[i])
       }
       if (delta > 0) {
         result = switchedResult
@@ -351,7 +387,7 @@ function App() {
     setListToOpMap(result.operationsByList)
     setUnassignedStorage(result.unassignedStorage)
     setPriorityOrder(switchedOrder)
-  }, [scheduleLists, validatedPrioritySwitches])
+  }, [scheduleLists])
 
   useEffect(() => {
     if (!loaded) {
@@ -387,7 +423,7 @@ function App() {
       calculateOperations(shoppingLists, newRunning, inStorage, validatedPrioritySwitches)
     }, 1000)
     return () => clearInterval(interval)
-  }, [loaded, calculateOperations, scheduleLists, shoppingLists, inStorage, runningOperations])
+  }, [loaded, calculateOperations, scheduleLists, shoppingLists, inStorage, runningOperations, validatedPrioritySwitches])
 
   let visualOpList = {...operationList}
   return (
@@ -395,16 +431,25 @@ function App() {
       <Storage key={"storage"} goods={inStorage} unused={unassignedStorage} />
       <GoodsList addShoppingList={addShoppingList} addStorage={haveStorage} removeStorage={removeStorage}
                  makeGoods={makeGoods} clear={clear}/>
-      {shoppingLists.map((list, index) =>
-          <ShoppingList list={list} key={index} index={index}
-                        remove={() => removeShoppingList(index)}
-                        end={expectedTimes[index]}
-                        removeStorage={removeStorage}
-                        operations={listToOpMap[index]}
-                        expandOrCollapse={expandOrCollapse}
-                        expanded={index === expandedList}
-                        order={priorityOrder}
-          />)}
+      <div onClick={changeListSortBy}>Change Sort Order</div>
+      {listSortBy === 'time' && priorityOrder.map(ordering => shoppingLists[ordering.index] && <ShoppingList list={shoppingLists[ordering.index]} key={ordering.index} index={ordering.index}
+                      remove={() => removeShoppingList(ordering.index)}
+                      finish={() => finishShoppingList(ordering.index)}
+                      end={expectedTimes[ordering.index]}
+                      removeStorage={removeStorage}
+                      operations={listToOpMap[ordering.index]}
+                      expandOrCollapse={expandOrCollapse}
+                      expanded={ordering.index === expandedList}
+        />)}
+      {listSortBy === 'index' && shoppingLists.map((list, index) => <ShoppingList list={list} key={index} index={index}
+                                                                                  remove={() => removeShoppingList(index)}
+                                                                                  finish={() => finishShoppingList(index)}
+                                                                                  end={expectedTimes[index]}
+                                                                                  removeStorage={removeStorage}
+                                                                                  operations={listToOpMap[index]}
+                                                                                  expandOrCollapse={expandOrCollapse}
+                                                                                  expanded={index === expandedList}
+      />)}
       <OperationList key={"oplist"} operations={visualOpList} pipelineSizes={pipelineSizes}
                      startOp={startOperation} finishOp={finishOperation} speedUp={speedUpOperation} />
     </div>

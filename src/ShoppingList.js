@@ -20,7 +20,7 @@ function ShoppingList(props) {
                     return props.list.items[key] + " " + displayName(key, props.list.items[key])
                 }).join(" and ") + " ready" + timeString
                 }
-                <button onClick={() => props.remove()}>done</button>
+                <button onClick={() => props.finish()} onContextMenu={() => props.remove()}>done</button>
             </div>
             <div>
                 {props.expanded && <ListOps operations={props.operations} />}

@@ -32,6 +32,7 @@ const goods = {
     'baseball caps': {ingredients: {'toilet paper rolls': 2, 'measuring tapes': 1}, duration: 3600, building: 'Fashion Store'},
     'red shoes': {ingredients: {plastic: 1, glue: 1, 'toilet paper rolls': 1}, duration: 4500, building: 'Fashion Store'},
     watches: {singular: 'watch', ingredients: {plastic: 2, glass: 1, chemicals: 1}, duration: 5400, building: 'Fashion Store'},
+    'business suits': {ingredients: {'toilet paper rolls': 3, 'measuring tapes': 1, 'glue': 1}, duration: 12600, building: 'Fashion Store'},
     chairs: {ingredients: {nails: 1, hammers: 1, wood: 2}, duration: 1080, building: 'Furniture Store'},
     tables: {ingredients: {'wood planks': 1, nails: 2, hammers: 1}, duration: 1620, building: 'Furniture Store'},
     'kitchen/bathroom tiles': {ingredients: {'toilet paper rolls': 2, 'measuring tapes': 2}, duration: 4020, building: 'Furniture Store'},
