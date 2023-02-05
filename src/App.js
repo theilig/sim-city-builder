@@ -359,26 +359,7 @@ function App() {
 
     let result = scheduleLists(shoppingLists, running, storage, switchedOrder)
     const currentExpected = calculateExpectedTimes(result.operationsByList)
-    if (shoppingLists.length > 1) {
-      // now give it a shot with a random switch
-      const switchIndex = Math.floor(Math.random() * (shoppingLists.length - 1))
-      const tmp = switchedOrder[switchIndex]
-      switchedOrder[switchIndex] = switchedOrder[switchIndex + 1]
-      switchedOrder[switchIndex + 1] = tmp
-      const switchedResult = scheduleLists(shoppingLists, running, storage, switchedOrder)
-      const switchedExpected = calculateExpectedTimes(switchedResult.operationsByList)
-      let delta = 0
-      for (let i = 0; i < currentExpected.length; i += 1) {
-        if (currentExpected[i] > switchedExpected[i]) {}
-        delta += Math.sqrt(currentExpected[i]) - Math.sqrt(switchedExpected[i])
-      }
-      if (delta > 0) {
-        result = switchedResult
-        let newSwitches = prioritySwitches
-        newSwitches.push({from: switchIndex, to: switchIndex + 1})
-        setPrioritySwitches(newSwitches)
-      }
-    } else {
+    if (shoppingLists.length <= 1) {
       setPrioritySwitches([])
     }
     setOperationList(result.operations)
