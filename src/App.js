@@ -1,7 +1,7 @@
 import './App.css';
 import GoodsList from "./GoodsList.js";
 import ShoppingList from './ShoppingList';
-import {addOrder, createOperation} from "./Production";
+import {addOrder, calculateBuildingCosts, calculateValues, createOperation} from "./Production";
 import OperationList from "./OperationList";
 import React, { useState, useEffect, useCallback } from 'react';
 import {buildingLimits} from "./Production"
@@ -81,7 +81,6 @@ function App() {
     if (startTime < 0) {
       startTime = 0
     }
-    operation.slideTime = 0
     operation.runningId = running[building].length
     operation.placeInList = running[building].length
     operation.runTime = Date.now()
@@ -105,7 +104,7 @@ function App() {
             if (runningOperations !== undefined) {
               let newRunningOperations = []
               runningOperations.forEach(runningOp => {
-                if (op.name === runningOp.name && needToRemove > 0) {
+                if (op.name === runningOp.name && needToRemove > 0 && runningOp.end <= 60) {
                   needToRemove -= 1
                 } else {
                   newRunningOperations.push(runningOp)
@@ -145,16 +144,9 @@ function App() {
     let newRunning = cloneOperations(runningOperations)
     building = building.replace(/\d+$/, '')
     let buildingOperations = []
-    let startTime = 0
-    let buildingLimit = buildingLimits[operation.building] || 1
     runningOperations[building].forEach(op => {
       if (op.runningId !== operation.runningId) {
         buildingOperations.push(op)
-        if (buildingLimit === 1) {
-          op.start = startTime
-          op.end = op.start + op.duration
-          startTime = op.end
-        }
       }
     })
     let newGoods = {}
@@ -274,6 +266,27 @@ function App() {
     updateLists(newShoppingLists, runningOperations, inStorage, [])
   }
 
+  const newSortShoppingLists = (shoppingLists, running, storage) => {
+    let operationsNeeded = {}
+    let operationsByOrder = []
+    for (let i = 0; i < shoppingLists.length; i += 1) {
+      const result = addOrder(shoppingLists[i].items, operationsNeeded, 0, {}, {})
+      operationsNeeded = result.allOperations
+      operationsByOrder.push(result.operationsForOrder)
+    }
+    const costs = calculateBuildingCosts(operationsNeeded)
+    let indexes = []
+    const costsPerOrder = operationsByOrder.map((opList, index) => {
+      let cost = 0
+      opList.forEach(op => cost += op.duration * costs[op.building])
+      indexes.push(index)
+      return cost
+    })
+
+    indexes.sort((a, b) => costsPerOrder[a] - costsPerOrder[b])
+    return indexes.map(index => {return {...shoppingLists[index]}})
+  }
+
   const sortShoppingLists = (shoppingLists, running, storage) => {
     let priorityOrder = []
     let prioritized = {}
@@ -374,7 +387,7 @@ function App() {
     if (!loaded) {
       const loadedShoppingLists = JSON.parse(localStorage.getItem("simShoppingLists"))
       if (loadedShoppingLists) {
-        setShoppingLists(loadedShoppingLists)
+          setShoppingLists(loadedShoppingLists)
       }
       const storage = JSON.parse(localStorage.getItem("simStorage"))
       if (storage) {
@@ -402,11 +415,12 @@ function App() {
       const newRunning = updateRunning()
       setRunningOperations(newRunning)
       calculateOperations(shoppingLists, newRunning, inStorage, validatedPrioritySwitches)
-    }, 1000)
+    }, 10000)
     return () => clearInterval(interval)
   }, [loaded, calculateOperations, scheduleLists, shoppingLists, inStorage, runningOperations, validatedPrioritySwitches])
 
   let visualOpList = {...operationList}
+  calculateValues()
   return (
     <div>
       <Storage key={"storage"} goods={inStorage} unused={unassignedStorage} />

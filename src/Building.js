@@ -7,25 +7,28 @@ function Building(props) {
     let combiners = {}
     const limit = buildingLimits[props.name]
     props.pipeline.forEach((op, index) => {
+        let visualOp = {...op}
         if ((index < (props.pipelineSize || 1) || index < (limit || 1)) && op.runningId === undefined) {
-            op.nextUp = true
+            visualOp.nextUp = true
         }
         let canCombine = true
-        if (combiners[op.name] !== undefined) {
+        if (combiners[visualOp.name] !== undefined) {
             let combiningOp = combiners[op.name]
-            canCombine = canCombine && !(combiningOp.runningId !== undefined && op.runningId === undefined)
-            canCombine = canCombine && !(combiningOp.runningId === undefined && op.runningId !== undefined)
-            canCombine = canCombine && !(combiningOp.nextUp !== op.nextUp)
-            canCombine = canCombine && !(combiningOp.runningId !== undefined && combiningOp.end <= 0 && op.end > 0)
+            canCombine = canCombine && !(combiningOp.runningId !== undefined && visualOp.runningId === undefined)
+            canCombine = canCombine && !(combiningOp.runningId === undefined && visualOp.runningId !== undefined)
+            canCombine = canCombine && !(combiningOp.nextUp !== visualOp.nextUp)
+            canCombine = canCombine && !(combiningOp.start !== 0 && visualOp.nextUp && visualOp.start === 0)
+            canCombine = canCombine && !(visualOp.start !== 0 && combiningOp.nextUp && combiningOp.start === 0)
+            canCombine = canCombine && !(combiningOp.runningId !== undefined && combiningOp.end <= 0 && visualOp.end > 0)
         } else {
             canCombine = false
         }
         if (canCombine) {
-            combiners[op.name].count += 1
+            combiners[visualOp.name].count += 1
         } else {
             op.count = 1
-            visualPipeline.push(op)
-            combiners[op.name] = op
+            visualPipeline.push(visualOp)
+            combiners[op.name] = visualOp
         }
     })
     return (<div style={{display: "flex", flexDirection: "column"}}>

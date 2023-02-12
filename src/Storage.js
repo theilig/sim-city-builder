@@ -9,7 +9,7 @@ function Storage(props) {
         }
     }
     return (
-        <div style={{display: "flex"}}>
+        <div style={{display: "flex", flexWrap: "wrap"}}>
             {Object.keys(goods).map(key =>
                 props.goods[key] && <div style={{marginRight: "5px"}} key={key}>{display(key)}</div>)}
         </div>
