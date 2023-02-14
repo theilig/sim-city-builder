@@ -14,12 +14,13 @@ function Building(props) {
         let canCombine = true
         if (combiners[visualOp.name] !== undefined) {
             let combiningOp = combiners[op.name]
+            canCombine = canCombine && !(combiningOp.runningId && props.pipelineSize > 1)
             canCombine = canCombine && !(combiningOp.runningId !== undefined && visualOp.runningId === undefined)
             canCombine = canCombine && !(combiningOp.runningId === undefined && visualOp.runningId !== undefined)
             canCombine = canCombine && !(combiningOp.nextUp !== visualOp.nextUp)
             canCombine = canCombine && !(combiningOp.start !== 0 && visualOp.nextUp && visualOp.start === 0)
             canCombine = canCombine && !(visualOp.start !== 0 && combiningOp.nextUp && combiningOp.start === 0)
-            canCombine = canCombine && !(combiningOp.runningId !== undefined && combiningOp.end <= 0 && visualOp.end > 0)
+            canCombine = canCombine && !(combiningOp.runningId !== undefined && Math.max(visualOp.end, 0) - Math.max(combiningOp.end) > 60)
         } else {
             canCombine = false
         }
@@ -43,7 +44,7 @@ function Building(props) {
                     return (
                         <Operation operation={op} key={index}
                             startOp={props.startOp} finishOp={props.finishOp} building={props.name}
-                            speedUp={props.speedUp}
+                            speedUp={props.speedUp} pauseUpdates={props.pauseUpdates}
                         />
                     )
                 })}

@@ -1,7 +1,7 @@
 import './App.css';
 import GoodsList from "./GoodsList.js";
 import ShoppingList from './ShoppingList';
-import {addOrder, calculateBuildingCosts, calculateValues, createOperation} from "./Production";
+import {addOrder, calculateBuildingCosts, createOperation} from "./Production";
 import OperationList from "./OperationList";
 import React, { useState, useEffect, useCallback } from 'react';
 import {buildingLimits} from "./Production"
@@ -21,6 +21,7 @@ function App() {
   const [validatedPrioritySwitches, setPrioritySwitches] = useState([])
   const [priorityOrder, setPriorityOrder] = useState([])
   const [listSortBy, setListSortBy] = useState('time')
+  const [pauseUpdate, setPauseUpdate] = useState(false)
 
   document.addEventListener("contextmenu", (event) => {
     event.preventDefault();
@@ -41,6 +42,10 @@ function App() {
     'Eco Shop': 3,
   }
 
+  function pauseUpdates(newValue) {
+    setPauseUpdate(newValue)
+  }
+
   function clear() {
     setShoppingLists([])
     setOperationList({})
@@ -52,6 +57,8 @@ function App() {
   function changeListSortBy() {
     if (listSortBy === 'time') {
       setListSortBy('index')
+    } else if (listSortBy === 'index') {
+      setListSortBy('priority')
     } else {
       setListSortBy('time')
     }
@@ -82,6 +89,7 @@ function App() {
       startTime = 0
     }
     operation.runningId = running[building].length
+    operation.scheduledId = undefined
     operation.placeInList = running[building].length
     operation.runTime = Date.now()
     operation.start = startTime
@@ -98,65 +106,74 @@ function App() {
         pulledFromStorage[good] = Math.min(storage[good], itemsNeeded[good])
       }
       if (needToRemove > 0) {
-        Object.keys(running).forEach(building => {
-          if (building.startsWith(op.building)) {
-            let runningOperations = running[building]
-            if (runningOperations !== undefined) {
-              let newRunningOperations = []
-              runningOperations.forEach(runningOp => {
-                if (op.name === runningOp.name && needToRemove > 0 && runningOp.end <= 60) {
-                  needToRemove -= 1
-                } else {
-                  newRunningOperations.push(runningOp)
-                }
-              })
-              running[building] = newRunningOperations
+        let runningOperations = running[op.building]
+        if (runningOperations !== undefined) {
+          let newRunningOperations = []
+          runningOperations.forEach(runningOp => {
+            if (op.name === runningOp.name && needToRemove > 0 && runningOp.end <= 60) {
+              needToRemove -= 1
+            } else {
+              newRunningOperations.push(runningOp)
             }
-          }
-        })
+          })
+          running[op.building] = newRunningOperations
+        }
       }
     })
     return ({running: running, storage: removeStorage(pulledFromStorage)})
   }
 
-  function startOperation(operation) {
+  function startOperations(operation, count) {
     let newRunning = cloneOperations(runningOperations)
-    addToRunning(operation, newRunning)
-    const result = removeStorageOrRunning(operation.ingredients, inStorage, newRunning)
-    setRunningOperations(result.running)
-    updateLists(shoppingLists, result.running, result.storage, validatedPrioritySwitches)
+    let newStorage = {...inStorage}
+    for (let i = 0; i < count; i += 1) {
+      let runningOperation = createOperation(operation.name)
+      addToRunning(runningOperation, newRunning)
+      const result = removeStorageOrRunning(operation.ingredients, newStorage, newRunning)
+      newRunning = result.running
+      newStorage = result.storage
+    }
+    setRunningOperations(newRunning)
+    updateLists(shoppingLists, newRunning, newStorage, validatedPrioritySwitches)
   }
 
-  function speedUpOperation(operation) {
+  function speedUpOperation(operation, event) {
     let newRunning = cloneOperations(runningOperations)
+    let amount = 60
+    if (event.ctrlKey) {
+      amount = 3600
+    } else if (event.shiftKey) {
+      amount = 300
+    }
     newRunning[operation.building].forEach(op => {
       if (op.runningId === operation.runningId) {
-        op.start -= 60
-        op.end -= 60
+        op.start -= amount
+        op.end -= amount
       }
     })
     setRunningOperations(newRunning)
     updateLists(shoppingLists, newRunning, inStorage, validatedPrioritySwitches)
   }
 
-  function finishOperation(operation) {
-    let building = operation.building
+  function finishOperations(operation, count) {
+    let newGoods = {}
+    newGoods[operation.name] = count
     let newRunning = cloneOperations(runningOperations)
-    building = building.replace(/\d+$/, '')
+    let building = operation.building
     let buildingOperations = []
-    runningOperations[building].forEach(op => {
-      if (op.runningId !== operation.runningId) {
+    newRunning[building].forEach(op => {
+      if (count <= 0 || op.name !== operation.name) {
         buildingOperations.push(op)
+      } else {
+        count -= 1
       }
     })
-    let newGoods = {}
-    newGoods[operation.name] = 1
-    const newInStorage = addStorage(newGoods)
     if (buildingOperations.length > 0) {
       newRunning[building] = buildingOperations
     } else {
       delete newRunning[building]
     }
+    const newInStorage = addStorage(newGoods)
     setRunningOperations(newRunning)
     updateLists(shoppingLists, newRunning, newInStorage, validatedPrioritySwitches)
   }
@@ -266,11 +283,11 @@ function App() {
     updateLists(newShoppingLists, runningOperations, inStorage, [])
   }
 
-  const newSortShoppingLists = (shoppingLists, running, storage) => {
+  const newSortShoppingLists = shoppingLists => {
     let operationsNeeded = {}
     let operationsByOrder = []
     for (let i = 0; i < shoppingLists.length; i += 1) {
-      const result = addOrder(shoppingLists[i].items, operationsNeeded, 0, {}, {})
+      const result = addOrder(shoppingLists[i].items, operationsNeeded, i, {}, {})
       operationsNeeded = result.allOperations
       operationsByOrder.push(result.operationsForOrder)
     }
@@ -284,37 +301,66 @@ function App() {
     })
 
     indexes.sort((a, b) => costsPerOrder[a] - costsPerOrder[b])
-    return indexes.map(index => {return {...shoppingLists[index]}})
+    return indexes
   }
 
-  const sortShoppingLists = (shoppingLists, running, storage) => {
-    let priorityOrder = []
-    let prioritized = {}
-    let localStorage = {...storage}
-    let localOperations = cloneOperations(running)
-    let localRunning = cloneOperations(running)
-    for (let i = 0; i < shoppingLists.length; i += 1) {
-      let localPriorityOrder = []
-      for (let index = 0; index < shoppingLists.length; index += 1) {
-        const list = shoppingLists[index]
-        if (!prioritized[index]) {
-          const result = addOrder(list.items, cloneOperations(localRunning), 0, storage, cloneOperations(localRunning))
-          localPriorityOrder.push({index: index, timeOfCompletion: result.timeOfCompletion})
-        }
+  const replaceOp = useCallback((opsByList, scheduledOp, op) => {
+    let newListOperationsForIndex = []
+    let replaced = false
+    opsByList[scheduledOp.listIndex].forEach(listOp => {
+      if (listOp.name === scheduledOp.name && listOp.start === scheduledOp.start && !replaced) {
+        newListOperationsForIndex.push(op)
+        replaced = true
+      } else {
+        newListOperationsForIndex.push(listOp)
       }
-      localPriorityOrder.sort((a, b) => {
-        return a.timeOfCompletion - b.timeOfCompletion
+    })
+
+    opsByList[scheduledOp.listIndex] = newListOperationsForIndex
+  }, [])
+
+  const removeFlatOp = (scheduledOperation, scheduledOperations, unassignedStorage, unassignedOperations) => {
+    const building = scheduledOperation.building
+    const item = scheduledOperation.name
+    if (scheduledOperation.fromStorage === true) {
+      if (unassignedStorage[item] === undefined) {
+        unassignedStorage[item] = 0
+      }
+      unassignedStorage[item] += 1
+    } else if (scheduledOperation.runningId !== undefined) {
+      if (unassignedOperations[building] === undefined) {
+        unassignedOperations[building] = []
+      }
+      unassignedOperations[building].push(scheduledOperation)
+    } else {
+      let removed = false
+      let newOperations = []
+      scheduledOperations[building].forEach(op => {
+        if (!removed && op.name === item && op.start === scheduledOperation.start && op.runningId === undefined && op.fromStorage !== true) {
+          removed = true
+        } else {
+          newOperations.push(op)
+        }
       })
-      let prioritizedIndex = localPriorityOrder[0].index
-      priorityOrder.push(localPriorityOrder[0])
-      const addOrderResult = addOrder(shoppingLists[prioritizedIndex].items, localOperations, 0, localStorage, localRunning)
-      prioritized[prioritizedIndex] = true
-      localRunning = addOrderResult.running
-      localStorage = addOrderResult.storage
-      localOperations = addOrderResult.allOperations
+      scheduledOperations[building] = newOperations
     }
-    return priorityOrder
+    return {scheduledOperations: scheduledOperations, storage: unassignedStorage, unassignedOperations: unassignedOperations}
   }
+
+  const removeOp = useCallback((scheduledOperation, scheduledOperations, unassignedStorage, unassignedOperations) => {
+    let localStorage = {...unassignedStorage}
+    let localOps = cloneOperations(scheduledOperations)
+    let localUnassignedOps = cloneOperations(unassignedOperations)
+    // we need to clear out child operations that might have grabbed storage or other running operations and add them back
+    // we don't want to use recursion here because each op has all it's descendents in the poorly named childOperations list
+    scheduledOperation.childOperations.forEach(op => {
+      const result = removeFlatOp(op, localOps, localStorage, localUnassignedOps)
+      localOps = result.scheduledOperations
+      localStorage = result.storage
+      localUnassignedOps = result.unassignedOperations
+    })
+    return removeFlatOp(scheduledOperation, localOps, localStorage, localUnassignedOps)
+  }, [])
 
   // This function assumes lists are already priority sorted, and will pass the index as a priority to addOrder
   // We also randomly try to flip two to see if the total throughput would be better if they were swapped, and
@@ -323,12 +369,25 @@ function App() {
     // the fixed operations serve two purposes, one is as a seed of the list of all operations running
     // the second is a list of which ones are unassigned, and will mutate as orders grab them
     let unassignedOperations = cloneOperations(fixedOperations)
-    let scheduledOperations = cloneOperations(fixedOperations)
     let unassignedStorage = {...storage}
 
     let opsByList = []
+    Object.keys(unassignedOperations).forEach(building => {
+      let startTime = 0
+      unassignedOperations[building].forEach(op => {
+        op.listIndex = undefined
+        if (op.start > startTime) {
+          op.start = startTime
+          op.end = startTime + op.duration
+        }
+        if (pipelineSizes[building] > 1) {
+          startTime = op.end
+        }
+      })
+    })
+    let scheduledOperations = cloneOperations(unassignedOperations)
     priorityOrder.forEach(order => {
-      const listIndex = order.index
+      const listIndex = order
       // first see what's the fasted we could do it (finishBy == 0)
       let copyOfRunning = cloneOperations(unassignedOperations)
       let result = addOrder(shoppingLists[listIndex].items, scheduledOperations, listIndex, unassignedStorage, copyOfRunning, 0)
@@ -339,8 +398,74 @@ function App() {
       opsByList[listIndex] = result.operationsForOrder
       unassignedOperations = result.running
     })
+    let done = false
+    while (!done) {
+      done = true
+      let newUnassignedStorage = {...unassignedStorage}
+      let newScheduledOperations = cloneOperations(scheduledOperations)
+      const unassignedStorageItems = Object.keys(unassignedStorage)
+      for (let storageIndex = 0; storageIndex < unassignedStorageItems.length; storageIndex += 1) {
+        const item = unassignedStorageItems[storageIndex]
+        let remaining = unassignedStorage[item]
+        let op = createOperation(item)
+        if (scheduledOperations[op.building] !== undefined) {
+          for (let scheduleIndex = 0; scheduleIndex < scheduledOperations[op.building].length; scheduleIndex += 1) {
+            const scheduledOp = scheduledOperations[op.building][scheduleIndex]
+            if (remaining > 0 && scheduledOp.name === item && scheduledOp.runningId === undefined && scheduledOp.fromStorage !== true) {
+              op.end = 0
+              op.fromStorage = true
+              replaceOp(opsByList, scheduledOp, op)
+              const result = removeOp(scheduledOp, newScheduledOperations, newUnassignedStorage, unassignedOperations)
+              newScheduledOperations = result.scheduledOperations
+              newUnassignedStorage = result.storage
+              unassignedOperations = result.unassignedOperations
+              op = createOperation(item)
+              remaining -= 1
+              newUnassignedStorage[item] = remaining
+              done = false
+            }
+          }
+        }
+        scheduledOperations = newScheduledOperations
+      }
+      unassignedStorage = newUnassignedStorage
+      let newUnassignedOperations = cloneOperations(unassignedOperations)
+      const buildings = Object.keys(unassignedOperations)
+      for (let buildingIndex = 0; buildingIndex < buildings.length; buildingIndex += 1) {
+        const building = buildings[buildingIndex]
+        for (let unassignedOpIndex = 0; unassignedOpIndex < unassignedOperations[building].length; unassignedOpIndex += 1) {
+          const runningOp = unassignedOperations[building][unassignedOpIndex]
+          let replaced = false
+          if (scheduledOperations[building] !== undefined) {
+            for (let scheduledOpIndex = 0; scheduledOpIndex < scheduledOperations[building].length; scheduledOpIndex += 1) {
+              const scheduledOp = scheduledOperations[building][scheduledOpIndex]
+              if (!replaced && scheduledOp.name === runningOp.name && scheduledOp.runningId === undefined && scheduledOp.fromStorage !== true) {
+                replaceOp(opsByList, scheduledOp, runningOp)
+                const result = removeOp(scheduledOp, newScheduledOperations, unassignedStorage, newUnassignedOperations)
+                unassignedStorage = result.storage
+                newUnassignedOperations = result.unassignedOperations
+                done = false
+                newScheduledOperations = result.scheduledOperations
+                runningOp.listIndex = scheduledOp.listIndex
+                let removalList = []
+                for (let removalIndex = 0; removalIndex < newUnassignedOperations[building].length; removalIndex += 1) {
+                  if (!replaced && newUnassignedOperations[building][removalIndex].runningId === runningOp.runningId) {
+                    replaced = true
+                  } else {
+                    removalList.push(newUnassignedOperations[building][removalIndex])
+                  }
+                }
+                newUnassignedOperations[building] = removalList
+              }
+            }
+          }
+          scheduledOperations = newScheduledOperations
+        }
+      }
+      unassignedOperations = newUnassignedOperations
+    }
     return {operations: scheduledOperations, operationsByList: opsByList, unassignedStorage: unassignedStorage}
-  }, [])
+  }, [replaceOp, removeOp])
 
   const calculateExpectedTimes = (operationsByList) => {
     let expected = []
@@ -361,7 +486,7 @@ function App() {
   }
 
   const calculateOperations = useCallback((shoppingLists, running, storage, prioritySwitches) => {
-    const priorityOrder = sortShoppingLists(shoppingLists, running, storage)
+    const priorityOrder = newSortShoppingLists(shoppingLists, running, storage)
     // first try with our existing switches
     let switchedOrder = [...priorityOrder]
     prioritySwitches.forEach(prioritySwitch => {
@@ -412,41 +537,47 @@ function App() {
       return newRunning
     }
     const interval = setInterval(() => {
-      const newRunning = updateRunning()
-      setRunningOperations(newRunning)
-      calculateOperations(shoppingLists, newRunning, inStorage, validatedPrioritySwitches)
+      if (!pauseUpdate) {
+        const newRunning = updateRunning()
+        setRunningOperations(newRunning)
+        calculateOperations(shoppingLists, newRunning, inStorage, validatedPrioritySwitches)
+      }
     }, 10000)
     return () => clearInterval(interval)
-  }, [loaded, calculateOperations, scheduleLists, shoppingLists, inStorage, runningOperations, validatedPrioritySwitches])
+  }, [loaded, calculateOperations, scheduleLists, shoppingLists, inStorage, runningOperations, validatedPrioritySwitches, pauseUpdate])
 
   let visualOpList = {...operationList}
-  calculateValues()
+  let visualShoppingListIndexes = []
+  for (let i = 0; i < shoppingLists.length; i += 1) {
+    visualShoppingListIndexes.push(i)
+  }
+  if (listSortBy === 'time') {
+    visualShoppingListIndexes.sort((a, b) => expectedTimes[a] - expectedTimes[b])
+  } else if (listSortBy === 'priority') {
+    for (let i = 0; i < shoppingLists.length; i += 1) {
+      visualShoppingListIndexes[i] = priorityOrder[i]
+    }
+  }
   return (
     <div>
       <Storage key={"storage"} goods={inStorage} unused={unassignedStorage} />
       <GoodsList addShoppingList={addShoppingList} addStorage={haveStorage} removeStorage={removeStorage}
                  makeGoods={makeGoods} clear={clear}/>
-      <div onClick={changeListSortBy}>Change Sort Order</div>
-      {listSortBy === 'time' && priorityOrder.map(ordering => shoppingLists[ordering.index] && <ShoppingList list={shoppingLists[ordering.index]} key={ordering.index} index={ordering.index}
-                      remove={() => removeShoppingList(ordering.index)}
-                      finish={() => finishShoppingList(ordering.index)}
-                      end={expectedTimes[ordering.index]}
-                      removeStorage={removeStorage}
-                      operations={listToOpMap[ordering.index]}
-                      expandOrCollapse={expandOrCollapse}
-                      expanded={ordering.index === expandedList}
-        />)}
-      {listSortBy === 'index' && shoppingLists.map((list, index) => <ShoppingList list={list} key={index} index={index}
-                                                                                  remove={() => removeShoppingList(index)}
-                                                                                  finish={() => finishShoppingList(index)}
-                                                                                  end={expectedTimes[index]}
-                                                                                  removeStorage={removeStorage}
-                                                                                  operations={listToOpMap[index]}
-                                                                                  expandOrCollapse={expandOrCollapse}
-                                                                                  expanded={index === expandedList}
-      />)}
+      <div onClick={changeListSortBy}>Change Sort Order ({listSortBy})</div>
+      {visualShoppingListIndexes.map(shoppingListIndex =>
+          <ShoppingList list={shoppingLists[shoppingListIndex]} key={shoppingListIndex} index={shoppingListIndex}
+                        remove={() => removeShoppingList(shoppingListIndex)}
+                        finish={() => finishShoppingList(shoppingListIndex)}
+                        end={expectedTimes[shoppingListIndex]}
+                        removeStorage={removeStorage}
+                        operations={listToOpMap[shoppingListIndex]}
+                        expandOrCollapse={expandOrCollapse}
+                        expanded={shoppingListIndex === expandedList}
+          />
+      )}
       <OperationList key={"oplist"} operations={visualOpList} pipelineSizes={pipelineSizes}
-                     startOp={startOperation} finishOp={finishOperation} speedUp={speedUpOperation} />
+                     startOp={startOperations} finishOp={finishOperations} speedUp={speedUpOperation}
+                      pauseUpdates={pauseUpdates}/>
     </div>
   )
 }

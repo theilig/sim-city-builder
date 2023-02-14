@@ -21,7 +21,9 @@ function OperationList(props) {
             {Object.keys(props.operations).map(building =>
                 <Building key={building} name={building} pipeline={sortPipeline(props.operations[building])}
                           startOp={props.startOp} finishOp={props.finishOp}
-                          pipelineSize={props.pipelineSizes[building]} speedUp={props.speedUp}/>
+                          pipelineSize={props.pipelineSizes[building]} speedUp={props.speedUp}
+                          pauseUpdates={props.pauseUpdates}
+                />
             )}
         </div>
     )

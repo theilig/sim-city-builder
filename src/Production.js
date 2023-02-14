@@ -151,7 +151,7 @@ function findBestTime(operations, building, waitUntil, neededBy, duration) {
             gapStart = Math.max(operation.end, gapStart)
         }
         if (bestAvailableTime === undefined) {
-            bestAvailableTime = gapStart
+            bestAvailableTime = Math.max(gapStart, neededBy - duration)
         }
     } else {
         let changes = {}
@@ -245,7 +245,7 @@ function addOperation(operation, operations, waitUntil, finishBy = 0) {
     return insertOperation(operations, currentOperation, operation.building)
 }
 
-export function addOrder(order, operations, priority, remainingStorage, running, finishBy = 0) {
+export function addOrder(order, operations, listIndex, remainingStorage, running, finishBy = 0) {
     let maxTimeOffset = 0
     let goodsAdded = []
     let childOperations = []
@@ -256,25 +256,21 @@ export function addOrder(order, operations, priority, remainingStorage, running,
             let good = {...goods[key]}
             let scheduleTime = findBestTime(operations, good.building, 0, finishBy, good.duration)
             if (goods[key] === undefined) { alert(key)}
-            let addOrderResult = addOrder(goods[key]['ingredients'], operations, priority, localStorage, running, scheduleTime)
+            let addOrderResult = addOrder(goods[key]['ingredients'], operations, listIndex, localStorage, running, scheduleTime)
             const checkForExistingOperation = addOrderResult.timeOfCompletion + good.duration > finishBy
             let foundRunning = undefined
             let updatedRunning = cloneOperations(running)
             if (checkForExistingOperation) {
-                const runningBuildings = Object.keys(running)
-                for (let i = 0; i < runningBuildings.length; i += 1) {
-                    const building = runningBuildings[i]
-                    if (foundRunning === undefined) {
-                        let foundIndex = undefined
-                        running[building].forEach((op, index) => {
-                            if (foundIndex === undefined && op.name === key) {
-                                foundIndex = index
-                            }
-                        })
-                        if (foundIndex !== undefined) {
-                            foundRunning = running[building][foundIndex]
-                            updatedRunning[building].splice(foundIndex, 1)
+                let foundIndex = undefined
+                if (running[good.building] !== undefined) {
+                    running[good.building].forEach((op, index) => {
+                        if (op.name === key && (foundIndex === undefined || op.end <= finishBy)) {
+                            foundIndex = index
                         }
+                    })
+                    if (foundIndex !== undefined) {
+                        foundRunning = running[good.building][foundIndex]
+                        updatedRunning[good.building].splice(foundIndex, 1)
                     }
                 }
             }
@@ -285,7 +281,7 @@ export function addOrder(order, operations, priority, remainingStorage, running,
                 pseudoOp.end = 0
                 existingOperations.push({name: key, end: 0, start: 0, fromStorage: true})
             } else if (checkForExistingOperation && foundRunning !== undefined) {
-                foundRunning.priority = priority
+                foundRunning.listIndex = listIndex
                 childOperations[goodsAdded.length] = []
                 goodsAdded.push(foundRunning)
                 running = updatedRunning
@@ -301,9 +297,9 @@ export function addOrder(order, operations, priority, remainingStorage, running,
                 localStorage = addOrderResult['storage']
                 running = addOrderResult['running']
                 good.name = key
-                good.priority = priority
+                good.listIndex = listIndex
                 good.waitingOn = waitingOn
-                good.goodToGo = addOrderResult.timeOfCompletion
+                good.childOperations = addOrderResult.operationsForOrder
                 goodsAdded.push(good)
                 operations = addOperation(good, operations, addOrderResult.timeOfCompletion, finishBy)
             }
