@@ -14,7 +14,8 @@ function ShoppingList(props) {
         style = {color: "greenyellow"}
     }
     return (
-        <div onClick={() => props.expandOrCollapse(props.index, props.expanded)}>
+        <div onClick={() => props.expandOrCollapse(props.index, props.expanded)} draggable
+             onDragStart={props.dragStart} onDragEnter={props.dragEnter} onDragEnd={props.dragEnd}>
             <div style={style}>
                 {"You want " + Object.keys(props.list.items).map(key =>{
                     return props.list.items[key] + " " + displayName(key, props.list.items[key])

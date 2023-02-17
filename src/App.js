@@ -3,7 +3,7 @@ import GoodsList from "./GoodsList.js";
 import ShoppingList from './ShoppingList';
 import {addOrder, calculateBuildingCosts, createOperation} from "./Production";
 import OperationList from "./OperationList";
-import React, { useState, useEffect, useCallback } from 'react';
+import React, {useState, useEffect, useCallback, useRef, useMemo} from 'react';
 import {buildingLimits} from "./Production"
 import Storage from "./Storage";
 import {cloneOperations} from "./Production"
@@ -18,16 +18,18 @@ function App() {
   const [listToOpMap, setListToOpMap] = useState([])
   const [runningOperations, setRunningOperations] = useState({})
   const [expandedList, setExpandedList] = useState(-1)
-  const [validatedPrioritySwitches, setPrioritySwitches] = useState([])
+  const [prioritySwitches, setPrioritySwitches] = useState([])
   const [priorityOrder, setPriorityOrder] = useState([])
   const [listSortBy, setListSortBy] = useState('time')
   const [pauseUpdate, setPauseUpdate] = useState(false)
+  const dragItem = useRef()
+  const dragOverItem = useRef()
 
   document.addEventListener("contextmenu", (event) => {
     event.preventDefault();
   });
 
-  const pipelineSizes = {
+  const pipelineSizes = useMemo(() => {return {
     'Factory': 1,
     'Green Factory': 1,
     'Home Appliances': 2,
@@ -40,6 +42,88 @@ function App() {
     'Farmer\'s Market': 5,
     'Gardening Supplies': 3,
     'Eco Shop': 3,
+  }}, [])
+
+  const dragStart = (e, position) => {
+    dragItem.current = position;
+  }
+
+  const dragEnter = (e, position) => {
+    dragOverItem.current = position;
+  };
+
+  const dragEnd = () => {
+    if (listSortBy === 'time') {
+      return
+    }
+    let localPrioritySwitches = [...prioritySwitches]
+    if (listSortBy === 'index') {
+      const newShoppingLists = [...shoppingLists];
+      const dragItemContent = newShoppingLists[dragItem.current];
+      newShoppingLists.splice(dragItem.current, 1);
+      newShoppingLists.splice(dragOverItem.current, 0, dragItemContent);
+      dragItem.current = null;
+      dragOverItem.current = null;
+      let newPrioritySwitches = []
+      localPrioritySwitches.forEach(sw => {
+        let newBelow = sw.below
+        let newAbove = sw.above
+        if (dragItem.current < dragOverItem.current) {
+          if (newBelow === dragItem.current) {
+            newBelow = dragOverItem.current
+          } else if (newBelow <= dragOverItem.current && newBelow > dragItem.current) {
+            newBelow -= 1
+          }
+          if (newAbove === dragItem.current) {
+            newAbove = dragOverItem.current
+          } else if (newAbove <= dragOverItem.current && newAbove > dragItem.current) {
+            newAbove -= 1
+          }
+        } else {
+          if (newBelow === dragItem.current) {
+            newBelow = dragOverItem.current
+          } else if (newBelow >= dragOverItem.current && newBelow < dragItem.current) {
+            newBelow += 1
+          }
+          if (newAbove === dragItem.current) {
+            newAbove = dragOverItem.current
+          } else if (newAbove >= dragOverItem.current && newAbove < dragItem.current) {
+            newAbove += 1
+          }
+
+        }
+        newPrioritySwitches.push({above: newAbove, below: newBelow})
+      })
+      localStorage.setItem("simShoppingLists", JSON.stringify(newShoppingLists))
+      setShoppingLists(newShoppingLists)
+      calculateOperations(newShoppingLists, runningOperations, inStorage, newPrioritySwitches)
+    } else if (listSortBy === 'priority') {
+      const dragItemIndex = priorityOrder.indexOf(dragItem.current)
+      const dragOverItemIndex = priorityOrder.indexOf(dragOverItem.current)
+      let newPrioritySwitches = []
+      let pairs = []
+      if (dragItemIndex > dragOverItemIndex) {
+        for (let pi = dragOverItemIndex; pi < dragItemIndex; pi += 1) {
+          pairs.push({above: dragItem.current, below: priorityOrder[pi]})
+        }
+      } else {
+        for (let pi = dragItemIndex + 1; pi <= dragOverItemIndex; pi += 1) {
+          pairs.push({above: priorityOrder[pi], below: dragItem.current})
+        }
+      }
+      pairs.forEach(s => {
+        newPrioritySwitches = []
+        localPrioritySwitches.forEach(ps => {
+          if (s.below !== ps.above || s.above !== ps.below) {
+            newPrioritySwitches.push(ps)
+          }
+        })
+        newPrioritySwitches.push(s)
+        localPrioritySwitches = newPrioritySwitches
+      })
+      setPrioritySwitches(localPrioritySwitches)
+    }
+    calculateOperations(shoppingLists, runningOperations, inStorage, localPrioritySwitches)
   }
 
   function pauseUpdates(newValue) {
@@ -134,7 +218,7 @@ function App() {
       newStorage = result.storage
     }
     setRunningOperations(newRunning)
-    updateLists(shoppingLists, newRunning, newStorage, validatedPrioritySwitches)
+    updateLists(shoppingLists, newRunning, newStorage, prioritySwitches)
   }
 
   function speedUpOperation(operation, event) {
@@ -152,7 +236,7 @@ function App() {
       }
     })
     setRunningOperations(newRunning)
-    updateLists(shoppingLists, newRunning, inStorage, validatedPrioritySwitches)
+    updateLists(shoppingLists, newRunning, inStorage, prioritySwitches)
   }
 
   function finishOperations(operation, count) {
@@ -175,7 +259,7 @@ function App() {
     }
     const newInStorage = addStorage(newGoods)
     setRunningOperations(newRunning)
-    updateLists(shoppingLists, newRunning, newInStorage, validatedPrioritySwitches)
+    updateLists(shoppingLists, newRunning, newInStorage, prioritySwitches)
   }
 
   function makeGoods(goods) {
@@ -187,7 +271,7 @@ function App() {
       }
     })
     setRunningOperations(newRunning)
-    updateLists(shoppingLists, newRunning, inStorage, validatedPrioritySwitches)
+    updateLists(shoppingLists, newRunning, inStorage, prioritySwitches)
   }
 
   // in case you hit have instead of hitting done below
@@ -230,7 +314,7 @@ function App() {
     setInStorage(newInStorage)
     localStorage.setItem("simStorage", JSON.stringify(newInStorage))
     setRunningOperations(newRunning)
-    updateLists(shoppingLists, newRunning, newInStorage, validatedPrioritySwitches)
+    updateLists(shoppingLists, newRunning, newInStorage, prioritySwitches)
     return newInStorage
   }
 
@@ -246,19 +330,33 @@ function App() {
     })
     setInStorage(newInStorage)
     localStorage.setItem("simStorage", JSON.stringify(newInStorage))
-    updateLists(shoppingLists, runningOperations, newInStorage, validatedPrioritySwitches)
+    updateLists(shoppingLists, runningOperations, newInStorage, prioritySwitches)
     return newInStorage
   }
 
   function finishShoppingList(index) {
     let newRunning = cloneOperations(runningOperations)
     const result = removeStorageOrRunning(shoppingLists[index].items, inStorage, newRunning)
-    setPrioritySwitches([])
     setRunningOperations(result.running)
     removeShoppingList(index)
   }
 
   function removeShoppingList(index, running, storage) {
+    let newPrioritySwitches = []
+    prioritySwitches.forEach(s => {
+      if (s.above !== index && s.below !== index) {
+        let newAbove = s.above
+        let newBelow = s.below
+        if (newAbove > index) {
+          newAbove -= 1
+        }
+        if (newBelow > index) {
+          newBelow -= 1
+        }
+        newPrioritySwitches.push({above: newAbove, below: newBelow})
+      }
+    })
+    setPrioritySwitches(newPrioritySwitches)
     if (running === undefined) {
       running = runningOperations
     }
@@ -277,13 +375,12 @@ function App() {
       return;
     }
     let newShoppingLists = [...shoppingLists]
-    setPrioritySwitches([])
     newShoppingLists.push({items: goodsNeeded, region: region});
     localStorage.setItem("simShoppingLists", JSON.stringify(newShoppingLists))
     updateLists(newShoppingLists, runningOperations, inStorage, [])
   }
 
-  const newSortShoppingLists = shoppingLists => {
+  const sortShoppingLists = shoppingLists => {
     let operationsNeeded = {}
     let operationsByOrder = []
     for (let i = 0; i < shoppingLists.length; i += 1) {
@@ -465,7 +562,7 @@ function App() {
       unassignedOperations = newUnassignedOperations
     }
     return {operations: scheduledOperations, operationsByList: opsByList, unassignedStorage: unassignedStorage}
-  }, [replaceOp, removeOp])
+  }, [replaceOp, removeOp, pipelineSizes])
 
   const calculateExpectedTimes = (operationsByList) => {
     let expected = []
@@ -480,22 +577,61 @@ function App() {
     return expected
   }
 
-  const updateLists = (shoppingLists, running, storage, prioritySwitches) => {
+  const updateLists = (shoppingLists, running, storage) => {
     setShoppingLists(shoppingLists)
     return calculateOperations(shoppingLists, running, storage, prioritySwitches)
   }
 
-  const calculateOperations = useCallback((shoppingLists, running, storage, prioritySwitches) => {
-    const priorityOrder = newSortShoppingLists(shoppingLists, running, storage)
-    // first try with our existing switches
-    let switchedOrder = [...priorityOrder]
-    prioritySwitches.forEach(prioritySwitch => {
-      const tmp = switchedOrder[prioritySwitch.to]
-      switchedOrder[prioritySwitch.to] = switchedOrder[prioritySwitch.from]
-      switchedOrder[prioritySwitch.from] = tmp
-    })
+  const createVisualList = () => {
+    let visualShoppingListIndexes = []
+    for (let i = 0; i < shoppingLists.length; i += 1) {
+      visualShoppingListIndexes.push(i)
+    }
+    if (listSortBy === 'time') {
+      visualShoppingListIndexes.sort((a, b) => expectedTimes[a] - expectedTimes[b])
+    } else if (listSortBy === 'priority') {
+      for (let i = 0; i < shoppingLists.length; i += 1) {
+        visualShoppingListIndexes[i] = priorityOrder[i]
+      }
+    }
+    return visualShoppingListIndexes
+  }
 
-    let result = scheduleLists(shoppingLists, running, storage, switchedOrder)
+  const calculateOperations = useCallback((shoppingLists, running, storage, localPrioritySwitches) => {
+    let localPriorityOrder = sortShoppingLists(shoppingLists, running, storage)
+    let remainingSwitches = [...localPrioritySwitches]
+    let index = 0
+    while (index < localPriorityOrder.length) {
+      let target = undefined
+      for (let switchIndex = 0; switchIndex < remainingSwitches.length; switchIndex += 1) {
+        if (target === undefined && remainingSwitches[switchIndex].below === localPriorityOrder[index]) {
+          target = remainingSwitches[switchIndex].above
+        }
+      }
+      if (target !== undefined) {
+        let newPriorityOrder = []
+        for (let pi = 1; pi < localPriorityOrder.length; pi += 1) {
+          newPriorityOrder.push(localPriorityOrder[pi])
+          if (localPriorityOrder[pi] === target) {
+            newPriorityOrder.push(localPriorityOrder[0])
+          }
+        }
+        localPriorityOrder = newPriorityOrder
+      } else {
+        let newRemainingSwitches = []
+        const placed = localPriorityOrder[index]
+        remainingSwitches.forEach(s => {
+          if (s.above !== placed) {
+            newRemainingSwitches.push(s)
+          }
+        })
+        remainingSwitches = newRemainingSwitches
+        index += 1
+
+      }
+    }
+
+    let result = scheduleLists(shoppingLists, running, storage, localPriorityOrder)
     const currentExpected = calculateExpectedTimes(result.operationsByList)
     if (shoppingLists.length <= 1) {
       setPrioritySwitches([])
@@ -505,7 +641,7 @@ function App() {
     // we have to unwind this back to original indexes
     setListToOpMap(result.operationsByList)
     setUnassignedStorage(result.unassignedStorage)
-    setPriorityOrder(switchedOrder)
+    setPriorityOrder(localPriorityOrder)
   }, [scheduleLists])
 
   useEffect(() => {
@@ -518,7 +654,7 @@ function App() {
       if (storage) {
         setInStorage(storage)
       }
-      calculateOperations(shoppingLists, {}, storage, validatedPrioritySwitches)
+      calculateOperations(shoppingLists, {}, storage, prioritySwitches)
       setLoaded(true)
     }
     const updateRunning = () => {
@@ -540,24 +676,14 @@ function App() {
       if (!pauseUpdate) {
         const newRunning = updateRunning()
         setRunningOperations(newRunning)
-        calculateOperations(shoppingLists, newRunning, inStorage, validatedPrioritySwitches)
+        calculateOperations(shoppingLists, newRunning, inStorage, prioritySwitches)
       }
     }, 10000)
     return () => clearInterval(interval)
-  }, [loaded, calculateOperations, scheduleLists, shoppingLists, inStorage, runningOperations, validatedPrioritySwitches, pauseUpdate])
+  }, [loaded, calculateOperations, scheduleLists, shoppingLists, inStorage, runningOperations, prioritySwitches, pauseUpdate])
 
   let visualOpList = {...operationList}
-  let visualShoppingListIndexes = []
-  for (let i = 0; i < shoppingLists.length; i += 1) {
-    visualShoppingListIndexes.push(i)
-  }
-  if (listSortBy === 'time') {
-    visualShoppingListIndexes.sort((a, b) => expectedTimes[a] - expectedTimes[b])
-  } else if (listSortBy === 'priority') {
-    for (let i = 0; i < shoppingLists.length; i += 1) {
-      visualShoppingListIndexes[i] = priorityOrder[i]
-    }
-  }
+  const visualShoppingListIndexes = createVisualList()
   return (
     <div>
       <Storage key={"storage"} goods={inStorage} unused={unassignedStorage} />
@@ -573,6 +699,9 @@ function App() {
                         operations={listToOpMap[shoppingListIndex]}
                         expandOrCollapse={expandOrCollapse}
                         expanded={shoppingListIndex === expandedList}
+                        dragStart={(e) => dragStart(e, shoppingListIndex)}
+                        dragEnter={(e) => dragEnter(e, shoppingListIndex)}
+                        dragEnd={dragEnd}
           />
       )}
       <OperationList key={"oplist"} operations={visualOpList} pipelineSizes={pipelineSizes}
