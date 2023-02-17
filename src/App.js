@@ -5,6 +5,7 @@ import {addOrder, calculateBuildingCosts, createOperation} from "./Production";
 import OperationList from "./OperationList";
 import React, {useState, useEffect, useCallback, useRef, useMemo} from 'react';
 import {buildingLimits} from "./Production"
+import ShoppingLists from "./ShoppingLists";
 import Storage from "./Storage";
 import {cloneOperations} from "./Production"
 
@@ -17,13 +18,9 @@ function App() {
   const [unassignedStorage, setUnassignedStorage] = useState({})
   const [listToOpMap, setListToOpMap] = useState([])
   const [runningOperations, setRunningOperations] = useState({})
-  const [expandedList, setExpandedList] = useState(-1)
   const [prioritySwitches, setPrioritySwitches] = useState([])
   const [priorityOrder, setPriorityOrder] = useState([])
-  const [listSortBy, setListSortBy] = useState('time')
   const [pauseUpdate, setPauseUpdate] = useState(false)
-  const dragItem = useRef()
-  const dragOverItem = useRef()
 
   document.addEventListener("contextmenu", (event) => {
     event.preventDefault();
@@ -44,88 +41,6 @@ function App() {
     'Eco Shop': 3,
   }}, [])
 
-  const dragStart = (e, position) => {
-    dragItem.current = position;
-  }
-
-  const dragEnter = (e, position) => {
-    dragOverItem.current = position;
-  };
-
-  const dragEnd = () => {
-    if (listSortBy === 'time') {
-      return
-    }
-    let localPrioritySwitches = [...prioritySwitches]
-    if (listSortBy === 'index') {
-      const newShoppingLists = [...shoppingLists];
-      const dragItemContent = newShoppingLists[dragItem.current];
-      newShoppingLists.splice(dragItem.current, 1);
-      newShoppingLists.splice(dragOverItem.current, 0, dragItemContent);
-      dragItem.current = null;
-      dragOverItem.current = null;
-      let newPrioritySwitches = []
-      localPrioritySwitches.forEach(sw => {
-        let newBelow = sw.below
-        let newAbove = sw.above
-        if (dragItem.current < dragOverItem.current) {
-          if (newBelow === dragItem.current) {
-            newBelow = dragOverItem.current
-          } else if (newBelow <= dragOverItem.current && newBelow > dragItem.current) {
-            newBelow -= 1
-          }
-          if (newAbove === dragItem.current) {
-            newAbove = dragOverItem.current
-          } else if (newAbove <= dragOverItem.current && newAbove > dragItem.current) {
-            newAbove -= 1
-          }
-        } else {
-          if (newBelow === dragItem.current) {
-            newBelow = dragOverItem.current
-          } else if (newBelow >= dragOverItem.current && newBelow < dragItem.current) {
-            newBelow += 1
-          }
-          if (newAbove === dragItem.current) {
-            newAbove = dragOverItem.current
-          } else if (newAbove >= dragOverItem.current && newAbove < dragItem.current) {
-            newAbove += 1
-          }
-
-        }
-        newPrioritySwitches.push({above: newAbove, below: newBelow})
-      })
-      localStorage.setItem("simShoppingLists", JSON.stringify(newShoppingLists))
-      setShoppingLists(newShoppingLists)
-      calculateOperations(newShoppingLists, runningOperations, inStorage, newPrioritySwitches)
-    } else if (listSortBy === 'priority') {
-      const dragItemIndex = priorityOrder.indexOf(dragItem.current)
-      const dragOverItemIndex = priorityOrder.indexOf(dragOverItem.current)
-      let newPrioritySwitches = []
-      let pairs = []
-      if (dragItemIndex > dragOverItemIndex) {
-        for (let pi = dragOverItemIndex; pi < dragItemIndex; pi += 1) {
-          pairs.push({above: dragItem.current, below: priorityOrder[pi]})
-        }
-      } else {
-        for (let pi = dragItemIndex + 1; pi <= dragOverItemIndex; pi += 1) {
-          pairs.push({above: priorityOrder[pi], below: dragItem.current})
-        }
-      }
-      pairs.forEach(s => {
-        newPrioritySwitches = []
-        localPrioritySwitches.forEach(ps => {
-          if (s.below !== ps.above || s.above !== ps.below) {
-            newPrioritySwitches.push(ps)
-          }
-        })
-        newPrioritySwitches.push(s)
-        localPrioritySwitches = newPrioritySwitches
-      })
-      setPrioritySwitches(localPrioritySwitches)
-    }
-    calculateOperations(shoppingLists, runningOperations, inStorage, localPrioritySwitches)
-  }
-
   function pauseUpdates(newValue) {
     setPauseUpdate(newValue)
   }
@@ -136,24 +51,6 @@ function App() {
     setRunningOperations({})
     setPrioritySwitches([])
     setInStorage({})
-  }
-
-  function changeListSortBy() {
-    if (listSortBy === 'time') {
-      setListSortBy('index')
-    } else if (listSortBy === 'index') {
-      setListSortBy('priority')
-    } else {
-      setListSortBy('time')
-    }
-  }
-
-  function expandOrCollapse(index, expanded) {
-      if (expanded === true) {
-          setExpandedList(-1)
-      } else {
-          setExpandedList(index)
-      }
   }
 
   function addToRunning(operation, running) {
@@ -578,23 +475,20 @@ function App() {
   }
 
   const updateLists = (shoppingLists, running, storage) => {
+    if (running === undefined) {
+      running = runningOperations
+    }
+    if (storage === undefined) {
+      storage = inStorage
+    }
     setShoppingLists(shoppingLists)
     return calculateOperations(shoppingLists, running, storage, prioritySwitches)
   }
 
-  const createVisualList = () => {
-    let visualShoppingListIndexes = []
-    for (let i = 0; i < shoppingLists.length; i += 1) {
-      visualShoppingListIndexes.push(i)
-    }
-    if (listSortBy === 'time') {
-      visualShoppingListIndexes.sort((a, b) => expectedTimes[a] - expectedTimes[b])
-    } else if (listSortBy === 'priority') {
-      for (let i = 0; i < shoppingLists.length; i += 1) {
-        visualShoppingListIndexes[i] = priorityOrder[i]
-      }
-    }
-    return visualShoppingListIndexes
+  const updatePrioritySwitches = (newPrioritySwitches, newShoppingLists) => {
+    setShoppingLists(newShoppingLists)
+    setPrioritySwitches(newPrioritySwitches)
+    calculateOperations(newShoppingLists, runningOperations, inStorage, newPrioritySwitches)
   }
 
   const calculateOperations = useCallback((shoppingLists, running, storage, localPrioritySwitches) => {
@@ -683,27 +577,16 @@ function App() {
   }, [loaded, calculateOperations, scheduleLists, shoppingLists, inStorage, runningOperations, prioritySwitches, pauseUpdate])
 
   let visualOpList = {...operationList}
-  const visualShoppingListIndexes = createVisualList()
   return (
     <div>
       <Storage key={"storage"} goods={inStorage} unused={unassignedStorage} />
       <GoodsList addShoppingList={addShoppingList} addStorage={haveStorage} removeStorage={removeStorage}
                  makeGoods={makeGoods} clear={clear}/>
-      <div onClick={changeListSortBy}>Change Sort Order ({listSortBy})</div>
-      {visualShoppingListIndexes.map(shoppingListIndex =>
-          <ShoppingList list={shoppingLists[shoppingListIndex]} key={shoppingListIndex} index={shoppingListIndex}
-                        remove={() => removeShoppingList(shoppingListIndex)}
-                        finish={() => finishShoppingList(shoppingListIndex)}
-                        end={expectedTimes[shoppingListIndex]}
-                        removeStorage={removeStorage}
-                        operations={listToOpMap[shoppingListIndex]}
-                        expandOrCollapse={expandOrCollapse}
-                        expanded={shoppingListIndex === expandedList}
-                        dragStart={(e) => dragStart(e, shoppingListIndex)}
-                        dragEnter={(e) => dragEnter(e, shoppingListIndex)}
-                        dragEnd={dragEnd}
-          />
-      )}
+      <ShoppingLists prioritySwitches={prioritySwitches} updatePrioritySwitches={updatePrioritySwitches}
+                     lists={shoppingLists} priorityOrder={priorityOrder}
+                     expectedTimes={expectedTimes} removeShoppingList={removeShoppingList}
+                     finishShoppingList={finishShoppingList} listToOpMap={listToOpMap}
+        />
       <OperationList key={"oplist"} operations={visualOpList} pipelineSizes={pipelineSizes}
                      startOp={startOperations} finishOp={finishOperations} speedUp={speedUpOperation}
                       pauseUpdates={pauseUpdates}/>
