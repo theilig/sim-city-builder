@@ -1,13 +1,12 @@
 import './App.css';
 import GoodsList from "./GoodsList.js";
-import ShoppingList from './ShoppingList';
 import {addOrder, calculateBuildingCosts, createOperation} from "./Production";
 import OperationList from "./OperationList";
-import React, {useState, useEffect, useCallback, useRef, useMemo} from 'react';
-import {buildingLimits} from "./Production"
+import React, {useState, useEffect, useCallback} from 'react';
 import ShoppingLists from "./ShoppingLists";
 import Storage from "./Storage";
 import {cloneOperations} from "./Production"
+import {addToRunning, finishOperation, speedUpOperation} from "./Running";
 
 function App() {
   const [shoppingLists, setShoppingLists] = useState([])
@@ -26,21 +25,6 @@ function App() {
     event.preventDefault();
   });
 
-  const pipelineSizes = useMemo(() => {return {
-    'Factory': 1,
-    'Green Factory': 1,
-    'Home Appliances': 2,
-    'Building Supplies Store': 5,
-    'Hardware Store': 5,
-    'Fast Food Restaurant': 2,
-    'Furniture Store': 3,
-    'Donut Shop': 3,
-    'Fashion Store': 3,
-    'Farmer\'s Market': 5,
-    'Gardening Supplies': 3,
-    'Eco Shop': 3,
-  }}, [])
-
   function pauseUpdates(newValue) {
     setPauseUpdate(newValue)
   }
@@ -51,30 +35,6 @@ function App() {
     setRunningOperations({})
     setPrioritySwitches([])
     setInStorage({})
-  }
-
-  function addToRunning(operation, running) {
-    let building = operation.building
-    building = building.replace(/\d+$/, '')
-    let buildingLimit = buildingLimits[building] || 1
-    let startTime = 0
-    if (running[building] === undefined) {
-      running[building] = [operation]
-    } else {
-      if (buildingLimit === 1 && running[building].length > 0) {
-        startTime = running[building][running[building].length - 1].end
-      }
-      running[building].push(operation)
-    }
-    if (startTime < 0) {
-      startTime = 0
-    }
-    operation.runningId = running[building].length
-    operation.scheduledId = undefined
-    operation.placeInList = running[building].length
-    operation.runTime = Date.now()
-    operation.start = startTime
-    operation.end = operation.duration + operation.start
   }
 
   function removeStorageOrRunning(itemsNeeded, storage, running) {
@@ -105,11 +65,11 @@ function App() {
   }
 
   function startOperations(operation, count) {
-    let newRunning = cloneOperations(runningOperations)
+    let newRunning = runningOperations
     let newStorage = {...inStorage}
     for (let i = 0; i < count; i += 1) {
       let runningOperation = createOperation(operation.name)
-      addToRunning(runningOperation, newRunning)
+      newRunning = addToRunning(runningOperation, newRunning)
       const result = removeStorageOrRunning(operation.ingredients, newStorage, newRunning)
       newRunning = result.running
       newStorage = result.storage
@@ -118,53 +78,31 @@ function App() {
     updateLists(shoppingLists, newRunning, newStorage, prioritySwitches)
   }
 
-  function speedUpOperation(operation, event) {
-    let newRunning = cloneOperations(runningOperations)
-    let amount = 60
-    if (event.ctrlKey) {
-      amount = 3600
-    } else if (event.shiftKey) {
-      amount = 300
-    }
-    newRunning[operation.building].forEach(op => {
-      if (op.runningId === operation.runningId) {
-        op.start -= amount
-        op.end -= amount
-      }
-    })
+  function speedUp(operation, amount) {
+    const newRunning = speedUpOperation(runningOperations, operation, amount)
     setRunningOperations(newRunning)
     updateLists(shoppingLists, newRunning, inStorage, prioritySwitches)
   }
 
   function finishOperations(operation, count) {
+    let newRunning = runningOperations
+    for (let i = 0; i < count; i += 1) {
+      newRunning = finishOperation(newRunning, operation.name)
+    }
+
     let newGoods = {}
     newGoods[operation.name] = count
-    let newRunning = cloneOperations(runningOperations)
-    let building = operation.building
-    let buildingOperations = []
-    newRunning[building].forEach(op => {
-      if (count <= 0 || op.name !== operation.name) {
-        buildingOperations.push(op)
-      } else {
-        count -= 1
-      }
-    })
-    if (buildingOperations.length > 0) {
-      newRunning[building] = buildingOperations
-    } else {
-      delete newRunning[building]
-    }
     const newInStorage = addStorage(newGoods)
     setRunningOperations(newRunning)
     updateLists(shoppingLists, newRunning, newInStorage, prioritySwitches)
   }
 
   function makeGoods(goods) {
-    let newRunning = cloneOperations(runningOperations)
+    let newRunning = runningOperations
     Object.keys(goods).forEach((good) => {
       for (let i = 0; i < goods[good]; i += 1) {
         const newOperation = createOperation(good)
-        addToRunning(newOperation, newRunning)
+        newRunning = addToRunning(newOperation, newRunning)
       }
     })
     setRunningOperations(newRunning)
@@ -173,20 +111,10 @@ function App() {
 
   // in case you hit have instead of hitting done below
   function haveStorage(goods) {
-    let newRunning = {...runningOperations}
+    let newRunning = runningOperations
     Object.keys(goods).forEach((good) => {
-      let remainingToFind = goods[good]
-      if (newRunning[good.building !== undefined]) {
-        let remainingRunningInBuilding = []
-        newRunning[good.building].forEach(op => {
-          if (remainingToFind > 0 && op.name === good) {
-            remainingToFind -= 1
-          } else {
-            remainingRunningInBuilding.push(op)
-          }
-        })
-        newRunning[good.building] = remainingRunningInBuilding
-      }
+      let operation = createOperation(good)
+      newRunning = finishOperation(newRunning, operation)
     })
     setRunningOperations(newRunning)
     addStorage(goods, newRunning)
@@ -366,19 +294,6 @@ function App() {
     let unassignedStorage = {...storage}
 
     let opsByList = []
-    Object.keys(unassignedOperations).forEach(building => {
-      let startTime = 0
-      unassignedOperations[building].forEach(op => {
-        op.listIndex = undefined
-        if (op.start > startTime) {
-          op.start = startTime
-          op.end = startTime + op.duration
-        }
-        if (pipelineSizes[building] > 1) {
-          startTime = op.end
-        }
-      })
-    })
     let scheduledOperations = cloneOperations(unassignedOperations)
     priorityOrder.forEach(order => {
       const listIndex = order
@@ -459,7 +374,7 @@ function App() {
       unassignedOperations = newUnassignedOperations
     }
     return {operations: scheduledOperations, operationsByList: opsByList, unassignedStorage: unassignedStorage}
-  }, [replaceOp, removeOp, pipelineSizes])
+  }, [replaceOp, removeOp])
 
   const calculateExpectedTimes = (operationsByList) => {
     let expected = []
@@ -587,8 +502,8 @@ function App() {
                      expectedTimes={expectedTimes} removeShoppingList={removeShoppingList}
                      finishShoppingList={finishShoppingList} listToOpMap={listToOpMap}
         />
-      <OperationList key={"oplist"} operations={visualOpList} pipelineSizes={pipelineSizes}
-                     startOp={startOperations} finishOp={finishOperations} speedUp={speedUpOperation}
+      <OperationList key={"oplist"} operations={visualOpList}
+                     startOp={startOperations} finishOp={finishOperations} speedUp={speedUp}
                       pauseUpdates={pauseUpdates}/>
     </div>
   )

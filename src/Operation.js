@@ -25,6 +25,16 @@ function Operation(props) {
         setTimeout(() => submitWhenDoneStarting(targetClicks), 500)
     }
 
+    function speedUp(e) {
+        let amount = 60
+        if (e.ctrlKey) {
+            amount = 3600
+        } else if (e.shiftKey) {
+            amount = 300
+        }
+        props.speedUp(props.operation, amount)
+    }
+
     function clickedDone() {
         const targetClicks = doneClicks + 1
         doneClicks = targetClicks
@@ -35,7 +45,7 @@ function Operation(props) {
         if (props.operation.runningId !== undefined) {
             return <button
                 onClick={clickedDone}
-                onContextMenu={(e) => props.speedUp(props.operation, e)}
+                onContextMenu={speedUp}
             >done</button>
         } else {
             return <button onClick={clickedStart}>start</button>

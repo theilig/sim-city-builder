@@ -1,20 +1,38 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import Operation from "./Operation";
 import {buildingLimits} from "./Production"
 
 function Building(props) {
+    const pipelineSizes = useMemo(() => {return {
+        'Factory': 1,
+        'Green Factory': 1,
+        'Home Appliances': 2,
+        'Building Supplies Store': 5,
+        'Hardware Store': 5,
+        'Fast Food Restaurant': 2,
+        'Furniture Store': 3,
+        'Donut Shop': 3,
+        'Fashion Store': 3,
+        'Farmer\'s Market': 5,
+        'Gardening Supplies': 3,
+        'Eco Shop': 3,
+    }}, [])
+
+
+
     let visualPipeline = []
     let combiners = {}
     const limit = buildingLimits[props.name]
+    const pipelineSize = pipelineSizes[props.name] || 1
     props.pipeline.forEach((op, index) => {
         let visualOp = {...op}
-        if ((index < (props.pipelineSize || 1) || index < (limit || 1)) && op.runningId === undefined) {
+        if ((index < (pipelineSize || 1) || index < (limit || 1)) && op.runningId === undefined) {
             visualOp.nextUp = true
         }
         let canCombine = true
         if (combiners[visualOp.name] !== undefined) {
             let combiningOp = combiners[op.name]
-            canCombine = canCombine && !(combiningOp.runningId && props.pipelineSize > 1)
+            canCombine = canCombine && !(combiningOp.runningId && pipelineSize > 1)
             canCombine = canCombine && !(combiningOp.runningId !== undefined && visualOp.runningId === undefined)
             canCombine = canCombine && !(combiningOp.runningId === undefined && visualOp.runningId !== undefined)
             canCombine = canCombine && !(combiningOp.nextUp !== visualOp.nextUp)
