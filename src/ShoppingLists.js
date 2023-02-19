@@ -1,5 +1,67 @@
 import React, {useRef, useState} from 'react';
 import ShoppingList from "./ShoppingList";
+
+export function removeList(shoppingLists, index, prioritySwitches) {
+    let newPrioritySwitches = []
+    prioritySwitches.forEach(s => {
+        if (s.above !== index && s.below !== index) {
+            let newAbove = s.above
+            let newBelow = s.below
+            if (newAbove > index) {
+                newAbove -= 1
+            }
+            if (newBelow > index) {
+                newBelow -= 1
+            }
+            newPrioritySwitches.push({above: newAbove, below: newBelow})
+        }
+    })
+    let newShoppingLists = [...shoppingLists]
+    newShoppingLists.splice(index, 1)
+    return {shoppingLists: newShoppingLists, prioritySwitches: newPrioritySwitches}
+}
+
+export function addList(shoppingLists, goodsNeeded, region, prioritySwitches) {
+    let newShoppingLists = [...shoppingLists]
+    newShoppingLists.push({items: goodsNeeded, region: region});
+    return {shoppingLists: newShoppingLists, prioritySwitches: prioritySwitches}
+}
+
+export function updatePriorityOrder(localPriorityOrder, prioritySwitches) {
+    let remainingSwitches = [prioritySwitches]
+    let index = 0
+    while (index < localPriorityOrder.length) {
+        let target = undefined
+        for (let switchIndex = 0; switchIndex < remainingSwitches.length; switchIndex += 1) {
+            if (target === undefined && remainingSwitches[switchIndex].below === localPriorityOrder[index]) {
+                target = remainingSwitches[switchIndex].above
+            }
+        }
+        if (target !== undefined) {
+            let newPriorityOrder = []
+            for (let pi = 1; pi < localPriorityOrder.length; pi += 1) {
+                newPriorityOrder.push(localPriorityOrder[pi])
+                if (localPriorityOrder[pi] === target) {
+                    newPriorityOrder.push(localPriorityOrder[0])
+                }
+            }
+            localPriorityOrder = newPriorityOrder
+        } else {
+            let newRemainingSwitches = []
+            const placed = localPriorityOrder[index]
+            remainingSwitches.forEach(s => {
+                if (s.above !== placed) {
+                    newRemainingSwitches.push(s)
+                }
+            })
+            remainingSwitches = newRemainingSwitches
+            index += 1
+
+        }
+    }
+    return localPriorityOrder
+}
+
 function ShoppingLists(props) {
     const [listSortBy, setListSortBy] = useState('time')
     const [expandedList, setExpandedList] = useState(-1)

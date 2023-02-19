@@ -1,4 +1,4 @@
-import {buildingLimits, cloneOperations} from "./Production";
+import {buildingLimits, cloneOperations, createOperation} from "./Production";
 
 export function addToRunning(operation, running) {
     let localRunning = cloneOperations(running)
@@ -24,6 +24,22 @@ export function addToRunning(operation, running) {
     localOperation.start = startTime
     localOperation.end = operation.duration + operation.start
     return localRunning
+}
+
+export function finishRunning(good, running) {
+    let localRunning = cloneOperations(running)
+    let operation = createOperation(good)
+    let removed = false
+    let buildingRunning = []
+      localRunning[operation.building].forEach(op => {
+        if (!removed && op.name === operation.name) {
+            removed = true
+        } else {
+            buildingRunning.push(op)
+        }
+    })
+    localRunning[operation.building] = buildingRunning
+    return {found: removed, running: localRunning}
 }
 
 export function speedUpOperation(running, operation, amount) {
@@ -64,5 +80,21 @@ export function finishOperation(running, operation) {
         }
     })
     newRunning[building] = newBuildingOps
+    return newRunning
+}
+
+export function updateRunning(runningOperations) {
+    let newRunning = cloneOperations(runningOperations)
+    Object.keys(newRunning).forEach(building => {
+        newRunning[building].forEach(op => {
+            const currentTime = Date.now()
+            op.end = Math.round(op.end - (currentTime - op.runTime) / 1000)
+            op.start = op.end - op.duration
+            if (op.end < 0) {
+                op.end = 0
+            }
+            op.runTime = currentTime
+        })
+    })
     return newRunning
 }
