@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Good from './Good';
-import goods from "./Production"
+import goods from "./Goods"
 function GoodsList(props) {
     const [currentList, setCurrentList] = useState({});
     function updateCount(goodName, total) {

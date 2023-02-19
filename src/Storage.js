@@ -1,6 +1,6 @@
 import React from 'react';
-import goods, {cloneOperations, createOperation} from "./Production";
-
+import {cloneOperations, createOperation} from "./Production";
+import goods from "./Goods"
 export function removeGood(storage, good) {
     let removed = false
     let buildingStorage = []
@@ -15,23 +15,6 @@ export function removeGood(storage, good) {
     let newStorage = cloneOperations(storage)
     newStorage[operation.building] = buildingStorage
     return {found: removed, storage: newStorage}
-}
-
-export function reserveGood(storage, good, reserve = true) {
-    let found = false
-    let buildingStorage = []
-    let operation = createOperation(good)
-    let newStorage = cloneOperations(storage)
-    newStorage[operation.building].forEach(op => {
-        if (!found && op.name === operation.name && op.reserved !== reserve) {
-            op.reserved = reserve
-            found = true
-        } else {
-            buildingStorage.push(op)
-        }
-    })
-    newStorage[operation.building] = buildingStorage
-    return {found: found, storage: newStorage}
 }
 
 export function addStorage(storage, goods) {
