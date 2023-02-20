@@ -67,19 +67,22 @@ export function finishOperation(running, operation) {
     const newBuildingOps = []
     let found = false
     let startTime = 0
-    newRunning[building].forEach(op => {
-        if (found || op.name !== operation.name) {
-            if (op.start > startTime) {
-                op.start = startTime
-                op.end = startTime + op.duration
+    if (newRunning[building] !== undefined) {
+        newRunning[building].forEach(op => {
+            if (found || op.name !== operation.name) {
+                if (op.start > startTime) {
+                    op.start = startTime
+                    op.end = startTime + op.duration
+                }
+                newBuildingOps.push(op)
+                startTime = op.end
+            } else {
+                found = true
             }
-            newBuildingOps.push(op)
-            startTime = op.end
-        } else {
-            found = true
-        }
-    })
-    newRunning[building] = newBuildingOps
+        })
+        newRunning[building] = newBuildingOps
+
+    }
     return newRunning
 }
 

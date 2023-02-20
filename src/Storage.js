@@ -22,8 +22,13 @@ export function addStorage(storage, goods) {
     Object.keys(goods).forEach(good => {
         for (let i = 0; i < goods[good]; i += 1) {
             let op = createOperation(good)
+            if (newStorage[op.building] === undefined) {
+                newStorage[op.building] = []
+            }
             op.reserved = false
             op.fromStorage = true
+            op.start = 0
+            op.end = 0
             newStorage[op.building].push(op)
         }
     })

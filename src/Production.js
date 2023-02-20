@@ -1,5 +1,4 @@
 import goods from "./Goods.js"
-import {wait} from "@testing-library/user-event/dist/utils";
 export const buildingLimits = {
     'Factory': 30,
     'Green Factory': 5
@@ -250,7 +249,7 @@ function addOperation(operation, operations, waitUntil) {
 export function addOrder(order, operations, listIndex, remainingStorage, running, finishBy = 0, waitUntil = 0) {
     let maxTimeOffset = 0
     let goodsAdded = []
-    let localStorage = {...remainingStorage}
+    let storage = {...remainingStorage}
     Object.keys(order).forEach(key => {
         for (let count = 0; count < order[key]; count += 1) {
             if (goods[key] === undefined) {
@@ -258,10 +257,10 @@ export function addOrder(order, operations, listIndex, remainingStorage, running
             }
             let newOperation = createOperation(key)
             newOperation.listIndex = listIndex
-            let storageResult = reserveExistingOperation(localStorage, key, true)
+            let storageResult = reserveExistingOperation(storage, key, true)
             let runningResult = reserveExistingOperation(running, key, true)
             if (storageResult.found !== undefined) {
-                localStorage = storageResult.updated
+                storage = storageResult.updated
                 storageResult.found.slideTime = finishBy - newOperation.duration
                 goodsAdded.push(storageResult.found)
             } else if (runningResult.found !== undefined) {
@@ -269,9 +268,9 @@ export function addOrder(order, operations, listIndex, remainingStorage, running
                 runningResult.found.slideTime = Math.min(0, finishBy - runningResult.found.end)
                 goodsAdded.push(runningResult.found)
             } else {
-                const scheduleResult = scheduleNewOperation(newOperation, operations, localStorage, running, waitUntil, finishBy, true)
+                const scheduleResult = scheduleNewOperation(newOperation, operations, storage, running, waitUntil, finishBy, true)
                 running = scheduleResult.running
-                localStorage = scheduleResult.storage
+                storage = scheduleResult.storage
                 operations = scheduleResult.operations
                 goodsAdded.push(newOperation)
             }
@@ -283,7 +282,7 @@ export function addOrder(order, operations, listIndex, remainingStorage, running
         }
     })
 
-    return {allOperations: operations, timeOfCompletion: maxTimeOffset, storage: localStorage, added: goodsAdded, running: running}
+    return {allOperations: operations, timeOfCompletion: maxTimeOffset, storage: storage, added: goodsAdded, running: running}
 }
 
 function shuffleReservations(operations, operation, storage, running) {
@@ -321,7 +320,7 @@ function scheduleNewOperation(operation, operations, storage, running, waitUntil
             return {operations: shuffleResult.operations, storage: shuffleResult.storage, running: shuffleResult.running}
         }
     }
-    let addOrderResult = addOrder(goods[operation.name]['ingredients'], operations, operation.listIndex, localStorage, running, scheduleTime, waitUntil)
+    let addOrderResult = addOrder(goods[operation.name]['ingredients'], operations, operation.listIndex, storage, running, scheduleTime, waitUntil)
     operation.childOperations = addOrderResult.added
     operation.slideTime = Math.max(0, finishBy - operation.duration - addOrderResult.timeOfCompletion)
     operations = addOperation(operation, addOrderResult.allOperations, addOrderResult.timeOfCompletion)
