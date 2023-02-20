@@ -145,7 +145,7 @@ function App() {
     for (let i = 0; i < shoppingLists.length; i += 1) {
       const result = addOrder(shoppingLists[i].items, operationsNeeded, i, {}, {})
       operationsNeeded = result.allOperations
-      operationsByOrder.push(result.operationsForOrder)
+      operationsByOrder.push(result.added)
     }
     const costs = calculateBuildingCosts(operationsNeeded)
     let indexes = []
@@ -180,7 +180,7 @@ function App() {
       result = addOrder(shoppingLists[listIndex].items, scheduledOperations, listIndex, unassignedStorage, unassignedOperations, result.timeOfCompletion)
       scheduledOperations = result.allOperations
       unassignedStorage = result.storage
-      opsByList[listIndex] = result.operationsForOrder
+      opsByList[listIndex] = result.added
       unassignedOperations = result.running
     })
 
