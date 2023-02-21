@@ -127,6 +127,7 @@ function reserveExistingOperation(existing, good, reserve = true) {
             if (foundOp === undefined && op.name === operation.name && op.reserved !== reserve) {
                 op.reserved = reserve
                 foundOp = op
+                buildingOps.push(op)
             } else {
                 buildingOps.push(op)
             }
@@ -262,10 +263,12 @@ export function addOrder(order, operations, listIndex, remainingStorage, running
             if (storageResult.found !== undefined) {
                 storage = storageResult.updated
                 storageResult.found.slideTime = finishBy - newOperation.duration
+                storageResult.found.listIndex = listIndex
                 goodsAdded.push(storageResult.found)
             } else if (runningResult.found !== undefined) {
                 running = runningResult.updated
                 runningResult.found.slideTime = Math.min(0, finishBy - runningResult.found.end)
+                runningResult.found.listIndex = listIndex
                 goodsAdded.push(runningResult.found)
             } else {
                 const scheduleResult = scheduleNewOperation(newOperation, operations, storage, running, waitUntil, finishBy, true)
@@ -287,32 +290,49 @@ export function addOrder(order, operations, listIndex, remainingStorage, running
 
 function shuffleReservations(operations, operation, storage, running) {
     let scheduleResult = scheduleNewOperation(operation, operations, storage, running, 0, 0, false)
-    if (operations[operation.building] !== undefined) {
-        operations[operation.building].forEach(op => {
-            if ((op.runningId !== undefined || op.fromStorage) && op.slideTime > operation.end - op.end) {
-                // this operation can slide, so make the new one into the running operation
-                op.slideTime = op.slideTime - (operation.end - op.end)
-                operation.runningId = op.runningId
-                operation.fromStorage = op.fromStorage
-                op.runningId = undefined
-                op.fromStorage = false
-                op.childOperations = operation.childOperations
-                operation.childOperations = []
-                let tmp = operation.start
-                operation.start = op.start
-                op.start = tmp
-                operation.end = op.end
-                op.end = op.start + op.duration
-                scheduleResult.successful = true
-                return scheduleResult
-            }
-        })
-    }
-    return {successful: false, operations: operations, storage: storage, running: running}
+    let existingLists = [storage, running]
+    let successful = false
+    existingLists.forEach(existing => {
+        if (existing[operation.building] !== undefined) {
+            existing[operation.building].forEach(op => {
+                if ((op.runningId !== undefined || op.fromStorage) && op.slideTime > operation.end - op.end) {
+                    // this operation can slide, so make the new one into the running operation
+                    op.slideTime = op.slideTime - (operation.end - op.end)
+                    operation.runningId = op.runningId
+                    operation.fromStorage = op.fromStorage
+                    op.runningId = undefined
+                    op.fromStorage = false
+                    op.childOperations = operation.childOperations
+                    operation.childOperations = []
+                    let tmp = operation.start
+                    operation.start = op.start
+                    op.start = tmp
+                    tmp = operation.listIndex
+                    operation.listIndex = op.listIndex
+                    op.listIndex = tmp
+                    operation.end = op.end
+                    op.end = op.start + op.duration
+                    successful = true
+                    storage = scheduleResult.storage
+                    running = scheduleResult.running
+                    operations = scheduleResult.operations
+                    for (let i = 0; i < operations[op.building].length; i += 1) {
+                        if (operations[op.building][i] === op) {
+                            operations[op.building[i]] = operation
+                        } else if (operations[op.building][i] === operation) {
+                            operations[op.building[i]] = op
+                        }
+                    }
+                }
+            })
+        }
+    })
+    return {successful: successful, operations: operations, storage: storage, running: running}
 }
 
 function scheduleNewOperation(operation, operations, storage, running, waitUntil, finishBy, canShuffle) {
-    let scheduleTime = findBestTime(operations, operation.building, waitUntil, operation.duration)
+    let addOrderResult = addOrder(goods[operation.name]['ingredients'], operations, operation.listIndex, storage, running, finishBy - operation.duration, waitUntil)
+    let scheduleTime = findBestTime(operations, operation.building, addOrderResult.timeOfCompletion, operation.duration)
     if (scheduleTime > finishBy - operation.duration && canShuffle) {
         const shuffleResult = shuffleReservations(operations, operation, storage, running, waitUntil, finishBy, true)
         if (shuffleResult.successful) {
@@ -320,7 +340,6 @@ function scheduleNewOperation(operation, operations, storage, running, waitUntil
             return {operations: shuffleResult.operations, storage: shuffleResult.storage, running: shuffleResult.running}
         }
     }
-    let addOrderResult = addOrder(goods[operation.name]['ingredients'], operations, operation.listIndex, storage, running, scheduleTime, waitUntil)
     operation.childOperations = addOrderResult.added
     operation.slideTime = Math.max(0, finishBy - operation.duration - addOrderResult.timeOfCompletion)
     operations = addOperation(operation, addOrderResult.allOperations, addOrderResult.timeOfCompletion)

@@ -28,7 +28,7 @@ export function addList(shoppingLists, goodsNeeded, region, prioritySwitches) {
 }
 
 export function updatePriorityOrder(localPriorityOrder, prioritySwitches) {
-    let remainingSwitches = [prioritySwitches]
+    let remainingSwitches = [...prioritySwitches]
     let index = 0
     while (index < localPriorityOrder.length) {
         let target = undefined
@@ -38,14 +38,14 @@ export function updatePriorityOrder(localPriorityOrder, prioritySwitches) {
             }
         }
         if (target !== undefined) {
-            let newPriorityOrder = []
-            for (let pi = 1; pi < localPriorityOrder.length; pi += 1) {
-                newPriorityOrder.push(localPriorityOrder[pi])
+            const replaced = localPriorityOrder[index]
+            for (let pi = index + 1; pi < localPriorityOrder.length; pi += 1) {
+                localPriorityOrder[pi - 1] = localPriorityOrder[pi]
                 if (localPriorityOrder[pi] === target) {
-                    newPriorityOrder.push(localPriorityOrder[0])
+                    localPriorityOrder[pi] = replaced
+                    break
                 }
             }
-            localPriorityOrder = newPriorityOrder
         } else {
             let newRemainingSwitches = []
             const placed = localPriorityOrder[index]

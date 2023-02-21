@@ -175,7 +175,8 @@ function App() {
       const listIndex = order
       // first see what's the fasted we could do it (finishBy == 0)
       let copyOfRunning = cloneOperations(unassignedOperations)
-      let result = addOrder(shoppingLists[listIndex].items, scheduledOperations, listIndex, unassignedStorage, copyOfRunning, 0)
+      let copyOfStorage = cloneOperations(unassignedStorage)
+      let result = addOrder(shoppingLists[listIndex].items, scheduledOperations, listIndex, copyOfStorage, copyOfRunning, 0)
       // then do it again where we just-in-time everything
       result = addOrder(shoppingLists[listIndex].items, scheduledOperations, listIndex, unassignedStorage, unassignedOperations, result.timeOfCompletion)
       scheduledOperations = result.allOperations
