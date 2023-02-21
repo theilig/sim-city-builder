@@ -201,7 +201,14 @@ function findBestTime(operations, building, waitUntil, duration) {
     }
 }
 
-function insertOperation(operations, operation, building) {
+function updateSlideTime(operation, delta) {
+    operation.slideTime -= delta
+    if (operation.childOperations !== undefined) {
+        operation.childOperations.forEach(op => updateSlideTime(op, delta))
+    }
+}
+
+function insertOperation(operations, operation, building, slideTime) {
     let newOperations = {...operations}
     let pipeline = newOperations[building]
     let newPipeline = []
@@ -217,6 +224,9 @@ function insertOperation(operations, operation, building) {
                 newPipeline[index + 1] = pipeline[index]
             } else {
                 newPipeline[index] = pipeline[index]
+                if (slideTime < newPipeline[index].slideTime) {
+                    updateSlideTime(newPipeline[index], newPipeline[index].slideTime - slideTime)
+                }
             }
         }
         if (!inserted) {
@@ -237,14 +247,15 @@ export function createOperation(goodName) {
     return good
 }
 
-function addOperation(operation, operations, waitUntil) {
+function addOperation(operation, operations, waitUntil, finishBy) {
     let currentOperation = operation
     let scheduleTime = findBestTime(operations, operation.building, waitUntil, operation.duration)
     currentOperation.start = scheduleTime
     currentOperation.end = scheduleTime + currentOperation.duration
     currentOperation.fromStorage = false
     currentOperation.runningId = undefined
-    return insertOperation(operations, currentOperation, operation.building)
+    currentOperation.slideTime = Math.max(0, finishBy - currentOperation.end)
+    return insertOperation(operations, currentOperation, operation.building, currentOperation.slideTime)
 }
 
 export function addOrder(order, operations, remainingStorage, running, finishBy = 0, waitUntil = 0) {
@@ -336,7 +347,6 @@ function scheduleNewOperation(operation, operations, storage, running, waitUntil
         }
     }
     operation.childOperations = addOrderResult.added
-    operation.slideTime = Math.max(0, finishBy - operation.duration - addOrderResult.timeOfCompletion)
-    operations = addOperation(operation, addOrderResult.allOperations, addOrderResult.timeOfCompletion)
+    operations = addOperation(operation, addOrderResult.allOperations, addOrderResult.timeOfCompletion, finishBy)
     return {operations: operations, storage: addOrderResult.storage, running: addOrderResult.running}
 }
