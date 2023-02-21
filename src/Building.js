@@ -36,6 +36,7 @@ function Building(props) {
             canCombine = canCombine && !(combiningOp.runningId !== undefined && visualOp.runningId === undefined)
             canCombine = canCombine && !(combiningOp.runningId === undefined && visualOp.runningId !== undefined)
             canCombine = canCombine && !(combiningOp.nextUp !== visualOp.nextUp)
+            canCombine = canCombine && !(combiningOp.start === 0 && combiningOp.slideTime === 0 && visualOp.slideTime > 0)
             canCombine = canCombine && !(combiningOp.start !== 0 && visualOp.nextUp && visualOp.start === 0)
             canCombine = canCombine && !(visualOp.start !== 0 && combiningOp.nextUp && combiningOp.start === 0)
             canCombine = canCombine && !(combiningOp.runningId !== undefined && Math.max(visualOp.end, 0) - Math.max(combiningOp.end) > 60)

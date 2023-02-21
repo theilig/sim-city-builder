@@ -247,7 +247,7 @@ function addOperation(operation, operations, waitUntil) {
     return insertOperation(operations, currentOperation, operation.building)
 }
 
-export function addOrder(order, operations, listIndex, remainingStorage, running, finishBy = 0, waitUntil = 0) {
+export function addOrder(order, operations, remainingStorage, running, finishBy = 0, waitUntil = 0) {
     let maxTimeOffset = 0
     let goodsAdded = []
     let storage = {...remainingStorage}
@@ -257,18 +257,15 @@ export function addOrder(order, operations, listIndex, remainingStorage, running
                 alert(key)
             }
             let newOperation = createOperation(key)
-            newOperation.listIndex = listIndex
             let storageResult = reserveExistingOperation(storage, key, true)
             let runningResult = reserveExistingOperation(running, key, true)
             if (storageResult.found !== undefined) {
                 storage = storageResult.updated
                 storageResult.found.slideTime = finishBy - newOperation.duration
-                storageResult.found.listIndex = listIndex
                 goodsAdded.push(storageResult.found)
             } else if (runningResult.found !== undefined) {
                 running = runningResult.updated
                 runningResult.found.slideTime = Math.min(0, finishBy - runningResult.found.end)
-                runningResult.found.listIndex = listIndex
                 goodsAdded.push(runningResult.found)
             } else {
                 const scheduleResult = scheduleNewOperation(newOperation, operations, storage, running, waitUntil, finishBy, true)
@@ -297,6 +294,7 @@ function shuffleReservations(operations, operation, storage, running) {
             existing[operation.building].forEach(op => {
                 if ((op.runningId !== undefined || op.fromStorage) && op.slideTime > operation.end - op.end) {
                     // this operation can slide, so make the new one into the running operation
+                    scheduleResult = scheduleNewOperation(operation, operations, storage, running, 0, op.end + op.slideTime, false)
                     op.slideTime = op.slideTime - (operation.end - op.end)
                     operation.runningId = op.runningId
                     operation.fromStorage = op.fromStorage
@@ -307,9 +305,6 @@ function shuffleReservations(operations, operation, storage, running) {
                     let tmp = operation.start
                     operation.start = op.start
                     op.start = tmp
-                    tmp = operation.listIndex
-                    operation.listIndex = op.listIndex
-                    op.listIndex = tmp
                     operation.end = op.end
                     op.end = op.start + op.duration
                     successful = true
@@ -331,7 +326,7 @@ function shuffleReservations(operations, operation, storage, running) {
 }
 
 function scheduleNewOperation(operation, operations, storage, running, waitUntil, finishBy, canShuffle) {
-    let addOrderResult = addOrder(goods[operation.name]['ingredients'], operations, operation.listIndex, storage, running, finishBy - operation.duration, waitUntil)
+    let addOrderResult = addOrder(goods[operation.name]['ingredients'], operations, storage, running, finishBy - operation.duration, waitUntil)
     let scheduleTime = findBestTime(operations, operation.building, addOrderResult.timeOfCompletion, operation.duration)
     if (scheduleTime > finishBy - operation.duration && canShuffle) {
         const shuffleResult = shuffleReservations(operations, operation, storage, running, waitUntil, finishBy, true)

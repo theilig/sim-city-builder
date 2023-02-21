@@ -176,9 +176,9 @@ function App() {
       // first see what's the fasted we could do it (finishBy == 0)
       let copyOfRunning = cloneOperations(unassignedOperations)
       let copyOfStorage = cloneOperations(unassignedStorage)
-      let result = addOrder(shoppingLists[listIndex].items, scheduledOperations, listIndex, copyOfStorage, copyOfRunning, 0)
+      let result = addOrder(shoppingLists[listIndex].items, scheduledOperations, copyOfStorage, copyOfRunning, 0)
       // then do it again where we just-in-time everything
-      result = addOrder(shoppingLists[listIndex].items, scheduledOperations, listIndex, unassignedStorage, unassignedOperations, result.timeOfCompletion)
+      result = addOrder(shoppingLists[listIndex].items, scheduledOperations, unassignedStorage, unassignedOperations, result.timeOfCompletion)
       scheduledOperations = result.allOperations
       unassignedStorage = result.storage
       opsByList[listIndex] = result.added

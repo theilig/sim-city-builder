@@ -5,7 +5,7 @@ function OperationList(props) {
     const sortPipeline = (pipeline) => {
         pipeline.sort((a, b) => {
             if (a.runningId === undefined && b.runningId === undefined) {
-                return a.start - b.start
+                return (a.start + a.slideTime) - (b.start + b.slideTime)
             } else if (a.runningId === undefined) {
                 return 1
             } else if (b.runningId === undefined) {
