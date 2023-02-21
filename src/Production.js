@@ -318,9 +318,9 @@ function shuffleReservations(operations, operation, storage, running) {
                     operations = scheduleResult.operations
                     for (let i = 0; i < operations[op.building].length; i += 1) {
                         if (operations[op.building][i] === op) {
-                            operations[op.building[i]] = operation
+                            operations[op.building][i] = operation
                         } else if (operations[op.building][i] === operation) {
-                            operations[op.building[i]] = op
+                            operations[op.building][i] = op
                         }
                     }
                 }
