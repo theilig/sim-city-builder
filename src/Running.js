@@ -6,23 +6,23 @@ export function addToRunning(operation, running) {
     let building = localOperation.building
     let buildingLimit = buildingLimits[building] || 1
     let startTime = 0
-    if (localRunning[building] === undefined) {
-        localRunning[building] = [localOperation]
+    if (localRunning.byBuilding[building] === undefined) {
+        localRunning.byBuilding[building] = [localOperation]
     } else {
-        if (buildingLimit === 1 && localRunning[building].length > 0) {
-            startTime = localRunning[building][localRunning[building].length - 1].end
+        if (buildingLimit === 1 && localRunning.byBuilding[building].length > 0) {
+            startTime = localRunning.byBuilding[building][localRunning.byBuilding[building].length - 1].end
         }
-        localRunning[building].push(localOperation)
+        localRunning.byBuilding[building].push(localOperation)
     }
     if (startTime < 0) {
         startTime = 0
     }
-    localOperation.runningId = localRunning[building].length
+    localOperation.runningId = localRunning.byBuilding[building].length
     localOperation.scheduledId = undefined
-    localOperation.placeInList = localRunning[building].length
+    localOperation.placeInList = localRunning.byBuilding[building].length
     localOperation.runTime = Date.now()
     localOperation.start = startTime
-    localOperation.end = operation.duration + operation.start
+    localOperation.end = operation.duration + localOperation.start
     return localRunning
 }
 
@@ -31,14 +31,16 @@ export function finishRunning(good, running) {
     let operation = createOperation(good)
     let removed = false
     let buildingRunning = []
-      localRunning[operation.building].forEach(op => {
-        if (!removed && op.name === operation.name) {
-            removed = true
-        } else {
-            buildingRunning.push(op)
-        }
-    })
-    localRunning[operation.building] = buildingRunning
+    if (localRunning.byBuilding[operation.building]) {
+        localRunning.byBuilding[operation.building].forEach(op => {
+            if (!removed && op.name === operation.name) {
+                removed = true
+            } else {
+                buildingRunning.push(op)
+            }
+        })
+        localRunning.byBuilding[operation.building] = buildingRunning
+    }
     return {found: removed, running: localRunning}
 }
 
@@ -46,7 +48,7 @@ export function speedUpOperation(running, operation, amount) {
     let newRunning = cloneOperations(running)
     let found = false
     let startTime = 0
-    newRunning[operation.building].forEach(op => {
+    newRunning.byBuilding[operation.building].forEach(op => {
         if (op.runningId === operation.runningId) {
             op.start -= amount
             op.end -= amount
@@ -61,26 +63,27 @@ export function speedUpOperation(running, operation, amount) {
     return newRunning
 }
 
-export function finishOperation(running, operation) {
+export function finishOperation(running, operation, onlyComplete) {
     let newRunning = cloneOperations(running)
     const building = operation.building
     const newBuildingOps = []
     let found = false
     let startTime = 0
-    if (newRunning[building] !== undefined) {
-        newRunning[building].forEach(op => {
-            if (found || op.name !== operation.name) {
+    if (newRunning.byBuilding[building] !== undefined) {
+        newRunning.byBuilding[building].forEach(op => {
+            if (found || op.name !== operation.name || (onlyComplete && op.end > 60)) {
                 if (op.start > startTime) {
                     op.start = startTime
                     op.end = startTime + op.duration
                 }
                 newBuildingOps.push(op)
+                op.runningId = newBuildingOps.length
                 startTime = op.end
             } else {
                 found = true
             }
         })
-        newRunning[building] = newBuildingOps
+        newRunning.byBuilding[building] = newBuildingOps
 
     }
     return newRunning
@@ -88,8 +91,8 @@ export function finishOperation(running, operation) {
 
 export function updateRunning(runningOperations) {
     let newRunning = cloneOperations(runningOperations)
-    Object.keys(newRunning).forEach(building => {
-        newRunning[building].forEach(op => {
+    Object.keys(newRunning.byBuilding).forEach(building => {
+        newRunning.byBuilding[building].forEach(op => {
             const currentTime = Date.now()
             op.end = Math.round(op.end - (currentTime - op.runTime) / 1000)
             op.start = op.end - op.duration

@@ -12,15 +12,19 @@ function ShoppingList(props) {
         style = {color: "khaki"}
     } else if (props.list.region === 'Green Valley') {
         style = {color: "greenyellow"}
+    } else if (props.list.region === 'Sunny Isles') {
+        style = {color: "brown"}
     }
     return (
-        <div onClick={() => props.expandOrCollapse(props.index, props.expanded)} draggable
+        <div draggable
              onDragStart={props.dragStart} onDragEnter={props.dragEnter} onDragEnd={props.dragEnd}>
             <div style={style}>
-                {"You want " + Object.keys(props.list.items).map(key =>{
-                    return props.list.items[key] + " " + displayName(key, props.list.items[key])
-                }).join(" and ") + " ready" + timeString
-                }
+                <span onClick={() => props.expandOrCollapse(props.index, props.expanded)}>
+                    {"You want " + Object.keys(props.list.items).map(key =>{
+                        return props.list.items[key] + " " + displayName(key, props.list.items[key])
+                    }).join(" and ") + " ready" + timeString
+                    }
+                </span>
                 <button onClick={() => props.finish()} onContextMenu={() => props.remove()}>done</button>
             </div>
             <div>

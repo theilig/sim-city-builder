@@ -8,9 +8,9 @@ let values = undefined
 export function calculateBuildingCosts(operations) {
     let totalTimePerBuilding = {}
     let minTime = undefined
-    Object.keys(operations).forEach(building => {
+    Object.keys(operations.byBuilding).forEach(building => {
         totalTimePerBuilding[building] = 0
-        operations[building].forEach(op => totalTimePerBuilding[building] += op.duration)
+        operations.byBuilding[building].forEach(op => totalTimePerBuilding[building] += op.duration)
         if (minTime === undefined || (totalTimePerBuilding[building] < minTime && totalTimePerBuilding[building] > 0)) {
             minTime = totalTimePerBuilding[building]
         }
@@ -122,8 +122,8 @@ function reserveExistingOperation(existing, good, reserve = true) {
     let buildingOps = []
     let operation = createOperation(good)
     let newOps = cloneOperations(existing)
-    if (newOps[operation.building]) {
-        newOps[operation.building].forEach(op => {
+    if (newOps.byBuilding[operation.building]) {
+        newOps.byBuilding[operation.building].forEach(op => {
             if (foundOp === undefined && op.name === operation.name && op.reserved !== reserve) {
                 op.reserved = reserve
                 foundOp = op
@@ -132,24 +132,37 @@ function reserveExistingOperation(existing, good, reserve = true) {
                 buildingOps.push(op)
             }
         })
-        newOps[operation.building] = buildingOps
+        newOps.byBuilding[operation.building] = buildingOps
     }
     return {found: foundOp, updated: newOps}
 }
 
-function findBestTime(operations, building, waitUntil, duration) {
+function getMaxConcurrentOps(changes, changeTimes, start, duration) {
+    let maxConcurrentOps = 0
+    changeTimes.forEach(changeTime => {
+        if (changeTime >= start && changeTime < start + duration && changes[changeTime] > maxConcurrentOps) {
+            maxConcurrentOps = changes[changeTime]
+        }
+    })
+    return maxConcurrentOps
+}
+
+function findBestTime(operations, building, waitUntil, duration, finishBy) {
     let limit = buildingLimits[building] || 1
-    if (operations[building] === undefined) {
-        return Math.max(waitUntil, 0)
-    } else if (operations[building].length < limit) {
+    if (operations.byBuilding[building] === undefined) {
         return Math.max(waitUntil, 0)
     }
     if (limit === 1) {
-        const operationList = operations[building]
+        const operationList = operations.byBuilding[building]
         let gapStart = waitUntil
         for (let index = 0; index < operationList.length; index++) {
             const operation = operationList[index]
             if (gapStart + duration <= operation.start) {
+                return gapStart
+            } else if (gapStart + duration <= operation.start + operation.slideTime &&
+                (index === operationList.length - 1 || gapStart + duration + operation.duration < operationList[index + 1].start)) {
+                updateSlideTime(operation, gapStart + duration - operation.start)
+                operation.slideTime = operation.slideTime - (gapStart + duration - operation.start)
                 return gapStart
             }
             gapStart = Math.max(operation.end, gapStart)
@@ -157,7 +170,7 @@ function findBestTime(operations, building, waitUntil, duration) {
         return gapStart
     } else {
         let changes = {}
-        operations[building].forEach(op => {
+        operations.byBuilding[building].forEach(op => {
             const end = Math.max(op.end, 0)
             const start = Math.max(op.end - op.duration, 0)
             if (changes[end] === undefined) {
@@ -174,30 +187,31 @@ function findBestTime(operations, building, waitUntil, duration) {
         let changeTimes = Object.keys(changes).map(s => parseInt(s))
         changeTimes.sort((a, b) => a - b)
 
-        let windows = []
-        let numberInWindow = 0
-        let windowStart = 0
+        let runningTotal = 0
         changeTimes.forEach((changeTime) => {
-            const delta = changes[changeTime]
-            if (numberInWindow + delta >= limit && numberInWindow < limit) {
-                if (windowStart !== undefined && changeTime > windowStart) {
-                    windows.push({start: windowStart, end: changeTime})
+            runningTotal += changes[changeTime]
+            changes[changeTime] = runningTotal
+        })
+
+        let startTime = undefined
+        let concurrentOps = undefined
+        changeTimes.forEach((changeTime) => {
+            const maxConcurrentOps = getMaxConcurrentOps(changes, changeTimes, changeTime, duration)
+            if (maxConcurrentOps < limit) {
+                let use = false
+                if (startTime === undefined) {
+                    use = true
+                }
+                if (changeTime + duration < finishBy && maxConcurrentOps < concurrentOps) {
+                    use = true
+                }
+                if (use) {
+                    startTime = changeTime
+                    concurrentOps = maxConcurrentOps
                 }
             }
-            numberInWindow += delta
-            if (numberInWindow >= limit) {
-                windowStart = undefined
-            } else if (windowStart === undefined) {
-                windowStart = changeTime
-            }
         })
-        windows.forEach(window => {
-            if (window.end - window.start >= duration) {
-                return window.start
-            }
-        })
-        // We missed all the windows, the last one starts on windowStart (but was not added to the window list)
-        return windowStart
+        return startTime
     }
 }
 
@@ -210,9 +224,10 @@ function updateSlideTime(operation, delta) {
 
 function insertOperation(operations, operation, building, slideTime) {
     let newOperations = {...operations}
-    let pipeline = newOperations[building]
+    let pipeline = newOperations.byBuilding[building]
     let newPipeline = []
     let inserted = false
+    const limit = buildingLimits[building] || 1
     operation['building'] = building
     if (pipeline) {
         for (let index = 0; index < pipeline.length; index += 1) {
@@ -224,7 +239,7 @@ function insertOperation(operations, operation, building, slideTime) {
                 newPipeline[index + 1] = pipeline[index]
             } else {
                 newPipeline[index] = pipeline[index]
-                if (slideTime < newPipeline[index].slideTime) {
+                if (limit === 1 && slideTime < newPipeline[index].slideTime) {
                     updateSlideTime(newPipeline[index], newPipeline[index].slideTime - slideTime)
                 }
             }
@@ -235,7 +250,7 @@ function insertOperation(operations, operation, building, slideTime) {
     } else {
         newPipeline = [operation]
     }
-    newOperations[building] = newPipeline
+    newOperations.byBuilding[building] = newPipeline
     return newOperations
 }
 
@@ -249,7 +264,7 @@ export function createOperation(goodName) {
 
 function addOperation(operation, operations, waitUntil, finishBy) {
     let currentOperation = operation
-    let scheduleTime = findBestTime(operations, operation.building, waitUntil, operation.duration)
+    let scheduleTime = findBestTime(operations, operation.building, waitUntil, operation.duration, finishBy)
     currentOperation.start = scheduleTime
     currentOperation.end = scheduleTime + currentOperation.duration
     currentOperation.fromStorage = false
@@ -262,29 +277,47 @@ export function addOrder(order, operations, remainingStorage, running, finishBy 
     let maxTimeOffset = 0
     let goodsAdded = []
     let storage = {...remainingStorage}
+    let allItems = []
+    let buildingTimes = {}
     Object.keys(order).forEach(key => {
         for (let count = 0; count < order[key]; count += 1) {
             if (goods[key] === undefined) {
                 alert(key)
             }
             let newOperation = createOperation(key)
-            let storageResult = reserveExistingOperation(storage, key, true)
-            let runningResult = reserveExistingOperation(running, key, true)
-            if (storageResult.found !== undefined) {
-                storage = storageResult.updated
-                storageResult.found.slideTime = finishBy - newOperation.duration
-                goodsAdded.push(storageResult.found)
-            } else if (runningResult.found !== undefined) {
-                running = runningResult.updated
-                runningResult.found.slideTime = Math.min(0, finishBy - runningResult.found.end)
-                goodsAdded.push(runningResult.found)
-            } else {
-                const scheduleResult = scheduleNewOperation(newOperation, operations, storage, running, waitUntil, finishBy, true)
-                running = scheduleResult.running
-                storage = scheduleResult.storage
-                operations = scheduleResult.operations
-                goodsAdded.push(newOperation)
+            if (buildingTimes[newOperation.building] === undefined) {
+                buildingTimes[newOperation.building] = 0
             }
+            buildingTimes[newOperation.building] += newOperation.duration
+            allItems.push(newOperation)
+        }
+    })
+    allItems.sort((a, b) => {
+        return b.duration - a.duration
+    })
+    allItems.forEach(newOperation => {
+        let storageResult = reserveExistingOperation(storage, newOperation.name, true)
+        let runningResult = reserveExistingOperation(running, newOperation.name, true)
+        buildingTimes[newOperation.building] -= newOperation.duration
+        const buildingLimit = buildingLimits[newOperation.building] || 1
+        if (storageResult.found !== undefined) {
+            storage = storageResult.updated
+            storageResult.found.slideTime = finishBy
+            goodsAdded.push(storageResult.found)
+        } else if (runningResult.found !== undefined) {
+            running = runningResult.updated
+            runningResult.found.slideTime = Math.max(0, finishBy - runningResult.found.end)
+            goodsAdded.push(runningResult.found)
+        } else {
+            let localFinishBy = finishBy
+            if (buildingLimit === 1) {
+                localFinishBy -= buildingTimes[newOperation.building]
+            }
+            const scheduleResult = scheduleNewOperation(newOperation, operations, storage, running, waitUntil, localFinishBy, true)
+            running = scheduleResult.running
+            storage = scheduleResult.storage
+            operations = scheduleResult.operations
+            goodsAdded.push(newOperation)
         }
     })
     goodsAdded.forEach(good => {
@@ -297,36 +330,41 @@ export function addOrder(order, operations, remainingStorage, running, finishBy 
 }
 
 function shuffleReservations(operations, operation, storage, running) {
-    let scheduleResult = scheduleNewOperation(operation, operations, storage, running, 0, 0, false)
+    let scheduleResult = undefined
     let existingLists = [storage, running]
     let successful = false
     existingLists.forEach(existing => {
-        if (existing[operation.building] !== undefined) {
-            existing[operation.building].forEach(op => {
-                if ((op.runningId !== undefined || op.fromStorage) && op.slideTime > operation.end - op.end) {
-                    // this operation can slide, so make the new one into the running operation
-                    scheduleResult = scheduleNewOperation(operation, operations, storage, running, 0, op.end + op.slideTime, false)
-                    op.slideTime = op.slideTime - (operation.end - op.end)
-                    operation.runningId = op.runningId
-                    operation.fromStorage = op.fromStorage
-                    op.runningId = undefined
-                    op.fromStorage = false
-                    op.childOperations = operation.childOperations
-                    operation.childOperations = []
-                    let tmp = operation.start
-                    operation.start = op.start
-                    op.start = tmp
-                    operation.end = op.end
-                    op.end = op.start + op.duration
-                    successful = true
-                    storage = scheduleResult.storage
-                    running = scheduleResult.running
-                    operations = scheduleResult.operations
-                    for (let i = 0; i < operations[op.building].length; i += 1) {
-                        if (operations[op.building][i] === op) {
-                            operations[op.building][i] = operation
-                        } else if (operations[op.building][i] === operation) {
-                            operations[op.building][i] = op
+        if (existing.byBuilding[operation.building] !== undefined) {
+            existing.byBuilding[operation.building].forEach(op => {
+                if (!successful && op.name === operation.name && (op.runningId !== undefined || op.fromStorage)) {
+                    if (scheduleResult === undefined) {
+                        scheduleResult = scheduleNewOperation(operation, operations, storage, running, 0, 0, false)
+                    }
+                    if (op.slideTime > operation.end - op.end) {
+                        // this operation can accept building from scratch, so make the new one into the running operation
+                        scheduleResult = scheduleNewOperation(operation, operations, storage, running, 0, op.end + op.slideTime, false)
+                        op.slideTime = op.slideTime - (operation.end - op.end)
+                        operation.runningId = op.runningId
+                        operation.fromStorage = op.fromStorage
+                        op.runningId = undefined
+                        op.fromStorage = false
+                        op.childOperations = operation.childOperations
+                        operation.childOperations = []
+                        let tmp = operation.start
+                        operation.start = op.start
+                        op.start = tmp
+                        operation.end = op.end
+                        op.end = op.start + op.duration
+                        successful = true
+                        storage = scheduleResult.storage
+                        running = scheduleResult.running
+                        operations = scheduleResult.operations
+                        for (let i = 0; i < operations.byBuilding[op.building].length; i += 1) {
+                            if (operations.byBuilding[op.building][i] === op) {
+                                operations.byBuilding[op.building][i] = operation
+                            } else if (operations.byBuilding[op.building][i] === operation) {
+                                operations.byBuilding[op.building][i] = op
+                            }
                         }
                     }
                 }
@@ -338,7 +376,7 @@ function shuffleReservations(operations, operation, storage, running) {
 
 function scheduleNewOperation(operation, operations, storage, running, waitUntil, finishBy, canShuffle) {
     let addOrderResult = addOrder(goods[operation.name]['ingredients'], operations, storage, running, finishBy - operation.duration, waitUntil)
-    let scheduleTime = findBestTime(operations, operation.building, addOrderResult.timeOfCompletion, operation.duration)
+    let scheduleTime = findBestTime(operations, operation.building, addOrderResult.timeOfCompletion, operation.duration, finishBy)
     if (scheduleTime > finishBy - operation.duration && canShuffle) {
         const shuffleResult = shuffleReservations(operations, operation, storage, running, waitUntil, finishBy, true)
         if (shuffleResult.successful) {

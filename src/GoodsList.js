@@ -3,37 +3,6 @@ import Good from './Good';
 import goods from "./Goods"
 function GoodsList(props) {
     const [currentList, setCurrentList] = useState({});
-    function updateCount(goodName, total) {
-        let newList = {...currentList};
-        newList[goodName] = total;
-        setCurrentList(newList)
-    }
-    function goodWasClicked(goodName, rightButton) {
-        if (rightButton) {
-            updateCount(goodName, (currentList[goodName] || 1)  - 1)
-        } else {
-            updateCount(goodName, (currentList[goodName] || 0) + 1)
-        }
-    }
-
-    function addGoods() {
-        props.addStorage(currentList)
-        setCurrentList({})
-    }
-
-    function removeGoods() {
-        props.removeStorage(currentList)
-        setCurrentList({})
-    }
-
-    function makeGoods() {
-        props.makeGoods(currentList)
-        setCurrentList({})
-    }
-    function makeShoppingList(region) {
-        props.addShoppingList(currentList, region);
-        setCurrentList({})
-    }
     const buildingStyles = {
         'Factory': {width: '306px'}, 'Building Supplies Store': {width: "207px"}, 'Hardware Store': {width: '256px'},
         'Farmer\'s Market': {width: '226px'}, 'Furniture Store': {width: "234px"}, 'Gardening Supplies': {},
@@ -55,30 +24,6 @@ function GoodsList(props) {
                     )
                 })}
             </div>
-            <div style={{"marginTop": "25px", "display":"flex", "justifyContent": "center"}}>
-                <button onClick={() => makeShoppingList('Capital City')} style={{"display": "grid", "width": "100px", "backgroundColor":"#6699ff"}}>
-                    Capital City
-                </button>
-                <button onClick={() => makeShoppingList('Green Valley')} style={{"display": "grid", "width": "100px", "backgroundColor":"greenyellow"}}>
-                    Green Valley
-                </button>
-                <button onClick={() => makeShoppingList('Design')} style={{"display": "grid", "width": "100px", "backgroundColor":"khaki"}}>
-                    Design
-                </button>
-                <button onClick={addGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"aqua"}}>
-                    have
-                </button>
-                <button onClick={removeGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"rosybrown"}}>
-                    gone
-                </button>
-                <button onClick={makeGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"darksalmon"}}>
-                    make goods
-                </button>
-                <button onClick={props.clear} style={{"display": "grid", "width": "100px", "backgroundColor":"tomato"}}>
-                    clear
-                </button>
-            </div>
-        </div>
     )
 }
 export default GoodsList;

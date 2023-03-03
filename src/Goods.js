@@ -36,7 +36,7 @@ const goods = {
     'backpacks': {ingredients: {'toilet paper rolls': 2, plastic: 2, 'measuring tapes': 1}, duration: 8100, building: 'Fashion Store', prices: [322, 430]},
     chairs: {ingredients: {nails: 1, hammers: 1, wood: 2}, duration: 1080, building: 'Furniture Store', prices: [225, 300]},
     tables: {ingredients: {'wood planks': 1, nails: 2, hammers: 1}, duration: 1620, building: 'Furniture Store', prices: [375, 500]},
-    'kitchen/bathroom tiles': {ingredients: {'toilet paper rolls': 2, 'measuring tapes': 2}, duration: 4020, building: 'Furniture Store', prices: [457, 610]},
+    'kitchen/bathroom tiles': {ingredients: {'toilet paper rolls': 2, 'measuring tapes': 1}, duration: 4020, building: 'Furniture Store', prices: [457, 610]},
     cupboards: {ingredients: {'wood planks': 2, 'glass': 2, 'paint': 1}, duration: 2430, building: 'Furniture Store', prices: [675, 900]},
     couches: {singular: 'couch', ingredients: {'toilet paper rolls': 3, drills: 1, glue: 1}, duration: 8100, building: 'Furniture Store', prices: [1357, 1810]},
     grass: {'singular': 'grass', ingredients: {seeds: 1, 'shovels': 1}, duration: 1620, building: 'Gardening Supplies', prices: [200, 310]},
@@ -45,11 +45,11 @@ const goods = {
     'fire pits': {ingredients: {bricks: 2, shovels: 1, cement: 2}, duration: 12960, building: 'Gardening Supplies', prices: [1305, 1740]},
     'lawnmowers': {ingredients: {metal: 3, paint: 1, 'electrical components': 1}, duration: 6480, building: 'Gardening Supplies', prices: [630, 840]},
     'gnomes': {ingredients: {cement: 2, glue: 1}, duration: 4860, building: 'Gardening Supplies', prices: [1200, 1600]},
-    donuts: {ingredients: {flour: 1, 'sugar&spices': 1}, duration: 2700, building: 'Donut Shop', prices: [712, 950]},
-    'smoothies': {ingredients: {vegetables: 1, fruit: 1}, duration: 1800, building: 'Donut Shop', prices: [862, 1150]},
-    'bread rolls': {ingredients: {flour: 2, cream: 1}, duration: 3600, building: 'Donut Shop', prices: [1380, 1840]},
-    'cherry cheesecake slices': {ingredients: {flour: 1, fruit: 1, cheese: 1}, duration: 5400, building: 'Donut Shop', prices: [1680, 2240]},
-    'frozen yogurts': {ingredients: {fruit: 1, cream: 1, 'sugar&spices': 1}, duration: 14400, building: 'Donut Shop', prices: [1312, 1750]},
+    donuts: {ingredients: {flour: 1, 'sugar&spices': 1}, duration: 2430, building: 'Donut Shop', prices: [712, 950]},
+    'smoothies': {ingredients: {vegetables: 1, fruit: 1}, duration: 1620, building: 'Donut Shop', prices: [862, 1150]},
+    'bread rolls': {ingredients: {flour: 2, cream: 1}, duration: 3240, building: 'Donut Shop', prices: [1380, 1840]},
+    'cherry cheesecake slices': {ingredients: {flour: 1, fruit: 1, cheese: 1}, duration: 4860, building: 'Donut Shop', prices: [1680, 2240]},
+    'frozen yogurts': {ingredients: {fruit: 1, cream: 1, 'sugar&spices': 1}, duration: 12960, building: 'Donut Shop', prices: [1312, 1750]},
     coffees: {ingredients: {cream: 1, seeds: 2, 'sugar&spices': 1}, duration: 3240, building: 'Donut Shop', prices: [562, 750]},
     fabric: {ingredients: {}, duration: 360, building: 'Green Factory', prices: [22, 30]},
     'ice cream sandwiches': {'singular': 'ice cream sandwich', ingredients: {'bread rolls': 1, cream: 1}, 'duration': 840, building: 'Fast Food Restaurant', prices: [1920, 2560]},
@@ -58,7 +58,10 @@ const goods = {
     'cheese fries': {ingredients: {cheese: 1, vegetables: 1}, duration: 1200, building: 'Fast Food Restaurant', prices: [787, 1050]},
     'reusable bags': {ingredients: {fabric: 2}, duration: 1200, building: 'Eco Shop', prices: [90, 120]},
     'electric shoes': {ingredients: {fabric: 2, glue: 1, 'measuring tapes': 1}, duration: 7200, building: 'Eco Shop', prices: [562, 750]},
-    'BBQ Grills': {ingredients: {metal: 3, utensils: 1}, duration: 9900, building: 'Home Appliances', prices: [397, 530]}
+    'yoga mats': {ingredients: {fabric: 3, 'kitchen/bathroom tiles': 2, paint: 1}, duration: 14400, building: 'Eco Shop', prices: [1500, 2000]},
+    'BBQ Grills': {ingredients: {metal: 3, utensils: 1}, duration: 9900, building: 'Home Appliances', prices: [397, 530]},
+    refrigerators: {ingredients: {plastic: 2, chemicals: 2, 'electrical components': 2}, duration: 12600, building: 'Home Appliances', prices: [795, 1060]},
+    'light bulbs': {ingredients: {chemicals: 1, 'electrical components': 1, glass: 1}, duration:6300, building: 'Home Appliances', prices: [667, 890]}
  } ;
 
 export default goods;

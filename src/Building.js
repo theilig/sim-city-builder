@@ -10,12 +10,12 @@ function Building(props) {
         'Building Supplies Store': 5,
         'Hardware Store': 5,
         'Fast Food Restaurant': 2,
-        'Furniture Store': 3,
+        'Furniture Store': 4,
         'Donut Shop': 3,
         'Fashion Store': 3,
-        'Farmer\'s Market': 5,
+        'Farmer\'s Market': 6,
         'Gardening Supplies': 3,
-        'Eco Shop': 3,
+        'Eco Shop': 4,
     }}, [])
 
 
@@ -46,6 +46,11 @@ function Building(props) {
         if (canCombine) {
             combiners[visualOp.name].count += 1
         } else {
+            // when we still are in operations that can start or go in the pipeline, don't combine out of order
+            // we do this be clearing out all combiners other than the one we are about to add
+            if (visualOp.nextUp) {
+                combiners = {}
+            }
             op.count = 1
             visualPipeline.push(visualOp)
             combiners[op.name] = visualOp

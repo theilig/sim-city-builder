@@ -1,5 +1,4 @@
 import './App.css';
-import GoodsList from "./GoodsList.js";
 import {addOrder, calculateBuildingCosts, createOperation} from "./Production";
 import OperationList from "./OperationList";
 import React, {useState, useEffect, useCallback} from 'react';
@@ -11,12 +10,12 @@ import {addToRunning, finishOperation, finishRunning, speedUpOperation, updateRu
 function App() {
   const [shoppingLists, setShoppingLists] = useState([])
   const [loaded, setLoaded] = useState(false)
-  const [operationList, setOperationList] = useState({})
+  const [operationList, setOperationList] = useState({byBuilding: {}})
   const [expectedTimes, setExpectedTimes] = useState([])
-  const [inStorage, setInStorage] = useState({})
-  const [unassignedStorage, setUnassignedStorage] = useState({})
+  const [inStorage, setInStorage] = useState({byBuilding: {}})
+  const [unassignedStorage, setUnassignedStorage] = useState({byBuilding: {}})
   const [listToOpMap, setListToOpMap] = useState([])
-  const [runningOperations, setRunningOperations] = useState({})
+  const [runningOperations, setRunningOperations] = useState({byBuilding: {}})
   const [prioritySwitches, setPrioritySwitches] = useState([])
   const [priorityOrder, setPriorityOrder] = useState([])
   const [pauseUpdate, setPauseUpdate] = useState(false)
@@ -31,16 +30,16 @@ function App() {
 
   function clear() {
     setShoppingLists([])
-    setOperationList({})
-    setRunningOperations({})
+    setOperationList({byBuilding: {}})
+    setRunningOperations({byBuilding: {}})
     setPrioritySwitches([])
-    setInStorage({})
+    setInStorage({byBuilding: {}})
   }
 
   function removeStorageOrRunning(itemsNeeded, storage, running) {
     Object.keys(itemsNeeded).forEach((good) => {
       for (let i = 0; i < itemsNeeded[good]; i += 1) {
-        let result = removeGood(good, storage)
+        let result = removeGood(storage, good)
         if (result.found) {
           storage = result.storage
         } else {
@@ -75,7 +74,7 @@ function App() {
   function finishOperations(operation, count) {
     let newGoods = {}
     newGoods[operation.name] = count
-    haveStorage(inStorage, newGoods)
+    haveStorage(newGoods, true)
   }
 
   function makeGoods(goods) {
@@ -90,12 +89,12 @@ function App() {
   }
 
   // in case you hit have instead of hitting done below
-  function haveStorage(goods) {
+  function haveStorage(goods, clickedDone = false) {
     let newRunning = runningOperations
     Object.keys(goods).forEach((good) => {
       for (let i = 0; i < goods[good]; i += 1) {
         let operation = createOperation(good)
-        newRunning = finishOperation(newRunning, operation)
+        newRunning = finishOperation(newRunning, operation, !clickedDone)
       }
     })
     const newInStorage = addStorage(inStorage, goods)
@@ -140,10 +139,10 @@ function App() {
   }
 
   const sortShoppingLists = shoppingLists => {
-    let operationsNeeded = {}
+    let operationsNeeded = {byBuilding: {}}
     let operationsByOrder = []
     for (let i = 0; i < shoppingLists.length; i += 1) {
-      const result = addOrder(shoppingLists[i].items, operationsNeeded, i, {}, {})
+      const result = addOrder(shoppingLists[i].items, operationsNeeded, {byBuilding: {}}, {byBuilding: {}}, 0)
       operationsNeeded = result.allOperations
       operationsByOrder.push(result.added)
     }
@@ -176,7 +175,8 @@ function App() {
       // first see what's the fasted we could do it (finishBy == 0)
       let copyOfRunning = cloneOperations(unassignedOperations)
       let copyOfStorage = cloneOperations(unassignedStorage)
-      let result = addOrder(shoppingLists[listIndex].items, scheduledOperations, copyOfStorage, copyOfRunning, 0)
+      let fastestScheduledOperations = cloneOperations(scheduledOperations)
+      let result = addOrder(shoppingLists[listIndex].items, fastestScheduledOperations, copyOfStorage, copyOfRunning, 0)
       // then do it again where we just-in-time everything
       result = addOrder(shoppingLists[listIndex].items, scheduledOperations, unassignedStorage, unassignedOperations, result.timeOfCompletion)
       scheduledOperations = result.allOperations
@@ -232,7 +232,7 @@ function App() {
     if (!loaded) {
       const loadedShoppingLists = JSON.parse(localStorage.getItem("simShoppingLists"))
       const storage = JSON.parse(localStorage.getItem("simStorage"))
-      calculateOperations(loadedShoppingLists, {}, storage, prioritySwitches)
+      calculateOperations(loadedShoppingLists, {byBuilding: {}}, storage, prioritySwitches)
       setLoaded(true)
     }
     const interval = setInterval(() => {
@@ -247,9 +247,8 @@ function App() {
   let visualOpList = {...operationList}
   return (
     <div>
-      <Storage key={"storage"} goods={inStorage} unused={unassignedStorage} />
-      <GoodsList addShoppingList={addShoppingList} addStorage={haveStorage} removeStorage={removeStorage}
-                 makeGoods={makeGoods} clear={clear}/>
+      <Storage key={"storage"} storage={unassignedStorage} addShoppingList={addShoppingList} addStorage={haveStorage} removeStorage={removeStorage}
+               makeGoods={makeGoods} clear={clear} />
       <ShoppingLists prioritySwitches={prioritySwitches} updatePrioritySwitches={updatePrioritySwitches}
                      lists={shoppingLists} priorityOrder={priorityOrder}
                      expectedTimes={expectedTimes} removeShoppingList={removeShoppingList}

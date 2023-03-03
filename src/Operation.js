@@ -63,10 +63,13 @@ function Operation(props) {
     if (props.operation.end === 0) {
         style = {boxShadow: "0px 0px 0px 3px rgb(0, 255, 0)"}
     }
-    if (goodToGo === 0 && Object.keys(props.operation.ingredients).length > 0 && props.operation.runningId === undefined) {
+    if (goodToGo === true && Object.keys(props.operation.ingredients).length > 0 && props.operation.runningId === undefined) {
         style = {boxShadow: "0px 0px 0px 3px rgb(255, 255, 0)"}
     }
     if (props.operation.nextUp === true && Object.keys(props.operation.ingredients).length === 0 && props.operation.runningId === undefined) {
+        style = {boxShadow: "0px 0px 0px 3px rgb(255, 255, 0)"}
+    }
+    if (props.operation.start === 0) {
         style = {boxShadow: "0px 0px 0px 3px rgb(255, 255, 0)"}
     }
     if (props.operation.start === 0 && props.operation.slideTime === 0 && props.operation.runningId === undefined && props.operation.nextUp) {
@@ -76,9 +79,7 @@ function Operation(props) {
         style = {background: "#eeeeee"}
     }
     let displayTime = secondsToTime(props.operation.start)
-    if (props.operation.runningId === undefined && props.operation.start === 0 && props.operation.slideTime > 0) {
-        displayTime = secondsToTime(props.operation.slideTime)
-    } else if (props.operation.runningId !== undefined || props.operation.start === 0) {
+    if (props.operation.runningId !== undefined) {
         displayTime = secondsToTime(props.operation.end)
     }
 
