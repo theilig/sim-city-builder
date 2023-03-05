@@ -6,6 +6,7 @@ function Building(props) {
     const pipelineSizes = useMemo(() => {return {
         'Factory': 1,
         'Green Factory': 1,
+        'Coconut Farm': 1,
         'Home Appliances': 2,
         'Building Supplies Store': 5,
         'Hardware Store': 5,
@@ -16,6 +17,7 @@ function Building(props) {
         'Farmer\'s Market': 6,
         'Gardening Supplies': 3,
         'Eco Shop': 4,
+        'Tropical Products Store': 4
     }}, [])
 
 

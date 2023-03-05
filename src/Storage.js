@@ -5,16 +5,20 @@ export function removeGood(storage, good) {
     let removed = false
     let buildingStorage = []
     let operation = createOperation(good)
-    storage.byBuilding[operation.building].forEach(op => {
-        if (!removed && op.name === operation.name) {
-            removed = true
-        } else {
-            buildingStorage.push(op)
-        }
-    })
-    let newStorage = cloneOperations(storage)
-    newStorage.byBuilding[operation.building] = buildingStorage
-    return {found: removed, storage: newStorage}
+    if (storage.byBuilding[operation.building]) {
+        storage.byBuilding[operation.building].forEach(op => {
+            if (!removed && op.name === operation.name) {
+                removed = true
+            } else {
+                buildingStorage.push(op)
+            }
+        })
+        let newStorage = cloneOperations(storage)
+        newStorage.byBuilding[operation.building] = buildingStorage
+        return {found: removed, storage: newStorage}
+    } else {
+        return {found: false, storage: storage}
+    }
 }
 
 export function addStorage(storage, goods) {
@@ -132,7 +136,7 @@ function Storage(props) {
         <div style={{display: "flex", flexWrap: "wrap"}}>
             {['Factory', "Farmer's Market", 'Building Supplies Store', 'Hardware Store', 'Fashion Store',
                 'Furniture Store', 'Gardening Supplies', 'Donut Shop', 'Fast Food Restaurant', 'Home Appliances',
-                'Green Factory', 'Eco Shop'].map(key =>
+                'Green Factory', 'Eco Shop', 'Coconut Farm', 'Tropical Products Store'].map(key =>
                 display(key)
             )}
             <div style={{"marginTop": "25px", "display":"flex", "justifyContent": "center"}}>

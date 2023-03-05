@@ -34,6 +34,7 @@ function App() {
     setRunningOperations({byBuilding: {}})
     setPrioritySwitches([])
     setInStorage({byBuilding: {}})
+    calculateOperations([], {byBuilding: {}}, {byBuilding: {}}, [])
   }
 
   function removeStorageOrRunning(itemsNeeded, storage, running) {
@@ -138,24 +139,50 @@ function App() {
     calculateOperations(result.shoppingLists, runningOperations, inStorage, result.prioritySwitches)
   }
 
+  function sumOrderCost(costs, opList) {
+    let cost = 0
+    let duration = 0
+    opList.forEach(op => {
+      if (op.childOperations) {
+        const childCost = sumOrderCost(costs, op.childOperations)
+        cost += childCost.cost
+        duration += childCost.duration
+      }
+      cost += (op.start + op.duration) * (costs[op.building] || 1)
+      duration += (op.start + op.duration)
+    })
+    return {cost: cost, duration: duration}
+  }
+
   const sortShoppingLists = shoppingLists => {
     let operationsNeeded = {byBuilding: {}}
     let operationsByOrder = []
+    let timesPerOrder = []
     for (let i = 0; i < shoppingLists.length; i += 1) {
-      const result = addOrder(shoppingLists[i].items, operationsNeeded, {byBuilding: {}}, {byBuilding: {}}, 0)
+      let storage = cloneOperations(inStorage)
+      let running = cloneOperations(runningOperations)
+      const result = addOrder(shoppingLists[i].items, operationsNeeded, storage, running, 0)
       operationsNeeded = result.allOperations
       operationsByOrder.push(result.added)
+      timesPerOrder.push(result.timeOfCompletion)
     }
     const costs = calculateBuildingCosts(operationsNeeded)
     let indexes = []
-    const costsPerOrder = operationsByOrder.map((opList, index) => {
-      let cost = 0
-      opList.forEach(op => cost += op.duration * costs[op.building])
+    let durationsPerOrder = []
+    let costsPerOrder = []
+    operationsByOrder.forEach((opList, index) => {
+      const cost = sumOrderCost(costs, opList)
       indexes.push(index)
-      return cost
+      costsPerOrder[index] = cost.cost
+      durationsPerOrder[index] = cost.duration
     })
 
-    indexes.sort((a, b) => costsPerOrder[a] - costsPerOrder[b])
+    for (let i = 0; i < shoppingLists.length; i += 1) {
+      costsPerOrder[i] = costsPerOrder[i] / durationsPerOrder[i]
+    }
+
+    indexes.sort((a, b) => timesPerOrder[a] * costsPerOrder[a] -
+        timesPerOrder[b] * costsPerOrder[b])
     return indexes
   }
 
