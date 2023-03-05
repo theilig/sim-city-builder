@@ -259,7 +259,7 @@ function App() {
     if (!loaded) {
       const loadedShoppingLists = JSON.parse(localStorage.getItem("simShoppingLists"))
       const storage = JSON.parse(localStorage.getItem("simStorage"))
-      calculateOperations(loadedShoppingLists, {byBuilding: {}}, storage, prioritySwitches)
+      calculateOperations(loadedShoppingLists, {byBuilding: {}}, {byBuilding: {}}, prioritySwitches)
       setLoaded(true)
     }
     const interval = setInterval(() => {

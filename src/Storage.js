@@ -146,7 +146,7 @@ function Storage(props) {
                 <button onClick={() => makeShoppingList('Green Valley')} style={{"display": "grid", "width": "100px", "backgroundColor":"greenyellow"}}>
                     Green Valley
                 </button>
-                <button onClick={() => makeShoppingList('Sunny Isles')} style={{"display": "grid", "width": "100px", "backgroundColor":"brown"}}>
+                <button onClick={() => makeShoppingList('Sunny Isles')} style={{"display": "grid", "width": "100px", "backgroundColor":"palegoldenrod"}}>
                     Sunny Isles
                 </button>
                 <button onClick={() => makeShoppingList('Design')} style={{"display": "grid", "width": "100px", "backgroundColor":"khaki"}}>

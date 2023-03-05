@@ -13,7 +13,7 @@ function ShoppingList(props) {
     } else if (props.list.region === 'Green Valley') {
         style = {color: "greenyellow"}
     } else if (props.list.region === 'Sunny Isles') {
-        style = {color: "brown"}
+        style = {color: "palegoldenrod"}
     }
     return (
         <div draggable
