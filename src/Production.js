@@ -1,6 +1,6 @@
 import goods from "./Goods.js"
 export const buildingLimits = {
-    'Factory': 30,
+    'Factory': 33,
     'Green Factory': 5,
     'Coconut Farm': 5
 }

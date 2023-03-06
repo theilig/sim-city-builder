@@ -64,7 +64,7 @@ const goods = {
     'lighting systems': {ingredients: {chemicals: 1, 'electrical components': 1, glass: 1}, duration:6300, building: 'Home Appliances', prices: [667, 890]},
     coconuts: {ingredients: {}, duration: 360, building: 'Coconut Farm', prices: [22, 30]},
     'coconut oil': {ingredients: {coconuts: 2}, duration: 1200, building: 'Tropical Products Store', prices: [90, 120]},
-    'face cream': {ingredients: {coconuts: 2, chemicals: 2}, duration: 5400, building: 'Tropical Products Store', prices: [100, 150]},
+    'face cream': {ingredients: {'coconut oil': 2, chemicals: 2}, duration: 5400, building: 'Tropical Products Store', prices: [100, 150]},
     'tropical drink': {ingredients: {coconuts: 2, fruit: 2, 'sugar&spices': 1}, duration: 15000, building: 'Tropical Products Store', prices: [1500, 2000]}
  };
 
