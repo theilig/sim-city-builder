@@ -161,7 +161,7 @@ function App() {
     for (let i = 0; i < shoppingLists.length; i += 1) {
       let storage = cloneOperations(inStorage)
       let running = cloneOperations(runningOperations)
-      const result = addOrder(shoppingLists[i].items, operationsNeeded, storage, running, 0)
+      const result = addOrder(shoppingLists[i].items, operationsNeeded, storage, running, 0,0, i)
       operationsNeeded = result.allOperations
       operationsByOrder.push(result.added)
       timesPerOrder.push(result.timeOfCompletion)
@@ -203,9 +203,9 @@ function App() {
       let copyOfRunning = cloneOperations(unassignedOperations)
       let copyOfStorage = cloneOperations(unassignedStorage)
       let fastestScheduledOperations = cloneOperations(scheduledOperations)
-      let result = addOrder(shoppingLists[listIndex].items, fastestScheduledOperations, copyOfStorage, copyOfRunning, 0)
+      let result = addOrder(shoppingLists[listIndex].items, fastestScheduledOperations, copyOfStorage, copyOfRunning, 0, 0, listIndex)
       // then do it again where we just-in-time everything
-      result = addOrder(shoppingLists[listIndex].items, scheduledOperations, unassignedStorage, unassignedOperations, result.timeOfCompletion)
+      result = addOrder(shoppingLists[listIndex].items, scheduledOperations, unassignedStorage, unassignedOperations, result.timeOfCompletion, 0, listIndex)
       scheduledOperations = result.allOperations
       unassignedStorage = result.storage
       opsByList[listIndex] = result.added
@@ -259,7 +259,7 @@ function App() {
     if (!loaded) {
       const loadedShoppingLists = JSON.parse(localStorage.getItem("simShoppingLists"))
       const storage = JSON.parse(localStorage.getItem("simStorage"))
-      calculateOperations(loadedShoppingLists, {byBuilding: {}}, {byBuilding: {}}, prioritySwitches)
+      calculateOperations(loadedShoppingLists, {byBuilding: {}}, storage, prioritySwitches)
       setLoaded(true)
     }
     const interval = setInterval(() => {

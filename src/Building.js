@@ -24,11 +24,11 @@ function Building(props) {
 
     let visualPipeline = []
     let combiners = {}
-    const limit = buildingLimits[props.name]
+    const limit = buildingLimits[props.name] || 1
     const pipelineSize = pipelineSizes[props.name] || 1
     props.pipeline.forEach((op, index) => {
         let visualOp = {...op}
-        if ((index < (pipelineSize || 1) || index < (limit || 1)) && op.runningId === undefined) {
+        if ((index < (pipelineSize || 1) || index < limit) && op.runningId === undefined) {
             visualOp.nextUp = true
         }
         let canCombine = true
@@ -50,7 +50,7 @@ function Building(props) {
         } else {
             // when we still are in operations that can start or go in the pipeline, don't combine out of order
             // we do this be clearing out all combiners other than the one we are about to add
-            if (visualOp.nextUp) {
+            if (visualOp.nextUp && limit === 1) {
                 combiners = {}
             }
             op.count = 1

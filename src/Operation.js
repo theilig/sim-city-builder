@@ -18,11 +18,12 @@ function Operation(props) {
             doneClicks = 0
         }
     }
-    function clickedStart() {
-        const targetClicks = startClicks + 1
-        startClicks = targetClicks
-        props.pauseUpdates(true)
-        setTimeout(() => submitWhenDoneStarting(targetClicks), 500)
+    function startOne() {
+        props.startOp(props.operation, 1)
+    }
+
+    function startAll() {
+        props.startOp(props.operation, props.operation.count)
     }
 
     function speedUp(e) {
@@ -48,7 +49,7 @@ function Operation(props) {
                 onContextMenu={speedUp}
             >done</button>
         } else {
-            return <button onClick={clickedStart}>start</button>
+            return <button onClick={startOne} onContextMenu={startAll}>start</button>
         }
     }
     let goodToGo = true

@@ -56,6 +56,7 @@ const goods = {
     pizzas: {ingredients: {flour: 1, cheese: 1, beef: 1}, duration: 1440, building: 'Fast Food Restaurant', prices: [1920, 2560]},
     cheeseburgers: {ingredients: {beef: 1, 'bread rolls': 1, 'BBQ Grills': 1}, duration: 2100, building: 'Fast Food Restaurant', prices: [2715, 3620]},
     'cheese fries': {ingredients: {cheese: 1, vegetables: 1}, duration: 1200, building: 'Fast Food Restaurant', prices: [787, 1050]},
+    'lemonades': {ingredients: {glass: 2, 'sugar&spices': 2, fruit: 1}, duration: 3600, building: 'Fast Food Restaurant', prices: [1267, 1690]},
     'reusable bags': {ingredients: {fabric: 2}, duration: 1200, building: 'Eco Shop', prices: [90, 120]},
     'electric shoes': {ingredients: {fabric: 2, glue: 1, 'measuring tapes': 1}, duration: 7200, building: 'Eco Shop', prices: [562, 750]},
     'yoga mats': {ingredients: {fabric: 3, 'kitchen/bathroom tiles': 2, paint: 1}, duration: 14400, building: 'Eco Shop', prices: [1500, 2000]},
@@ -64,7 +65,7 @@ const goods = {
     'lighting systems': {ingredients: {chemicals: 1, 'electrical components': 1, glass: 1}, duration:6300, building: 'Home Appliances', prices: [667, 890]},
     coconuts: {ingredients: {}, duration: 360, building: 'Coconut Farm', prices: [22, 30]},
     'coconut oil': {ingredients: {coconuts: 2}, duration: 1200, building: 'Tropical Products Store', prices: [90, 120]},
-    'face cream': {ingredients: {'coconut oil': 2, chemicals: 2}, duration: 5400, building: 'Tropical Products Store', prices: [100, 150]},
+    'face cream': {ingredients: {'coconut oil': 2, chemicals: 2}, duration: 5400, building: 'Tropical Products Store', prices: [637, 850]},
     'tropical drink': {ingredients: {coconuts: 2, fruit: 2, 'sugar&spices': 1}, duration: 15000, building: 'Tropical Products Store', prices: [1500, 2000]}
  };
 
