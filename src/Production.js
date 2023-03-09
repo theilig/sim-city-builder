@@ -395,13 +395,13 @@ function scheduleNewOperation(operation, operations, storage, running, waitUntil
     let shuffleOperations = cloneOperations(operations)
     let addOrderResult = addOrder(goods[operation.name]['ingredients'], operations, storage, running, Math.max(0, finishBy - operation.duration), waitUntil, operation.requestorId)
     let scheduleTime = findBestTime(operations, operation, addOrderResult.timeOfCompletion, finishBy)
-    if (scheduleTime > finishBy - operation.duration && canShuffle && scheduleTime < 7200) {
-        const shuffleResult = shuffleReservations(shuffleOperations, operation, storage, running, waitUntil, finishBy, true)
-        if (shuffleResult.successful) {
-            operation.slideTime = finishBy - operation.end
-            return {operations: shuffleResult.operations, storage: shuffleResult.storage, running: shuffleResult.running}
-        }
-    }
+//    if (scheduleTime > finishBy - operation.duration && canShuffle && scheduleTime < 7200) {
+//        const shuffleResult = shuffleReservations(shuffleOperations, operation, storage, running, waitUntil, finishBy, true)
+//        if (shuffleResult.successful) {
+//            operation.slideTime = finishBy - operation.end
+//            return {operations: shuffleResult.operations, storage: shuffleResult.storage, running: shuffleResult.running}
+//        }
+//    }
     operation.childOperations = addOrderResult.added
     addOperation(operation, addOrderResult.allOperations, Math.max(waitUntil, addOrderResult.timeOfCompletion), finishBy)
     return {operations: addOrderResult.allOperations, storage: addOrderResult.storage, running: addOrderResult.running}
