@@ -1,39 +1,24 @@
-import React, {useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {cloneOperations, createOperation} from "./Production";
 import goods from "./Goods"
 export function removeGood(storage, good) {
-    let removed = false
-    let buildingStorage = []
-    let operation = createOperation(good)
-    if (storage.byBuilding[operation.building]) {
-        storage.byBuilding[operation.building].forEach(op => {
-            if (!removed && op.name === operation.name) {
-                removed = true
-            } else {
-                buildingStorage.push(op)
-            }
-        })
-        let newStorage = cloneOperations(storage)
-        newStorage.byBuilding[operation.building] = buildingStorage
-        return {found: removed, storage: newStorage}
+    let newStorage = {...storage}
+    let found = newStorage[good] && newStorage[good] > 0
+    if (newStorage[good] > 1) {
+        newStorage[good] -= 1
     } else {
-        return {found: false, storage: storage}
+        delete newStorage[good]
     }
+    return {found: found, storage: newStorage}
 }
 
 export function addStorage(storage, goods) {
-    let newStorage = cloneOperations(storage)
+    let newStorage = {...storage}
     Object.keys(goods).forEach(good => {
-        for (let i = 0; i < goods[good]; i += 1) {
-            let op = createOperation(good)
-            if (newStorage.byBuilding[op.building] === undefined) {
-                newStorage.byBuilding[op.building] = []
-            }
-            op.reserved = false
-            op.fromStorage = true
-            op.start = 0
-            op.end = 0
-            newStorage.byBuilding[op.building].push(op)
+        if (newStorage[good] === undefined) {
+            newStorage[good] = goods[good]
+        } else {
+            newStorage[good] += goods[good]
         }
     })
     return newStorage
@@ -41,22 +26,24 @@ export function addStorage(storage, goods) {
 
 function Storage(props) {
     const [adjustments, setAdjustments] = useState({})
+    const [storedKeys, setStoredKeys] = useState([0])
 
-    function updateCount(goodName, total) {
+    const updateCount = useCallback((goodName, delta) => {
         let newList = {...adjustments};
+        const total = (adjustments[goodName] || 0) + delta
         if (total > 0) {
             newList[goodName] = total
         } else {
             delete newList[goodName]
         }
         setAdjustments(newList)
-    }
+    }, [adjustments])
 
     function goodWasClicked(goodName, rightButton) {
         if (rightButton) {
-            updateCount(goodName, (adjustments[goodName] || 1) - 1)
+            updateCount(goodName,-1)
         } else {
-            updateCount(goodName, (adjustments[goodName] || 0) + 1)
+            updateCount(goodName,1)
         }
     }
 
@@ -92,17 +79,6 @@ function Storage(props) {
     }
     function display(building) {
         let counts = {}
-        if (props.storage.byBuilding[building]) {
-            props.storage.byBuilding[building].forEach(op => {
-                if (counts[op.name] === undefined) {
-                    counts[op.name] = {count: 0, unused: 0}
-                }
-                counts[op.name].count += 1
-                if (op.reserved === false) {
-                    counts[op.name].unused += 1
-                }
-            })
-        }
         const nameStyle = {}
         const rowStyle = {}
         const adjustmentStyle = {width: '10px'}
@@ -119,8 +95,7 @@ function Storage(props) {
                             <tr key={index} style={rowStyle} onClick={() => goodWasClicked(good, false)}
                                 onContextMenu={() => goodWasClicked(good, true)}>
                                 <td><div style={nameStyle}>{good}</div></td>
-                                {wrap(counts[good], 'count', {}, '', '', true)}
-                                {wrap(counts[good], 'unused', {adjustmentStyle}, '(', ')', false)}
+                                {wrap(props.storage[good], undefined, {}, '', '', true)}
                                 {wrap(adjustments[good], undefined, {adjustmentStyle}, '+', '', false)}
                             </tr>
                         )
@@ -132,6 +107,41 @@ function Storage(props) {
             </table>
         )
     }
+    useEffect(() => {
+        function updateKeys(event) {
+            let newStoredKeys = [...storedKeys]
+            const key = event.key
+            if (key >= '0' && key <= '9') {
+                const value = parseInt(key)
+                if (newStoredKeys.length !== 1) {
+                    newStoredKeys = [value]
+                } else {
+                    newStoredKeys = [newStoredKeys[0] * 10 + value]
+                }
+            } else {
+                newStoredKeys.push(key)
+            }
+            if (newStoredKeys.length === 3) {
+                if (newStoredKeys[0] === 0) {
+                    newStoredKeys[0] = 1
+                }
+                const shortcut = newStoredKeys[1] + newStoredKeys[2]
+                Object.keys(goods).forEach(good => {
+                    if (goods[good].shortcut === shortcut) {
+                        updateCount(good, newStoredKeys[0])
+                    }
+                })
+                newStoredKeys = [0]
+            }
+            setStoredKeys(newStoredKeys)
+        }
+        document.addEventListener('keydown', updateKeys);
+
+        // Don't forget to clean up
+        return function cleanup() {
+            document.removeEventListener('keydown', updateKeys);
+        }
+    }, [storedKeys, updateCount]);
     return (
         <div style={{display: "flex", flexWrap: "wrap"}}>
             {['Factory', "Farmer's Market", 'Building Supplies Store', 'Hardware Store', 'Fashion Store',

@@ -12,7 +12,7 @@ function App() {
   const [loaded, setLoaded] = useState(false)
   const [operationList, setOperationList] = useState({byBuilding: {}})
   const [expectedTimes, setExpectedTimes] = useState([])
-  const [inStorage, setInStorage] = useState({byBuilding: {}})
+  const [inStorage, setInStorage] = useState({})
   const [unassignedStorage, setUnassignedStorage] = useState({byBuilding: {}})
   const [listToOpMap, setListToOpMap] = useState([])
   const [runningOperations, setRunningOperations] = useState({byBuilding: {}})
@@ -139,7 +139,7 @@ function App() {
     calculateOperations(result.shoppingLists, runningOperations, inStorage, result.prioritySwitches)
   }
 
-  function sumOrderCost(costs, opList) {
+  const sumOrderCost = useCallback((costs, opList) => {
     let cost = 0
     let duration = 0
     opList.forEach(op => {
@@ -152,9 +152,9 @@ function App() {
       duration += (op.start + op.duration)
     })
     return {cost: cost, duration: duration}
-  }
+  }, [])
 
-  const sortShoppingLists = shoppingLists => {
+  const sortShoppingLists = useCallback(shoppingLists => {
     let operationsNeeded = {byBuilding: {}}
     let operationsByOrder = []
     let timesPerOrder = []
@@ -184,7 +184,7 @@ function App() {
     indexes.sort((a, b) => timesPerOrder[a] * costsPerOrder[a] -
         timesPerOrder[b] * costsPerOrder[b])
     return indexes
-  }
+  }, [inStorage, runningOperations, sumOrderCost])
 
   // This function assumes lists are already priority sorted, and will pass the index as a priority to addOrder
   // We also randomly try to flip two to see if the total throughput would be better if they were swapped, and
@@ -235,10 +235,10 @@ function App() {
   const calculateOperations = useCallback((shoppingLists, running, storage, localPrioritySwitches) => {
     setInStorage(storage)
     localStorage.setItem("simStorage", JSON.stringify(storage))
+    return
     setRunningOperations(running)
     setShoppingLists(shoppingLists)
     localStorage.setItem("simShoppingLists", JSON.stringify(shoppingLists))
-
     let localPriorityOrder = sortShoppingLists(shoppingLists, running, storage)
     localPriorityOrder = updatePriorityOrder(localPriorityOrder, localPrioritySwitches)
     let result = scheduleLists(shoppingLists, running, storage, localPriorityOrder)
@@ -253,7 +253,7 @@ function App() {
     setListToOpMap(result.operationsByList)
     setUnassignedStorage(result.unassignedStorage)
     setPriorityOrder(localPriorityOrder)
-  }, [scheduleLists])
+  }, [scheduleLists, sortShoppingLists])
 
   useEffect(() => {
     if (!loaded) {
@@ -274,7 +274,7 @@ function App() {
   let visualOpList = {...operationList}
   return (
     <div>
-      <Storage key={"storage"} storage={unassignedStorage} addShoppingList={addShoppingList} addStorage={haveStorage} removeStorage={removeStorage}
+      <Storage key={"storage"} storage={inStorage} addShoppingList={addShoppingList} addStorage={haveStorage} removeStorage={removeStorage}
                makeGoods={makeGoods} clear={clear} />
       <ShoppingLists prioritySwitches={prioritySwitches} updatePrioritySwitches={updatePrioritySwitches}
                      lists={shoppingLists} priorityOrder={priorityOrder}

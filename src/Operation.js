@@ -1,23 +1,7 @@
-import React, {useState} from 'react';
+import React from 'react';
 import { displayName, secondsToTime } from './Production';
 
 function Operation(props) {
-    let startClicks = 0
-    let doneClicks = 0
-    function submitWhenDoneStarting(targetClicks) {
-        if (startClicks <= targetClicks) {
-            props.pauseUpdates(false)
-            props.startOp(props.operation, targetClicks)
-            startClicks = 0
-        }
-    }
-    function submitWhenDoneFinishing(targetClicks) {
-        if (doneClicks <= targetClicks) {
-            props.pauseUpdates(false)
-            props.finishOp(props.operation, targetClicks)
-            doneClicks = 0
-        }
-    }
     function startOne() {
         props.startOp(props.operation, 1)
     }
@@ -36,18 +20,27 @@ function Operation(props) {
         props.speedUp(props.operation, amount)
     }
 
-    function clickedDone() {
-        const targetClicks = doneClicks + 1
-        doneClicks = targetClicks
-        props.pauseUpdates(true)
-        setTimeout(() => submitWhenDoneFinishing(targetClicks), 500)
+    function finishOne() {
+        props.finishOp(props.operation, 1)
     }
+
+    function finishAll() {
+        props.finishOp(props.operation, props.operation.count)
+    }
+
     function showButton() {
         if (props.operation.runningId !== undefined) {
-            return <button
-                onClick={clickedDone}
-                onContextMenu={speedUp}
-            >done</button>
+            if (props.operation.end > 0) {
+                return <button
+                    onClick={finishOne}
+                    onContextMenu={speedUp}
+                >done</button>
+            } else {
+                return <button
+                    onClick={finishAll}
+                    onContextMenu={speedUp}
+                >done</button>
+            }
         } else {
             return <button onClick={startOne} onContextMenu={startAll}>start</button>
         }
