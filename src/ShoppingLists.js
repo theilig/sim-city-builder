@@ -28,38 +28,28 @@ export function addList(shoppingLists, goodsNeeded, region, prioritySwitches) {
 }
 
 export function updatePriorityOrder(localPriorityOrder, prioritySwitches) {
+    let remaining = [...localPriorityOrder]
+    let finalOrder = []
     let remainingSwitches = [...prioritySwitches]
-    let index = 0
-    while (index < localPriorityOrder.length) {
+    for (let index = 0; index < localPriorityOrder.length; index += 1) {
         let target = undefined
-        for (let switchIndex = 0; switchIndex < remainingSwitches.length; switchIndex += 1) {
-            if (target === undefined && remainingSwitches[switchIndex].below === localPriorityOrder[index]) {
-                target = remainingSwitches[switchIndex].above
-            }
-        }
-        if (target !== undefined) {
-            const replaced = localPriorityOrder[index]
-            for (let pi = index + 1; pi < localPriorityOrder.length; pi += 1) {
-                localPriorityOrder[pi - 1] = localPriorityOrder[pi]
-                if (localPriorityOrder[pi] === target) {
-                    localPriorityOrder[pi] = replaced
-                    break
+        for (let targetIndex = 0; target === undefined && targetIndex < remaining.length; targetIndex += 1) {
+            target = remaining[targetIndex]
+            for (let switchIndex = 0; target !== undefined && switchIndex < remainingSwitches.length; switchIndex += 1) {
+                if (remainingSwitches[switchIndex].below === target) {
+                    target = undefined
                 }
             }
-        } else {
-            let newRemainingSwitches = []
-            const placed = localPriorityOrder[index]
-            remainingSwitches.forEach(s => {
-                if (s.above !== placed) {
-                    newRemainingSwitches.push(s)
-                }
-            })
-            remainingSwitches = newRemainingSwitches
-            index += 1
-
         }
+        if (target === undefined) {
+            alert('unexpected circular dependency loop')
+            target = remaining[0]
+        }
+        finalOrder.push(target)
+        remaining = remaining.filter(i => i !== target)
+        remainingSwitches = remainingSwitches.filter(s => s.above !== target)
     }
-    return localPriorityOrder
+    return finalOrder
 }
 
 function ShoppingLists(props) {

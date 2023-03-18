@@ -154,37 +154,19 @@ function App() {
     return {cost: cost, duration: duration}
   }, [])
 
-  const sortShoppingLists = useCallback(shoppingLists => {
-    let operationsNeeded = {byBuilding: {}}
-    let operationsByOrder = []
+  const sortShoppingLists = useCallback((shoppingLists, opsByGood, running) => {
+    let indexes = []
     let timesPerOrder = []
     for (let i = 0; i < shoppingLists.length; i += 1) {
-      let storage = cloneOperations(inStorage)
-      let running = cloneOperations(runningOperations)
-      const result = addOrder(shoppingLists[i].items, operationsNeeded, storage, running, 0,0, i)
-      operationsNeeded = result.allOperations
-      operationsByOrder.push(result.added)
+      let localOpsByGood = cloneOperations(opsByGood)
+      let localRunning = cloneOperations(running)
+      const result = addOrder(shoppingLists[i].items, localRunning, localOpsByGood, 0,0, i)
       timesPerOrder.push(result.timeOfCompletion)
+      indexes.push(i)
     }
-    const costs = calculateBuildingCosts(operationsNeeded)
-    let indexes = []
-    let durationsPerOrder = []
-    let costsPerOrder = []
-    operationsByOrder.forEach((opList, index) => {
-      const cost = sumOrderCost(costs, opList)
-      indexes.push(index)
-      costsPerOrder[index] = cost.cost
-      durationsPerOrder[index] = cost.duration
-    })
-
-    for (let i = 0; i < shoppingLists.length; i += 1) {
-      costsPerOrder[i] = costsPerOrder[i] / durationsPerOrder[i]
-    }
-
-    indexes.sort((a, b) => timesPerOrder[a] * costsPerOrder[a] -
-        timesPerOrder[b] * costsPerOrder[b])
+    indexes.sort((a, b) => timesPerOrder[a] - timesPerOrder[b])
     return indexes
-  }, [inStorage, runningOperations, sumOrderCost])
+  }, [])
 
   // This function assumes lists are already priority sorted, and will pass the index as a priority to addOrder
   // We also randomly try to flip two to see if the total throughput would be better if they were swapped, and
@@ -235,24 +217,41 @@ function App() {
   const calculateOperations = useCallback((shoppingLists, running, storage, localPrioritySwitches) => {
     setInStorage(storage)
     localStorage.setItem("simStorage", JSON.stringify(storage))
-    return
     setRunningOperations(running)
     setShoppingLists(shoppingLists)
     localStorage.setItem("simShoppingLists", JSON.stringify(shoppingLists))
-    let localPriorityOrder = sortShoppingLists(shoppingLists, running, storage)
-    localPriorityOrder = updatePriorityOrder(localPriorityOrder, localPrioritySwitches)
-    let result = scheduleLists(shoppingLists, running, storage, localPriorityOrder)
-    const currentExpected = calculateExpectedTimes(result.operationsByList)
+    let opsByGood = {}
+    Object.keys(storage).forEach(good => {
+      let op = createOperation(good)
+      op.count = storage[good]
+      opsByGood[good] = [op]
+    })
+
+    Object.keys(running.byBuilding).forEach(building => {
+      running.byBuilding[building].forEach(runningOp => {
+        const good = runningOp.name
+        if (opsByGood[good] === undefined) {
+          opsByGood[good] = [runningOp]
+        } else {
+          opsByGood[good].push(runningOp)
+        }
+      })
+    })
+    let localPriorityOrder = sortShoppingLists(shoppingLists, opsByGood, running)
     if (shoppingLists.length <= 1) {
       localPrioritySwitches = []
     }
+    localPriorityOrder = updatePriorityOrder(localPriorityOrder, localPrioritySwitches)
+    setPrioritySwitches(localPrioritySwitches)
+    setPriorityOrder(localPriorityOrder)
+    return
+    let result = scheduleLists(shoppingLists, running, storage, localPriorityOrder)
+    const currentExpected = calculateExpectedTimes(result.operationsByList)
     setOperationList(result.operations)
     setExpectedTimes(currentExpected)
     // we have to unwind this back to original indexes
-    setPrioritySwitches(localPrioritySwitches)
     setListToOpMap(result.operationsByList)
     setUnassignedStorage(result.unassignedStorage)
-    setPriorityOrder(localPriorityOrder)
   }, [scheduleLists, sortShoppingLists])
 
   useEffect(() => {
