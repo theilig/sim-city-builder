@@ -46,11 +46,11 @@ export function displayName(key, count) {
     return key
 }
 
-function getMaxConcurrentOps(changes, changeTimes, changeIndex, duration) {
+function getMaxConcurrentOps(changes, changeTimes, changeIndex, duration, waitUntil) {
     let initialChangeTime = changeTimes[changeIndex]
     let maxConcurrentOps = changes[changeTimes[changeIndex]]
     changeIndex += 1
-    while (changeIndex < changeTimes.length && changeTimes[changeIndex] - initialChangeTime < duration) {
+    while (changeIndex < changeTimes.length && changeTimes[changeIndex] - initialChangeTime < duration + waitUntil) {
         if (changes[changeTimes[changeIndex]] > maxConcurrentOps) {
             maxConcurrentOps = changes[changeTimes[changeIndex]]
         }
@@ -81,6 +81,9 @@ function findBestTime(operations, operation, waitUntil, finishBy) {
             changes[start] += 1
         }
     })
+    if (changes[0] === undefined) {
+        changes[0] = 0
+    }
     let changeTimes = Object.keys(changes).map(s => parseInt(s))
     changeTimes.sort((a, b) => a - b)
 
@@ -91,9 +94,9 @@ function findBestTime(operations, operation, waitUntil, finishBy) {
     })
     let startTime = undefined
     for (let changeIndex = changeTimes.length - 1; changeIndex >= 0; changeIndex -= 1) {
-        const maxConcurrentOps = getMaxConcurrentOps(changes, changeTimes, changeIndex, duration)
+        const maxConcurrentOps = getMaxConcurrentOps(changes, changeTimes, changeIndex, duration, waitUntil)
         if (maxConcurrentOps < limit) {
-            startTime = changeTimes[changeIndex]
+            startTime = Math.max(changeTimes[changeIndex], waitUntil)
             if (startTime + duration < finishBy ) {
                 startTime = changeTimes[changeIndex]
                 if (limit > 1) {
@@ -134,7 +137,7 @@ function insertOperation(operations, operation, building) {
             } else {
                 newPipeline[index] = existingOperation
             }
-            if (limit === 1 && existingOperation.start > 0 && existingOperation.start < startTime ) {
+            if (limit === 1 && inserted && existingOperation.start > 0 && existingOperation.start < startTime ) {
                 adjustStartTime(existingOperation, startTime)
             }
             startTime = existingOperation.end

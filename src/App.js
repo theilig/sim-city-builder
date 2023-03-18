@@ -157,15 +157,17 @@ function App() {
   const sortShoppingLists = useCallback((shoppingLists, opsByGood, running) => {
     let indexes = []
     let timesPerOrder = []
+    let listToOpMap = []
     for (let i = 0; i < shoppingLists.length; i += 1) {
       let localOpsByGood = cloneOperations(opsByGood)
       let localRunning = cloneOperations(running)
       const result = addOrder(shoppingLists[i].items, localRunning, localOpsByGood, 0,0, i)
       timesPerOrder.push(result.timeOfCompletion)
       indexes.push(i)
+      listToOpMap.push(result.added)
     }
     indexes.sort((a, b) => timesPerOrder[a] - timesPerOrder[b])
-    return {priorityOrder: indexes, bestTimes: timesPerOrder}
+    return {priorityOrder: indexes, bestTimes: timesPerOrder, listToOpMap: listToOpMap}
   }, [])
 
   // This function assumes lists are already priority sorted, and will pass the index as a priority to addOrder
@@ -224,6 +226,9 @@ function App() {
     Object.keys(storage).forEach(good => {
       let op = createOperation(good)
       op.count = storage[good]
+      op.fromStorage = true
+      op.end = 0
+      op.start = 0
       opsByGood[good] = [op]
     })
 
@@ -240,6 +245,7 @@ function App() {
     let sortResult = sortShoppingLists(shoppingLists, opsByGood, running)
     let localPriorityOrder = sortResult.priorityOrder
     setExpectedTimes(sortResult.bestTimes)
+    setListToOpMap(sortResult.listToOpMap)
     if (shoppingLists.length <= 1) {
       localPrioritySwitches = []
     }
