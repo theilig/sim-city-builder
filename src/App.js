@@ -165,7 +165,7 @@ function App() {
       indexes.push(i)
     }
     indexes.sort((a, b) => timesPerOrder[a] - timesPerOrder[b])
-    return indexes
+    return {priorityOrder: indexes, bestTimes: timesPerOrder}
   }, [])
 
   // This function assumes lists are already priority sorted, and will pass the index as a priority to addOrder
@@ -237,7 +237,9 @@ function App() {
         }
       })
     })
-    let localPriorityOrder = sortShoppingLists(shoppingLists, opsByGood, running)
+    let sortResult = sortShoppingLists(shoppingLists, opsByGood, running)
+    let localPriorityOrder = sortResult.priorityOrder
+    setExpectedTimes(sortResult.bestTimes)
     if (shoppingLists.length <= 1) {
       localPrioritySwitches = []
     }
