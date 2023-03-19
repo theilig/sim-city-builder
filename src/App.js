@@ -6,14 +6,17 @@ import ShoppingLists, {addList, removeList, updatePriorityOrder} from "./Shoppin
 import Storage, {addStorage, removeGood} from "./Storage";
 import {cloneOperations} from "./Production"
 import {addToRunning, finishOperation, finishRunning, speedUpOperation, updateRunning} from "./Running";
+import goods from "./Goods";
+import {allBuildings} from "./Building";
 
 function App() {
   const [shoppingLists, setShoppingLists] = useState([])
   const [loaded, setLoaded] = useState(false)
   const [operationList, setOperationList] = useState({byBuilding: {}})
   const [expectedTimes, setExpectedTimes] = useState([])
+  const [actualTimes, setActualTimes] = useState([])
   const [inStorage, setInStorage] = useState({})
-  const [unassignedStorage, setUnassignedStorage] = useState({byBuilding: {}})
+  const [unassignedStorage, setUnassignedStorage] = useState({})
   const [listToOpMap, setListToOpMap] = useState([])
   const [runningOperations, setRunningOperations] = useState({byBuilding: {}})
   const [prioritySwitches, setPrioritySwitches] = useState([])
@@ -33,7 +36,7 @@ function App() {
     setOperationList({byBuilding: {}})
     setRunningOperations({byBuilding: {}})
     setPrioritySwitches([])
-    setInStorage({byBuilding: {}})
+    setInStorage({})
     calculateOperations([], {byBuilding: {}}, {byBuilding: {}}, [])
   }
 
@@ -154,10 +157,45 @@ function App() {
     return {cost: cost, duration: duration}
   }, [])
 
+  function updateUnused(opsByGood, unusedStorage) {
+    const initial = unusedStorage === undefined
+    if (initial) {
+      unusedStorage = {}
+    }
+    Object.keys(opsByGood).forEach(good => {
+      let count = 0
+      opsByGood[good].forEach(op => {
+        if (op.fromStorage) {
+          count += op.count
+        }
+      })
+      if (initial || unusedStorage[good] > count)
+      unusedStorage[good] = count
+    })
+    return unusedStorage
+  }
+
+  function updateOpPriority(priority, ops, opPriorities, existingOps) {
+    for (let i = 0; i < ops.length; i += 1) {
+      const op = ops[i]
+      if (existingOps[op.name] !== undefined && existingOps[op.name].length > 0) {
+        existingOps[op.name] = existingOps[op.name].slice(1)
+      } else {
+        if (opPriorities[op.name] === undefined || opPriorities[op.name] > priority) {
+          opPriorities[op.name] = priority
+        }
+        if (op.childOperations && op.childOperations.length > 0) {
+          updateOpPriority(priority, op.childOperations, opPriorities, existingOps)
+        }
+      }
+    }
+  }
+
   const sortShoppingLists = useCallback((shoppingLists, opsByGood, running) => {
     let indexes = []
     let timesPerOrder = []
     let listToOpMap = []
+    let unusedStorage = undefined
     for (let i = 0; i < shoppingLists.length; i += 1) {
       let localOpsByGood = cloneOperations(opsByGood)
       let localRunning = cloneOperations(running)
@@ -165,61 +203,122 @@ function App() {
       timesPerOrder.push(result.timeOfCompletion)
       indexes.push(i)
       listToOpMap.push(result.added)
+      unusedStorage = updateUnused(localOpsByGood, unusedStorage)
     }
     indexes.sort((a, b) => timesPerOrder[a] - timesPerOrder[b])
-    return {priorityOrder: indexes, bestTimes: timesPerOrder, listToOpMap: listToOpMap}
-  }, [])
-
-  // This function assumes lists are already priority sorted, and will pass the index as a priority to addOrder
-  // We also randomly try to flip two to see if the total throughput would be better if they were swapped, and
-  // track improvements in priority switches
-  const scheduleLists = useCallback((shoppingLists, fixedOperations, storage, priorityOrder) => {
-    // the fixed operations serve two purposes, one is as a seed of the list of all operations running
-    // the second is a list of which ones are unassigned, and will mutate as orders grab them
-    let unassignedOperations = cloneOperations(fixedOperations)
-    let unassignedStorage = {...storage}
-
-    let opsByList = []
-    let scheduledOperations = cloneOperations(unassignedOperations)
-    priorityOrder.forEach(order => {
-      const listIndex = order
-      // first see what's the fasted we could do it (finishBy == 0)
-      let copyOfRunning = cloneOperations(unassignedOperations)
-      let copyOfStorage = cloneOperations(unassignedStorage)
-      let fastestScheduledOperations = cloneOperations(scheduledOperations)
-      let result = addOrder(shoppingLists[listIndex].items, fastestScheduledOperations, copyOfStorage, copyOfRunning, 0, 0, listIndex)
-      // then do it again where we just-in-time everything
-      result = addOrder(shoppingLists[listIndex].items, scheduledOperations, unassignedStorage, unassignedOperations, result.timeOfCompletion, 0, listIndex)
-      scheduledOperations = result.allOperations
-      unassignedStorage = result.storage
-      opsByList[listIndex] = result.added
-      unassignedOperations = result.running
+    let opPriorities = {}
+    let existingOps = cloneOperations(opsByGood)
+    indexes.forEach((index, priority) => {
+      updateOpPriority(priority, listToOpMap[index], opPriorities, existingOps)
     })
-
-    return {operations: scheduledOperations, operationsByList: opsByList, unassignedStorage: unassignedStorage}
+    if (unusedStorage === undefined) {
+      unusedStorage = {}
+    }
+    return {priorityOrder: indexes, bestTimes: timesPerOrder, listToOpMap: listToOpMap, unusedStorage: unusedStorage, opPriorities: opPriorities}
   }, [])
-
-  const calculateExpectedTimes = (operationsByList) => {
-    let expected = []
-    operationsByList.forEach((list, index) => {
-      expected[index] = 0
-      list.forEach(op => {
-        if (op.end > expected[index]) {
-          expected[index] = op.end
-        }
-      })
-    })
-    return expected
-  }
 
   const updatePrioritySwitches = (newPrioritySwitches, newShoppingLists) => {
     calculateOperations(newShoppingLists, runningOperations, inStorage, newPrioritySwitches)
   }
 
-  const calculateOperations = useCallback((shoppingLists, running, storage, localPrioritySwitches) => {
+  function updateBestGood(goodDefinition, existingOps, buildingPipelines, bestGoodByBuilding, opPriorities) {
+    const building = goodDefinition.building
+    const goodName = goodDefinition.name
+    let localExistingOps = cloneOperations(existingOps)
+    let localBuildingPipelines = cloneOperations(buildingPipelines)
+    delete localExistingOps[goodName] // We want to see how long it would take to make one from scratch, so removed stored/running versions
+    let order = {}
+    order[goodName] = 1
+    const addGoodResult = addOrder(order, localBuildingPipelines, localExistingOps, 0, 0)
+    const startTime = addGoodResult.added[0].start
+    let replace
+    if (bestGoodByBuilding[building] === undefined) {
+      replace = true
+    } else {
+      const existing = bestGoodByBuilding[building]
+      replace = startTime < existing.startTime ||
+          (startTime === existing.startTime && (
+              existing.priority === undefined || (opPriorities[goodName] && opPriorities[goodName] < existing.priority)
+          ))
+    }
+    if (replace) {
+      bestGoodByBuilding[building] = {good: goodName, startTime: startTime, priority: opPriorities[goodName]}
+    }
+  }
+
+  const scheduleOperations = useCallback((shoppingLists, listPriority, opPriorities, existingOps, buildingPipelines) => {
+    /**
+     *  go across all buildings, find best op to start in building with the following criteria:
+     *   1. No op if building pipeline is full, or is going for desired full scheduling time
+     *   2. highest priority op (based on shopping priority) that can be started before current building op ends
+     *   3. fastest op to get started out of ops on lists
+     *   4. fastest op to get started
+     *
+     *  Schedule all such ops, and call it a day.  Once some ops are kicked off this will go back in and try
+     *  more.
+     */
+    // first only look at good we need to make
+    let bestGoodByBuilding = {}
+    Object.keys(opPriorities).forEach(goodName => {
+      const good = goods[goodName]
+      const building = good.building
+      good.name = goodName
+      if (allBuildings[building].parallelLimit === 1) {
+        // We only want to start commercial buildings, factories will take care of themselves
+        updateBestGood(good, existingOps, buildingPipelines, bestGoodByBuilding, opPriorities)
+      }
+    })
+    // then check all goods for buildings that are empty
+    const buildingsToStart = Object.keys(allBuildings).filter(building => bestGoodByBuilding[building] === undefined)
+    Object.keys(goods).forEach(goodName => {
+      const good = goods[goodName]
+      const building = good.building
+      good.name = goodName
+      if (allBuildings[building].parallelLimit === 1 && buildingsToStart.find(b => b === building)) {
+        // We only want to start commercial buildings, factories will take care of themselves
+        updateBestGood(good, existingOps, buildingPipelines, bestGoodByBuilding, opPriorities)
+      }
+    })
+    // now build what we decided we needed, however skip anything that got trumped by someone else using the storage
+    let operations = buildingPipelines
+    let goodsToMake = Object.keys(bestGoodByBuilding)
+    goodsToMake.sort((goodA, goodB) => {
+      if (bestGoodByBuilding[goodA].startTime === bestGoodByBuilding[goodB].startTime) {
+        return bestGoodByBuilding[goodA].priority - bestGoodByBuilding[goodB].priority
+      } else {
+        return bestGoodByBuilding[goodA].startTime - bestGoodByBuilding[goodB].startTime
+      }
+    })
+    for (let goodsToMakeIndex = 0; goodsToMakeIndex < goodsToMake.length; goodsToMakeIndex += 1) {
+      let localExistingOps = cloneOperations(existingOps)
+      let localBuildingPipelines = cloneOperations(operations)
+      let order = {}
+      const building = goodsToMake[goodsToMakeIndex]
+      const goodName = bestGoodByBuilding[building].good
+      order[goodName] = 1
+      const expectedStartTime = bestGoodByBuilding[goodsToMake[goodsToMakeIndex]].startTime
+      const expectedFinishBy = expectedStartTime + goods[goodName].duration
+      delete localExistingOps[goodName] // We want to make one from scratch
+      const addOrderResult = addOrder(order, localBuildingPipelines, localExistingOps, expectedFinishBy, 0)
+      if (addOrderResult.timeOfCompletion <= expectedFinishBy) {
+        // we were able to start when we expected, so update everything, but first restore the one we deleted
+        // then add the new one we created so other items can use it if necessary
+        if (existingOps[goodName]) {
+          localExistingOps[goodName] = existingOps[goodName]
+          localExistingOps[goodName].push(addOrderResult.added[0])
+        } else {
+          localExistingOps[goodName] = [addOrderResult.added[0]]
+        }
+        operations = localBuildingPipelines
+        existingOps = localExistingOps
+      }
+    }
+    return operations
+  }, [])
+
+  const calculateOperations = useCallback((shoppingLists, existingOps, storage, localPrioritySwitches) => {
     setInStorage(storage)
     localStorage.setItem("simStorage", JSON.stringify(storage))
-    setRunningOperations(running)
     setShoppingLists(shoppingLists)
     localStorage.setItem("simShoppingLists", JSON.stringify(shoppingLists))
     let opsByGood = {}
@@ -232,8 +331,8 @@ function App() {
       opsByGood[good] = [op]
     })
 
-    Object.keys(running.byBuilding).forEach(building => {
-      running.byBuilding[building].forEach(runningOp => {
+    Object.keys(existingOps.byBuilding).forEach(building => {
+      existingOps.byBuilding[building].forEach(runningOp => {
         const good = runningOp.name
         if (opsByGood[good] === undefined) {
           opsByGood[good] = [runningOp]
@@ -242,7 +341,7 @@ function App() {
         }
       })
     })
-    let sortResult = sortShoppingLists(shoppingLists, opsByGood, running)
+    let sortResult = sortShoppingLists(shoppingLists, opsByGood, existingOps)
     let localPriorityOrder = sortResult.priorityOrder
     setExpectedTimes(sortResult.bestTimes)
     setListToOpMap(sortResult.listToOpMap)
@@ -252,15 +351,13 @@ function App() {
     localPriorityOrder = updatePriorityOrder(localPriorityOrder, localPrioritySwitches)
     setPrioritySwitches(localPrioritySwitches)
     setPriorityOrder(localPriorityOrder)
-    return
-    let result = scheduleLists(shoppingLists, running, storage, localPriorityOrder)
-    const currentExpected = calculateExpectedTimes(result.operationsByList)
-    setOperationList(result.operations)
-    setExpectedTimes(currentExpected)
-    // we have to unwind this back to original indexes
-    setListToOpMap(result.operationsByList)
-    setUnassignedStorage(result.unassignedStorage)
-  }, [scheduleLists, sortShoppingLists])
+    let operations = scheduleOperations(shoppingLists, localPriorityOrder, sortResult.opPriorities, opsByGood, existingOps)
+    setOperationList(operations)
+    sortResult = sortShoppingLists(shoppingLists, opsByGood, existingOps)
+    setActualTimes(sortResult.bestTimes)
+    setListToOpMap(sortResult.listToOpMap)
+    setUnassignedStorage(sortResult.unusedStorage)
+  }, [sortShoppingLists, scheduleOperations])
 
   useEffect(() => {
     if (!loaded) {
@@ -276,13 +373,13 @@ function App() {
       }
     }, 10000)
     return () => clearInterval(interval)
-  }, [loaded, calculateOperations, scheduleLists, shoppingLists, inStorage, runningOperations, prioritySwitches, pauseUpdate])
+  }, [loaded, calculateOperations, shoppingLists, inStorage, runningOperations, prioritySwitches, pauseUpdate])
 
   let visualOpList = {...operationList}
   return (
     <div>
       <Storage key={"storage"} storage={inStorage} addShoppingList={addShoppingList} addStorage={haveStorage} removeStorage={removeStorage}
-               makeGoods={makeGoods} clear={clear} />
+               makeGoods={makeGoods} clear={clear} unassignedStorage={unassignedStorage}/>
       <ShoppingLists prioritySwitches={prioritySwitches} updatePrioritySwitches={updatePrioritySwitches}
                      lists={shoppingLists} priorityOrder={priorityOrder}
                      expectedTimes={expectedTimes} removeShoppingList={removeShoppingList}

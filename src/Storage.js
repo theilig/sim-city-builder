@@ -78,7 +78,6 @@ function Storage(props) {
         }
     }
     function display(building) {
-        let counts = {}
         const nameStyle = {}
         const rowStyle = {}
         const adjustmentStyle = {width: '10px'}
@@ -96,6 +95,7 @@ function Storage(props) {
                                 onContextMenu={() => goodWasClicked(good, true)}>
                                 <td><div style={nameStyle}>{good}</div></td>
                                 {wrap(props.storage[good], undefined, {}, '', '', true)}
+                                {wrap(props.unassignedStorage[good], undefined, {}, '(', ')', false)}
                                 {wrap(adjustments[good], undefined, {adjustmentStyle}, '+', '', false)}
                             </tr>
                         )
@@ -159,7 +159,7 @@ function Storage(props) {
                 <button onClick={() => makeShoppingList('Sunny Isles')} style={{"display": "grid", "width": "100px", "backgroundColor":"palegoldenrod"}}>
                     Sunny Isles
                 </button>
-                <button onClick={() => makeShoppingList('Design')} style={{"display": "grid", "width": "100px", "backgroundColor":"khaki"}}>
+                <button onClick={() => makeShoppingList('Design')} style={{"display": "grid", "width": "100px", "backgroundColor":"darkblue"}}>
                     Design
                 </button>
                 <button onClick={addGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"aqua"}}>

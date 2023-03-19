@@ -12,7 +12,7 @@ function Operation(props) {
 
     function speedUp(e) {
         let amount = 60
-        if (e.ctrlKey) {
+        if (e.altKey) {
             amount = 3600
         } else if (e.shiftKey) {
             amount = 300
@@ -32,13 +32,13 @@ function Operation(props) {
         if (props.operation.runningId !== undefined) {
             if (props.operation.end > 0) {
                 return <button
-                    onClick={finishOne}
-                    onContextMenu={speedUp}
+                    onClick={speedUp}
+                    onContextMenu={finishOne}
                 >done</button>
             } else {
                 return <button
-                    onClick={finishAll}
-                    onContextMenu={speedUp}
+                    onClick={finishOne}
+                    onContextMenu={finishAll}
                 >done</button>
             }
         } else {
@@ -66,7 +66,7 @@ function Operation(props) {
     if (props.operation.start === 0) {
         style = {boxShadow: "0px 0px 0px 3px rgb(255, 255, 0)"}
     }
-    if (props.operation.start === 0 && props.operation.slideTime === 0 && props.operation.runningId === undefined && props.operation.nextUp) {
+    if (props.operation.start === 0 && props.operation.runningId === undefined && props.operation.nextUp) {
         style = {boxShadow: "0px 0px 0px 3px rgb(255, 0, 0)"}
     }
     if (props.operation.runningId !== undefined) {

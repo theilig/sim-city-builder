@@ -1,31 +1,28 @@
-import React, {useMemo} from 'react';
+import React from 'react';
 import Operation from "./Operation";
-import {buildingLimits} from "./Production"
+
+export const allBuildings = {
+    Factory: {pipelineSize: 1, parallelLimit: 37},
+    "Farmer's Market": {pipelineSize: 1, parallelLimit: 1},
+    'Building Supplies Store': {pipelineSize: 5, parallelLimit: 1},
+    'Hardware Store': {pipelineSize: 6, parallelLimit: 1},
+    'Fashion Store': {pipelineSize: 4, parallelLimit: 1},
+    'Furniture Store': {pipelineSize: 4, parallelLimit: 1},
+    'Gardening Supplies': {pipelineSize: 3, parallelLimit: 1},
+    'Donut Shop': {pipelineSize: 3, parallelLimit: 1},
+    'Fast Food Restaurant': {pipelineSize: 2, parallelLimit: 1},
+    'Home Appliances': {pipelineSize: 2, parallelLimit: 1},
+    'Green Factory': {pipelineSize: 1, parallelLimit: 6},
+    'Eco Shop': {pipelineSize: 4, parallelLimit: 1},
+    'Coconut Farm': {pipelineSize: 1, parallelLimit: 6},
+    'Tropical Products Store': {pipelineSize: 4, parallelLimit: 1}
+};
 
 function Building(props) {
-    const pipelineSizes = useMemo(() => {return {
-        'Factory': 1,
-        'Green Factory': 1,
-        'Coconut Farm': 1,
-        'Home Appliances': 2,
-        'Building Supplies Store': 5,
-        'Hardware Store': 6,
-        'Fast Food Restaurant': 2,
-        'Furniture Store': 4,
-        'Donut Shop': 3,
-        'Fashion Store': 4,
-        'Farmer\'s Market': 6,
-        'Gardening Supplies': 3,
-        'Eco Shop': 4,
-        'Tropical Products Store': 4
-    }}, [])
-
-
-
     let visualPipeline = []
     let combiners = {}
-    const limit = buildingLimits[props.name] || 1
-    const pipelineSize = pipelineSizes[props.name] || 1
+    const limit = allBuildings[props.name].parallelLimit
+    const pipelineSize = allBuildings[props.name].pipelineSize
     props.pipeline.forEach((op, index) => {
         let visualOp = {...op}
         if ((index < (pipelineSize || 1) || index < limit) && op.runningId === undefined) {
