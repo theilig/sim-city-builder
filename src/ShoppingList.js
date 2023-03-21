@@ -18,7 +18,7 @@ function ShoppingList(props) {
     return (
         <div draggable
              onDragStart={props.dragStart} onDragEnter={props.dragEnter} onDragEnd={props.dragEnd}>
-            <div style={style}>
+            <div style={style} title={props.delta + " seconds delayed"}>
                 <span onClick={() => props.expandOrCollapse(props.index, props.expanded)}>
                     {"You want " + Object.keys(props.list.items).map(key =>{
                         return props.list.items[key] + " " + displayName(key, props.list.items[key])

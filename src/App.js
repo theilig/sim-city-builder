@@ -67,11 +67,13 @@ function App() {
       newRunning = result.running
       newStorage = result.storage
     }
+    setRunningOperations(newRunning)
     calculateOperations(shoppingLists, newRunning, newStorage, prioritySwitches)
   }
 
   function speedUp(operation, amount) {
     const newRunning = speedUpOperation(runningOperations, operation, amount)
+    setRunningOperations(newRunning)
     calculateOperations(shoppingLists, newRunning, inStorage, prioritySwitches)
   }
 
@@ -89,6 +91,7 @@ function App() {
         newRunning = addToRunning(newOperation, newRunning)
       }
     })
+    setRunningOperations(newRunning)
     calculateOperations(shoppingLists, newRunning, inStorage, prioritySwitches)
   }
 
@@ -102,6 +105,7 @@ function App() {
       }
     })
     const newInStorage = addStorage(inStorage, goods)
+    setRunningOperations(newRunning)
     calculateOperations(shoppingLists, newRunning, newInStorage, prioritySwitches)
   }
 
@@ -120,6 +124,7 @@ function App() {
     let newRunning = cloneOperations(runningOperations)
     const result = removeStorageOrRunning(shoppingLists[index].items, inStorage, newRunning)
     const shoppingListsResult = removeList(shoppingLists, index, prioritySwitches)
+    setRunningOperations(result.running)
     calculateOperations(shoppingListsResult.shoppingLists, result.running, result.storage, shoppingListsResult.prioritySwitches)
   }
 
@@ -157,20 +162,14 @@ function App() {
     return {cost: cost, duration: duration}
   }, [])
 
-  function updateUnused(opsByGood, unusedStorage) {
-    const initial = unusedStorage === undefined
-    if (initial) {
-      unusedStorage = {}
-    }
-    Object.keys(opsByGood).forEach(good => {
-      let count = 0
-      opsByGood[good].forEach(op => {
-        if (op.fromStorage) {
-          count += op.count
-        }
-      })
-      if (initial || unusedStorage[good] > count)
-      unusedStorage[good] = count
+  function updateUnused(newOps, unusedStorage) {
+    newOps.forEach(op => {
+      if (op.childOperations) {
+        unusedStorage = updateUnused(op.childOperations, unusedStorage)
+      }
+      if (op.fromStorage && unusedStorage[op.name] !== undefined && unusedStorage[op.name] > 0) {
+        unusedStorage[op.name] -= 1
+      }
     })
     return unusedStorage
   }
@@ -195,7 +194,7 @@ function App() {
     let indexes = []
     let timesPerOrder = []
     let listToOpMap = []
-    let unusedStorage = undefined
+    let unusedStorage = cloneOperations(inStorage)
     for (let i = 0; i < shoppingLists.length; i += 1) {
       let localOpsByGood = cloneOperations(opsByGood)
       let localRunning = cloneOperations(running)
@@ -203,7 +202,7 @@ function App() {
       timesPerOrder.push(result.timeOfCompletion)
       indexes.push(i)
       listToOpMap.push(result.added)
-      unusedStorage = updateUnused(localOpsByGood, unusedStorage)
+      unusedStorage = updateUnused(result.added, unusedStorage)
     }
     indexes.sort((a, b) => timesPerOrder[a] - timesPerOrder[b])
     let opPriorities = {}
@@ -313,6 +312,16 @@ function App() {
         existingOps = localExistingOps
       }
     }
+    // Create a window for all ops starting in this timeframe, mostly applies to factories
+    const DEADLINE_FOR_STARTING = 2 * 3600
+    let done = false
+    listPriority.forEach(listIndex => {
+      if (!done) {
+        addOrder(shoppingLists[listIndex].items, buildingPipelines, existingOps, 0, 0)
+        done = true
+      }
+      // addOrder(shoppingLists[listIndex].items, buildingPipelines, existingOps, 0, 0, DEADLINE_FOR_STARTING)
+    })
     return operations
   }, [])
 
@@ -353,7 +362,7 @@ function App() {
     setPriorityOrder(localPriorityOrder)
     let operations = scheduleOperations(shoppingLists, localPriorityOrder, sortResult.opPriorities, opsByGood, existingOps)
     setOperationList(operations)
-    sortResult = sortShoppingLists(shoppingLists, opsByGood, existingOps)
+    sortResult = sortShoppingLists(shoppingLists, opsByGood, operations)
     setActualTimes(sortResult.bestTimes)
     setListToOpMap(sortResult.listToOpMap)
     setUnassignedStorage(sortResult.unusedStorage)
@@ -369,6 +378,7 @@ function App() {
     const interval = setInterval(() => {
       if (!pauseUpdate) {
         const newRunning = updateRunning(runningOperations)
+        setRunningOperations(newRunning)
         calculateOperations(shoppingLists, newRunning, inStorage, prioritySwitches)
       }
     }, 10000)
@@ -382,7 +392,7 @@ function App() {
                makeGoods={makeGoods} clear={clear} unassignedStorage={unassignedStorage}/>
       <ShoppingLists prioritySwitches={prioritySwitches} updatePrioritySwitches={updatePrioritySwitches}
                      lists={shoppingLists} priorityOrder={priorityOrder}
-                     expectedTimes={expectedTimes} removeShoppingList={removeShoppingList}
+                     expectedTimes={expectedTimes} actualTimes={actualTimes} removeShoppingList={removeShoppingList}
                      finishShoppingList={finishShoppingList} listToOpMap={listToOpMap}
         />
       <OperationList key={"oplist"} operations={visualOpList}
