@@ -2,8 +2,11 @@ import React from 'react';
 import {displayName, secondsToTime} from './Production'
 import ListOps from "./ListOps";
 function ShoppingList(props) {
-    let timeString = " in " + secondsToTime(props.end)
-    if (props.end <= 0) {
+    let timeString = '(' + secondsToTime(props.bestEnd) + ')'
+    if (props.actualEnd) {
+        timeString = " in " + secondsToTime(props.actualEnd)
+    }
+    if (props.actualEnd !== undefined && props.actualEnd <= 0) {
         timeString = " now"
     }
 

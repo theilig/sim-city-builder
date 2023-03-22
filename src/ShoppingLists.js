@@ -180,8 +180,8 @@ function ShoppingLists(props) {
                 <ShoppingList list={props.lists[shoppingListIndex]} key={shoppingListIndex} index={shoppingListIndex}
                               remove={() => props.removeShoppingList(shoppingListIndex)}
                               finish={() => props.finishShoppingList(shoppingListIndex)}
-                              end={props.actualTimes[shoppingListIndex]}
-                              delta={props.actualTimes[shoppingListIndex] - props.expectedTimes[shoppingListIndex]}
+                              actualEnd={props.actualTimes[shoppingListIndex]}
+                              bestEnd={props.expectedTimes[shoppingListIndex]}
                               operations={props.listToOpMap[shoppingListIndex]}
                               expandOrCollapse={expandOrCollapse}
                               expanded={shoppingListIndex === expandedList}

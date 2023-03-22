@@ -92,11 +92,11 @@ function findBestTime(operations, operation, waitUntil, finishBy) {
         runningTotal += changes[changeTime]
         changes[changeTime] = runningTotal
     })
-    let startTime = undefined
-    for (let changeIndex = changeTimes.length - 1; changeIndex >= 0; changeIndex -= 1) {
+    let startTime = Math.max(changeTimes[changeTimes.length - 1], waitUntil)
+    for (let changeIndex = changeTimes.length - 1; changeIndex >= 0 && changeTimes[changeIndex] >= waitUntil; changeIndex -= 1) {
         const maxConcurrentOps = getMaxConcurrentOps(changes, changeTimes, changeIndex, duration, waitUntil)
         if (maxConcurrentOps < limit) {
-            startTime = Math.max(changeTimes[changeIndex], waitUntil)
+            startTime = changeTimes[changeIndex]
             if (startTime + duration < finishBy ) {
                 startTime = changeTimes[changeIndex]
                 if (limit > 1) {
@@ -140,7 +140,9 @@ function insertOperation(operations, operation, building) {
             if (limit === 1 && inserted && existingOperation.start > 0 && existingOperation.start < startTime ) {
                 adjustStartTime(existingOperation, startTime)
             }
-            startTime = existingOperation.end
+            if (limit === 1) {
+                startTime = Math.max(existingOperation.end, operation.startTime)
+            }
         }
         if (!inserted) {
             newPipeline.push(operation)
