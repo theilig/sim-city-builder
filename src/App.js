@@ -37,7 +37,7 @@ function App() {
     setRunningOperations({byBuilding: {}})
     setPrioritySwitches([])
     setInStorage({})
-    calculateOperations([], {byBuilding: {}}, {byBuilding: {}}, [])
+    calculateOperations([], {byBuilding: {}}, {}, [])
   }
 
   function removeStorageOrRunning(itemsNeeded, storage, running) {
@@ -178,7 +178,11 @@ function App() {
     for (let i = 0; i < ops.length; i += 1) {
       const op = ops[i]
       if (existingOps[op.name] !== undefined && existingOps[op.name].length > 0) {
-        existingOps[op.name] = existingOps[op.name].slice(1)
+        if (existingOps[op.name][0].count !== undefined && existingOps[op.name][0].count > 1) {
+          existingOps[op.name][0].count -= 1
+        } else {
+          existingOps[op.name] = existingOps[op.name].slice(1)
+        }
       } else {
         if (opPriorities[op.name] === undefined || opPriorities[op.name] > priority) {
           opPriorities[op.name] = priority
@@ -313,15 +317,15 @@ function App() {
       }
     }
     // Create a window for all ops starting in this timeframe, mostly applies to factories
-    const DEADLINE_FOR_STARTING = 2 * 3600
-    let done = false
-    listPriority.forEach(listIndex => {
-      if (!done) {
-        addOrder(shoppingLists[listIndex].items, buildingPipelines, existingOps, 0, 0)
-        done = true
-      }
+//    const DEADLINE_FOR_STARTING = 2 * 3600
+//    let done = false
+//    listPriority.forEach(listIndex => {
+//      if (!done) {
+//        addOrder(shoppingLists[listIndex].items, operations, existingOps, 0, 0)
+//        done = true
+//      }
       // addOrder(shoppingLists[listIndex].items, buildingPipelines, existingOps, 0, 0, DEADLINE_FOR_STARTING)
-    })
+//    })
     return operations
   }, [])
 
