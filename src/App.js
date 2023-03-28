@@ -31,13 +31,16 @@ function App() {
     setPauseUpdate(newValue)
   }
 
-  function clear() {
-    setShoppingLists([])
+  function clear(clearLists) {
+    let lists = shoppingLists
+    if (clearLists) {
+      lists = []
+    }
     setOperationList({byBuilding: {}})
     setRunningOperations({byBuilding: {}})
     setPrioritySwitches([])
     setInStorage({})
-    calculateOperations([], {byBuilding: {}}, {}, [])
+    calculateOperations(lists, {byBuilding: {}}, {}, [])
   }
 
   function removeStorageOrRunning(itemsNeeded, storage, running) {
@@ -83,15 +86,19 @@ function App() {
     haveStorage(newGoods, true)
   }
 
-  function makeGoods(goods) {
+  function makeGoods(goods, pullFromStorage) {
     let newRunning = runningOperations
     Object.keys(goods).forEach((good) => {
-      for (let i = 0; i < goods[good]; i += 1) {
-        const newOperation = createOperation(good)
-        newRunning = addToRunning(newOperation, newRunning)
+      if (pullFromStorage) {
+        startOperations(createOperation(good), goods[good])
+      } else {
+        for (let i = 0; i < goods[good]; i += 1) {
+          const newOperation = createOperation(good)
+          newRunning = addToRunning(newOperation, newRunning)
+          setRunningOperations(newRunning)
+        }
       }
     })
-    setRunningOperations(newRunning)
     calculateOperations(shoppingLists, newRunning, inStorage, prioritySwitches)
   }
 
@@ -284,8 +291,11 @@ function App() {
     let finishedBuildings = {}
     let done = false
     let endingTimes = []
+    let count = 0
+    let listToOpMap = []
     while (!done) {
       done = true
+      count += 1
       for (let priorityIndex = 0; priorityIndex < listPriority.length; priorityIndex += 1) {
         const listIndex = listPriority[priorityIndex]
         if (endingTimes[listIndex] === undefined) {
@@ -312,6 +322,7 @@ function App() {
           if (allCommercialItemsStarted) {
             const result = addOrder(list.items, buildingPipelines, existingOps, 0, 0)
             endingTimes[listIndex] = result.timeOfCompletion
+            listToOpMap[listIndex] = result.added
           }
         }
       }
@@ -363,7 +374,9 @@ function App() {
         if (addOrderResult.timeOfCompletion <= expectedFinishBy) {
           // we were able to start when we expected, so update everything, but first restore the one we deleted
           // then add the new one we created so other items can use it if necessary
-          done = false
+          if (count < 10) {
+            done = false
+          }
           if (existingOps[goodName]) {
             localExistingOps[goodName] = existingOps[goodName]
             localExistingOps[goodName].push(addOrderResult.added[0])
@@ -377,11 +390,15 @@ function App() {
           }
         }
       }
+      if (buildingPipelines.byBuilding['Factory'] && buildingPipelines.byBuilding['Factory'].length > 100) {
+        done = true
+      }
     }
-    return {listTimes: endingTimes, operations: buildingPipelines}
+    return {listTimes: endingTimes, operations: buildingPipelines, listToOpMap: listToOpMap}
   }, [])
 
-  const calculateOperations = useCallback((shoppingLists, existingOps, storage, localPrioritySwitches) => {
+  const calculateOperations = useCallback((shoppingLists, running, storage, localPrioritySwitches) => {
+    let existingOps = cloneOperations(running)
     setInStorage(storage)
     localStorage.setItem("simStorage", JSON.stringify(storage))
     setShoppingLists(shoppingLists)
@@ -419,7 +436,11 @@ function App() {
     const scheduleResult = scheduleOperations(shoppingLists, localPriorityOrder, sortResult.opPriorities, opsByGood, existingOps)
     setOperationList(scheduleResult.operations)
     setActualTimes(scheduleResult.listTimes)
-    setListToOpMap(sortResult.listToOpMap)
+    let listToOpMap = sortResult.listToOpMap
+    scheduleResult.listToOpMap.forEach((ops, index) => {
+      listToOpMap[index] = ops
+    })
+    setListToOpMap(listToOpMap)
     setUnassignedStorage(sortResult.unusedStorage)
   }, [sortShoppingLists, scheduleOperations])
 
@@ -427,7 +448,9 @@ function App() {
     if (!loaded) {
       const loadedShoppingLists = JSON.parse(localStorage.getItem("simShoppingLists"))
       const storage = JSON.parse(localStorage.getItem("simStorage"))
-      calculateOperations(loadedShoppingLists, {byBuilding: {}}, storage, prioritySwitches)
+      const newRunning = {byBuilding: {}}
+      calculateOperations(loadedShoppingLists, newRunning, storage, prioritySwitches)
+      setRunningOperations(newRunning)
       setLoaded(true)
     }
     const interval = setInterval(() => {

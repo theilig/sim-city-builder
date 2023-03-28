@@ -2,19 +2,19 @@ import React from 'react';
 import Operation from "./Operation";
 
 export const allBuildings = {
-    Factory: {pipelineSize: 1, parallelLimit: 37},
-    "Farmer's Market": {pipelineSize: 1, parallelLimit: 1},
-    'Building Supplies Store': {pipelineSize: 5, parallelLimit: 1},
+    Factory: {pipelineSize: 1, parallelLimit: 49},
+    "Farmer's Market": {pipelineSize: 6, parallelLimit: 1},
+    'Building Supplies Store': {pipelineSize: 6, parallelLimit: 1},
     'Hardware Store': {pipelineSize: 6, parallelLimit: 1},
     'Fashion Store': {pipelineSize: 4, parallelLimit: 1},
     'Furniture Store': {pipelineSize: 4, parallelLimit: 1},
     'Gardening Supplies': {pipelineSize: 3, parallelLimit: 1},
     'Donut Shop': {pipelineSize: 3, parallelLimit: 1},
     'Fast Food Restaurant': {pipelineSize: 2, parallelLimit: 1},
-    'Home Appliances': {pipelineSize: 2, parallelLimit: 1},
-    'Green Factory': {pipelineSize: 1, parallelLimit: 6},
+    'Home Appliances': {pipelineSize: 4, parallelLimit: 1},
+    'Green Factory': {pipelineSize: 1, parallelLimit: 5},
     'Eco Shop': {pipelineSize: 4, parallelLimit: 1},
-    'Coconut Farm': {pipelineSize: 1, parallelLimit: 6},
+    'Coconut Farm': {pipelineSize: 1, parallelLimit: 5},
     'Tropical Products Store': {pipelineSize: 4, parallelLimit: 1}
 };
 

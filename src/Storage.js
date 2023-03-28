@@ -57,8 +57,8 @@ function Storage(props) {
         setAdjustments({})
     }
 
-    function makeGoods() {
-        props.makeGoods(adjustments)
+    function makeGoods(removeFromStorage) {
+        props.makeGoods(adjustments, removeFromStorage)
         setAdjustments({})
     }
     function makeShoppingList(region) {
@@ -159,7 +159,7 @@ function Storage(props) {
                 <button onClick={() => makeShoppingList('Sunny Isles')} style={{"display": "grid", "width": "100px", "backgroundColor":"palegoldenrod"}}>
                     Sunny Isles
                 </button>
-                <button onClick={() => makeShoppingList('Design')} style={{"display": "grid", "width": "100px", "backgroundColor":"darkblue"}}>
+                <button onClick={() => makeShoppingList('Design')} style={{"display": "grid", "width": "100px", "backgroundColor":"khaki"}}>
                     Design
                 </button>
                 <button onClick={addGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"aqua"}}>
@@ -168,10 +168,10 @@ function Storage(props) {
                 <button onClick={removeGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"rosybrown"}}>
                     gone
                 </button>
-                <button onClick={makeGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"darksalmon"}}>
+                <button onClick={() => makeGoods(true)} onContextMenu={() => makeGoods(false)} style={{"display": "grid", "width": "100px", "backgroundColor":"darksalmon"}}>
                     make goods
                 </button>
-                <button onClick={props.clear} style={{"display": "grid", "width": "100px", "backgroundColor":"tomato"}}>
+                <button onClick={() => props.clear(false)} onContextMenu={() => props.clear(true)} style={{"display": "grid", "width": "100px", "backgroundColor":"tomato"}}>
                     clear
                 </button>
             </div>

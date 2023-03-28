@@ -12,7 +12,7 @@ function ShoppingList(props) {
 
     let style = {color: "#6699ff"}
     if (props.list.region === 'Design') {
-        style = {color: "darkblue"}
+        style = {color: "khaki"}
     } else if (props.list.region === 'Green Valley') {
         style = {color: "greenyellow"}
     } else if (props.list.region === 'Sunny Isles') {
