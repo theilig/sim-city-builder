@@ -524,7 +524,7 @@ function App() {
           />
         </div>
         <div style={{display: "flex", flexDirection: "column", flex: "1"}}>
-          <div>Shopping Lists</div>
+          <div>Suggestions</div>
           <Suggestions suggestions={suggestions} added={takenSuggestions}
                        removeSuggestion={removeSuggestion} addSuggestion={addSuggestion} />
         </div>

@@ -10,9 +10,6 @@ function Suggestions(props) {
         combined.push(suggestion)
     })
     return (<div>
-        <div>
-            Suggestions
-        </div>
         <table>
             <thead>
                 <tr>
