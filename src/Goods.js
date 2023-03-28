@@ -63,7 +63,7 @@ const goods = {
     'BBQ Grills': {ingredients: {metal: 3, utensils: 1}, duration: 9900, building: 'Home Appliances', prices: [397, 530], shortcut: 'bb'},
     refrigerators: {ingredients: {plastic: 2, chemicals: 2, 'electrical components': 2}, duration: 12600, building: 'Home Appliances', prices: [795, 1060], shortcut: 'rf'},
     'lighting systems': {ingredients: {chemicals: 1, 'electrical components': 1, glass: 1}, duration:6300, building: 'Home Appliances', prices: [667, 890], shortcut: 'ls'},
-    tvs: {ingredients: {plastic:2, glass: 2, 'electrical components': 2}, duration: 9000, building: 'Home Appliances', prices: [2000, 3000], shortcut: 'tv'},
+    tvs: {ingredients: {plastic:2, glass: 2, 'electrical components': 2}, duration: 9000, building: 'Home Appliances', prices: [960, 1280], shortcut: 'tv'},
     coconuts: {ingredients: {}, duration: 360, building: 'Coconut Farm', prices: [22, 30], shortcut: 'ct'},
     'coconut oil': {ingredients: {coconuts: 2}, duration: 1200, building: 'Tropical Products Store', prices: [90, 120], shortcut: 'ol'},
     'face cream': {ingredients: {'coconut oil': 2, chemicals: 2}, duration: 5400, building: 'Tropical Products Store', prices: [637, 850], shortcut: 'fc'},
