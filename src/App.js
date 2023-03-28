@@ -218,8 +218,13 @@ function App() {
           existingOps[op.name] = existingOps[op.name].slice(1)
         }
       } else {
-        if (opPriorities[op.name] === undefined || opPriorities[op.name] > priority) {
-          opPriorities[op.name] = priority
+        if (opPriorities[op.name] === undefined) {
+          opPriorities[op.name] = {}
+        }
+        if (opPriorities[op.name][priority] === undefined) {
+          opPriorities[op.name][priority] = 1
+        } else {
+          opPriorities[op.name][priority] += 1
         }
         if (op.childOperations && op.childOperations.length > 0) {
           updateOpPriority(priority, op.childOperations, opPriorities, existingOps)
@@ -258,6 +263,18 @@ function App() {
     calculateOperations(newShoppingLists, runningOperations, inStorage, newPrioritySwitches, takenSuggestions)
   }
 
+  const getPriority = (good, opPriorities) => {
+    let result = undefined
+    if (opPriorities && opPriorities[good]) {
+      Object.keys(opPriorities[good]).forEach(priority => {
+        if (opPriorities[good][priority] > 0 && (result === undefined || priority < result)) {
+          result = priority
+        }
+      })
+    }
+    return result
+  }
+
   function updateBestGood(goodDefinition, existingOps, buildingPipelines, bestGoodByBuilding, opPriorities) {
     const building = goodDefinition.building
     const goodName = goodDefinition.name
@@ -270,13 +287,14 @@ function App() {
     const addGoodResult = addOrder(order, localBuildingPipelines, localExistingOps, 0, 0)
     const startTime = addGoodResult.added[0].start
     let replace
+    const ourPriority = getPriority(goodName, opPriorities)
     if (bestGoodByBuilding[building] === undefined) {
       replace = true
     } else {
       const existing = bestGoodByBuilding[building]
       // if we are higher priority (lower number) and can start sooner we are better
       let betterStart = startTime < existing.startTime
-      const betterPriority = opPriorities[goodName] && opPriorities[goodName] < existing.priority
+      const betterPriority =  ourPriority && opPriorities[goodName] < existing.priority
       replace = betterStart && betterPriority
       // if we should be prioritized we will jump ahead of an earlier start time if the other item would be less than 1/3 done when we are ready
       if (betterPriority && !betterStart) {
@@ -288,14 +306,14 @@ function App() {
         if ((existing.startTime - startTime) / ourDuration > .33) {
           replace = true
         }
-      } else if (opPriorities[goodName] === undefined && existing.priority === undefined) {
+      } else if (ourPriority === undefined && existing.priority === undefined) {
         // Use the highest value per time (including wait time).  Value is defined as what we can sell for, minus what the ingredients sell for
         const ourValue = goods[goodName].prices[1] / (startTime + goods[goodName].duration)
         replace = ourValue > existing.value
       }
     }
     if (replace) {
-      bestGoodByBuilding[building] = {good: goodName, startTime: startTime, priority: opPriorities[goodName], duration: startTime + ourDuration, value: goods[goodName].prices[1] / (startTime + ourDuration)}
+      bestGoodByBuilding[building] = {good: goodName, startTime: startTime, ourPriority, duration: startTime + ourDuration, value: goods[goodName].prices[1] / (startTime + ourDuration)}
     }
   }
 
@@ -360,7 +378,8 @@ function App() {
         const good = goods[goodName]
         const building = good.building
         good.name = goodName
-        if (allBuildings[building].parallelLimit === 1 && finishedBuildings[building] !== true) {
+        const priority = getPriority(good.name, opPriorities)
+        if (allBuildings[building].parallelLimit === 1 && finishedBuildings[building] !== true && priority !== undefined) {
           // We only want to start commercial buildings, factories will take care of themselves
           updateBestGood(good, existingOps, buildingPipelines, bestGoodByBuilding, opPriorities)
         }
@@ -400,6 +419,11 @@ function App() {
           existingOps = localExistingOps
           if (addOrderResult.timeOfCompletion > 6 * 3600) {
             finishedBuildings[building] = true
+          }
+          // now pull this from priority list or else we will keep building it
+          let priority = getPriority(goodName, opPriorities)
+          if (priority !== undefined) {
+            opPriorities[goodName][priority] -= 1
           }
         }
       }
