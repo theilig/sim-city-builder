@@ -247,7 +247,15 @@ function App() {
       listToOpMap.push(result.added)
       unusedStorage = updateUnused(result.added, unusedStorage)
     }
-    indexes.sort((a, b) => timesPerOrder[a] - timesPerOrder[b])
+    indexes.sort((a, b) => {
+      if (shoppingLists[a].region === 'Design' && shoppingLists[b] !== 'Design') {
+        return 1
+      } else if (shoppingLists[a].region !== 'Design' && shoppingLists[b] === 'Design') {
+        return -1
+      } else {
+        return timesPerOrder[a] - timesPerOrder[b]
+      }
+    })
     let opPriorities = {}
     let existingOps = cloneOperations(opsByGood)
     indexes.forEach((index, priority) => {
@@ -317,6 +325,18 @@ function App() {
     }
   }
 
+  const removePriorities = (goodList, opPriorities) => {
+    goodList.forEach(op => {
+      if (op.childOperations) {
+        removePriorities(op.childOperations, opPriorities)
+      }
+      const goodName = op.name
+      let priority = getPriority(goodName, opPriorities)
+      if (priority !== undefined) {
+        opPriorities[goodName][priority] -= 1
+      }
+    })
+  }
   const scheduleOperations = useCallback((shoppingLists, listPriority, opPriorities, existingOps, buildingPipelines, usedSuggestions) => {
     /**
      *  We are going to loop until we've decided we've done enough loop entails
@@ -420,11 +440,8 @@ function App() {
           if (addOrderResult.timeOfCompletion > 6 * 3600) {
             finishedBuildings[building] = true
           }
-          // now pull this from priority list or else we will keep building it
-          let priority = getPriority(goodName, opPriorities)
-          if (priority !== undefined) {
-            opPriorities[goodName][priority] -= 1
-          }
+          // now pull this and all it's children from priority list or else we will keep building it
+          removePriorities(addOrderResult.added, opPriorities)
         }
       }
       if (buildingPipelines.byBuilding['Factory'] && buildingPipelines.byBuilding['Factory'].length > 100) {
@@ -535,11 +552,11 @@ function App() {
 
   let visualOpList = {...operationList}
   return (
-    <div>
+    <div style={{width: "1700px"}}>
       <Storage key={"storage"} storage={inStorage} addShoppingList={addShoppingList} addStorage={haveStorage} removeStorage={removeStorage}
                makeGoods={makeGoods} clear={clear} unassignedStorage={unassignedStorage}/>
       <div style={{display: "flex", width: "100%"}}>
-        <div style={{display: "flex", flexDirection: "column", flex: "1"}}>
+        <div style={{display: "flex", flexDirection: "column"}}>
           <div>Shopping Lists</div>
           <ShoppingLists prioritySwitches={prioritySwitches} updatePrioritySwitches={updatePrioritySwitches}
                          lists={shoppingLists} priorityOrder={priorityOrder}
@@ -547,7 +564,7 @@ function App() {
                          finishShoppingList={finishShoppingList} listToOpMap={listToOpMap}
           />
         </div>
-        <div style={{display: "flex", flexDirection: "column", flex: "1"}}>
+        <div style={{display: "flex", flexDirection: "column"}}>
           <div>Suggestions</div>
           <Suggestions suggestions={suggestions} added={takenSuggestions}
                        removeSuggestion={removeSuggestion} addSuggestion={addSuggestion} />

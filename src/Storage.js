@@ -1,5 +1,6 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import goods from "./Goods"
+import {allBuildings} from "./Building";
 export function removeGood(storage, good) {
     let newStorage = {...storage}
     let found = newStorage[good] && newStorage[good] > 0
@@ -141,14 +142,28 @@ function Storage(props) {
             document.removeEventListener('keydown', updateKeys);
         }
     }, [storedKeys, updateCount]);
+    const layout = [
+        ['Factory'],
+        ["Farmer's Market", 'Gardening Supplies'],
+        ['Building Supplies Store', 'Hardware Store'],
+        ['Fashion Store', 'Chocolate Factory'],
+        ['Furniture Store', 'Home Appliances'],
+        ['Donut Shop', 'Fast Food Restaurant'],
+        ['Green Factory', 'Eco Shop'],
+        ['Coconut Farm', 'Tropical Products Store']
+    ]
     return (
-        <div style={{display: "flex", flexWrap: "wrap"}}>
-            {['Factory', "Farmer's Market", 'Building Supplies Store', 'Hardware Store', 'Fashion Store',
-                'Furniture Store', 'Gardening Supplies', 'Donut Shop', 'Fast Food Restaurant', 'Home Appliances',
-                'Green Factory', 'Eco Shop', 'Coconut Farm', 'Tropical Products Store'].map(key =>
-                display(key)
-            )}
-            <div style={{"marginTop": "25px", "display":"flex", "justifyContent": "center"}}>
+        <div style={{display: "flex", flexDirection: 'column'}}>
+            <div style={{display: "flex"}}>
+                {layout.map(group => {
+                    return (<div style={{display: "flex", flexDirection: 'column'}}>
+                        {group.map(building => {
+                            return display(building)
+                        })}
+                    </div>)
+                })}
+            </div>
+            <div style={{"marginTop": "25px", "display":"flex"}}>
                 <button onClick={() => makeShoppingList('Capital City')} style={{"display": "grid", "width": "100px", "backgroundColor":"#6699ff"}}>
                     Capital City
                 </button>

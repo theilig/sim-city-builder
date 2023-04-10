@@ -15,7 +15,8 @@ export const allBuildings = {
     'Green Factory': {pipelineSize: 1, parallelLimit: 5},
     'Eco Shop': {pipelineSize: 4, parallelLimit: 1},
     'Coconut Farm': {pipelineSize: 1, parallelLimit: 5},
-    'Tropical Products Store': {pipelineSize: 4, parallelLimit: 1}
+    'Tropical Products Store': {pipelineSize: 4, parallelLimit: 1},
+    'Chocolate Factory': {pipelineSize: 2, parallelLimit: 1}
 };
 
 function Building(props) {

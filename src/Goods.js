@@ -43,7 +43,7 @@ const goods = {
     trees: {ingredients: {seeds: 2, shovels: 1}, duration: 4860, building: 'Gardening Supplies', prices: [315, 420], shortcut: 'tr'},
     'outdoor furniture': {ingredients: {plastic: 2, 'toilet paper rolls': 2, 'wood planks': 2}, duration: 7260, building: 'Gardening Supplies', prices: [615, 820], shortcut: 'of'},
     'fire pits': {ingredients: {bricks: 2, shovels: 1, cement: 2}, duration: 12960, building: 'Gardening Supplies', prices: [1305, 1740], shortcut: 'fp'},
-    'lawnmowers': {ingredients: {metal: 3, paint: 1, 'electrical components': 1}, duration: 6480, building: 'Gardening Supplies', prices: [630, 840], shortcut: 'mo'},
+    'lawnmowers': {ingredients: {metal: 3, paint: 1, 'electrical components': 1}, duration: 6480, building: 'Gardening Supplies', prices: [630, 840], shortcut: 'lm'},
     'gnomes': {ingredients: {cement: 2, glue: 1}, duration: 4860, building: 'Gardening Supplies', prices: [1200, 1600], shortcut: 'gn'},
     donuts: {ingredients: {flour: 1, 'sugar&spices': 1}, duration: 2430, building: 'Donut Shop', prices: [712, 950], shortcut: 'dn'},
     'smoothies': {ingredients: {vegetables: 1, fruit: 1}, duration: 1620, building: 'Donut Shop', prices: [862, 1150], shortcut: 'sm'},
@@ -56,7 +56,8 @@ const goods = {
     pizzas: {ingredients: {flour: 1, cheese: 1, beef: 1}, duration: 1440, building: 'Fast Food Restaurant', prices: [1920, 2560], shortcut: 'pz'},
     cheeseburgers: {ingredients: {beef: 1, 'bread rolls': 1, 'BBQ Grills': 1}, duration: 2100, building: 'Fast Food Restaurant', prices: [2715, 3620], shortcut: 'cb'},
     'cheese fries': {ingredients: {cheese: 1, vegetables: 1}, duration: 1200, building: 'Fast Food Restaurant', prices: [787, 1050], shortcut: 'cf'},
-    'lemonades': {ingredients: {glass: 2, 'sugar&spices': 2, fruit: 1}, duration: 3600, building: 'Fast Food Restaurant', prices: [1267, 1690], shortcut: 'lm'},
+    'lemonades': {ingredients: {glass: 2, 'sugar&spices': 2, fruit: 1}, duration: 3600, building: 'Fast Food Restaurant', prices: [1267, 1690], shortcut: 'ln'},
+    'popcorns': {ingredients: {'microwave ovens': 1, corn: 2}, duration: 1620, building: 'Fast Food Restaurant', prices: [937, 1250], shortcut: 'pc'},
     'reusable bags': {ingredients: {fabric: 2}, duration: 1200, building: 'Eco Shop', prices: [90, 120], shortcut: 'rb'},
     'electric shoes': {ingredients: {fabric: 2, glue: 1, 'measuring tapes': 1}, duration: 7200, building: 'Eco Shop', prices: [562, 750], shortcut: 'es'},
     'yoga mats': {ingredients: {fabric: 3, 'kitchen/bathroom tiles': 2, paint: 1}, duration: 14400, building: 'Eco Shop', prices: [1500, 2000], shortcut: 'ym'},
@@ -64,10 +65,16 @@ const goods = {
     refrigerators: {ingredients: {plastic: 2, chemicals: 2, 'electrical components': 2}, duration: 12600, building: 'Home Appliances', prices: [795, 1060], shortcut: 'rf'},
     'lighting systems': {ingredients: {chemicals: 1, 'electrical components': 1, glass: 1}, duration:6300, building: 'Home Appliances', prices: [667, 890], shortcut: 'ls'},
     tvs: {ingredients: {plastic:2, glass: 2, 'electrical components': 2}, duration: 9000, building: 'Home Appliances', prices: [960, 1280], shortcut: 'tv'},
+    'microwave ovens': {ingredients: {glass: 1, 'electrical components': 1, metal: 4}, duration: 6480, building: 'Home Appliances', prices: [480, 640], shortcut: 'mo'},
     coconuts: {ingredients: {}, duration: 360, building: 'Coconut Farm', prices: [22, 30], shortcut: 'ct'},
     'coconut oil': {ingredients: {coconuts: 2}, duration: 1200, building: 'Tropical Products Store', prices: [90, 120], shortcut: 'ol'},
     'face cream': {ingredients: {'coconut oil': 2, chemicals: 2}, duration: 5400, building: 'Tropical Products Store', prices: [637, 850], shortcut: 'fc'},
-    'tropical drink': {ingredients: {coconuts: 2, fruit: 2, 'sugar&spices': 1}, duration: 15000, building: 'Tropical Products Store', prices: [1800, 2400], shortcut: 'td'}
+    'tropical drink': {ingredients: {coconuts: 2, fruit: 2, 'sugar&spices': 1}, duration: 15000, building: 'Tropical Products Store', prices: [1800, 2400], shortcut: 'td'},
+    'chocolate bar': {ingredients: {seeds: 2, 'sugar&spices': 1}, duration: 1200, building: 'Chocolate Factory', prices: [140, 187], shortcut: 'ba'},
+    'easter basket': {ingredients: {wood: 1, grass: 1, 'sugar&spices': 1}, duration: 3600, building: 'Chocolate Factory', prices: [280, 340], shortcut: 'eb'},
+    'jelly beans': {ingredients: {glass: 1, 'sugar&spices': 1}, duration: 4500, building: 'Chocolate Factory', prices: [280, 340], shortcut: 'jb'},
+    'chocolate egg': {ingredients: {seeds: 1, 'sugar&spices': 1, cream: 1}, duration: 2700, building: 'Chocolate Factory', prices: [280, 340], shortcut: 'eg'},
+    'fruit cake': {ingredients: {fruit: 1, cream: 1, 'bread rolls': 1}, duration: 7200, building: 'Chocolate Factory', prices: [280, 340], shortcut: 'fk'}
  };
 
 export default goods;
