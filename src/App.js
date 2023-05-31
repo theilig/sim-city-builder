@@ -25,6 +25,7 @@ function App() {
   const [suggestions, setSuggestions] = useState([])
   const [takenSuggestions, setTakenSuggestions] = useState([])
   const [pauseUpdate, setPauseUpdate] = useState(false)
+  const [liveTokens, setLiveTokens] = useState({})
 
   document.addEventListener("contextmenu", (event) => {
     event.preventDefault();
@@ -74,7 +75,17 @@ function App() {
       newStorage = result.storage
     }
     setRunningOperations(newRunning)
-    calculateOperations(shoppingLists, newRunning, newStorage, prioritySwitches, takenSuggestions)
+    let newSuggestions = []
+    let found = false
+    takenSuggestions.forEach(suggestion => {
+      if (found || suggestion.good !== operation) {
+        newSuggestions.push(suggestion)
+      } else {
+        found = true
+      }
+    })
+    setTakenSuggestions(newSuggestions)
+    calculateOperations(shoppingLists, newRunning, newStorage, prioritySwitches, newSuggestions)
   }
 
   function speedUp(operation, amount) {
@@ -100,9 +111,9 @@ function App() {
           newRunning = addToRunning(newOperation, newRunning)
           setRunningOperations(newRunning)
         }
+        calculateOperations(shoppingLists, newRunning, inStorage, prioritySwitches, takenSuggestions)
       }
     })
-    calculateOperations(shoppingLists, newRunning, inStorage, prioritySwitches, takenSuggestions)
   }
 
   // in case you hit have instead of hitting done below
@@ -233,17 +244,19 @@ function App() {
     }
   }, [])
 
-  const sortShoppingLists = useCallback((shoppingLists, opsByGood, running) => {
+  const sortShoppingLists = useCallback((shoppingLists, opsByGood, running, liveTokens) => {
     let indexes = []
     let timesPerOrder = []
     let listToOpMap = []
+    let factoryGoodIsBottleneck = []
     let unusedStorage = cloneOperations(inStorage)
     for (let i = 0; i < shoppingLists.length; i += 1) {
       let localOpsByGood = cloneOperations(opsByGood)
       let localRunning = cloneOperations(running)
-      const result = addOrder(shoppingLists[i].items, localRunning, localOpsByGood, 0,0, i)
+      const result = addOrder(shoppingLists[i].items, localRunning, localOpsByGood, 0,0, liveTokens)
       timesPerOrder.push(result.timeOfCompletion)
       indexes.push(i)
+      factoryGoodIsBottleneck.push(result.factoryGoodIsBottleneck)
       listToOpMap.push(result.added)
       unusedStorage = updateUnused(result.added, unusedStorage)
     }
@@ -264,7 +277,7 @@ function App() {
     if (unusedStorage === undefined) {
       unusedStorage = {}
     }
-    return {priorityOrder: indexes, bestTimes: timesPerOrder, listToOpMap: listToOpMap, unusedStorage: unusedStorage, opPriorities: opPriorities}
+    return {priorityOrder: indexes, bestTimes: timesPerOrder, listToOpMap: listToOpMap, unusedStorage: unusedStorage, opPriorities: opPriorities, factoryGoodIsBottleneck: factoryGoodIsBottleneck}
   }, [inStorage, updateOpPriority, updateUnused])
 
   const updatePrioritySwitches = (newPrioritySwitches, newShoppingLists) => {
@@ -274,7 +287,8 @@ function App() {
   const getPriority = (good, opPriorities) => {
     let result = undefined
     if (opPriorities && opPriorities[good]) {
-      Object.keys(opPriorities[good]).forEach(priority => {
+      Object.keys(opPriorities[good]).forEach(priorityKey => {
+        const priority = parseInt(priorityKey)
         if (opPriorities[good][priority] > 0 && (result === undefined || priority < result)) {
           result = priority
         }
@@ -283,7 +297,7 @@ function App() {
     return result
   }
 
-  function updateBestGood(goodDefinition, existingOps, buildingPipelines, bestGoodByBuilding, opPriorities) {
+  const updateBestGood = useCallback((goodDefinition, existingOps, buildingPipelines, bestGoodByBuilding, opPriorities) => {
     const building = goodDefinition.building
     const goodName = goodDefinition.name
     let localExistingOps = cloneOperations(existingOps)
@@ -292,10 +306,15 @@ function App() {
     let order = {}
     order[goodName] = 1
     const ourDuration = goods[goodName].duration
-    const addGoodResult = addOrder(order, localBuildingPipelines, localExistingOps, 0, 0)
+    const addGoodResult = addOrder(order, localBuildingPipelines, localExistingOps, 0, 0, liveTokens)
     const startTime = addGoodResult.added[0].start
     let replace
+    let ingredientValue = 0
     const ourPriority = getPriority(goodName, opPriorities)
+    Object.keys(goods[goodName].ingredients).forEach(good => {
+      ingredientValue += goods[goodName].ingredients[good] * goods[good].prices[1]
+    })
+    const ourValue = (goods[goodName].prices[1] - ingredientValue) / (startTime + goods[goodName].duration)
     if (bestGoodByBuilding[building] === undefined) {
       replace = true
     } else {
@@ -316,16 +335,15 @@ function App() {
         }
       } else if (ourPriority === undefined && existing.priority === undefined) {
         // Use the highest value per time (including wait time).  Value is defined as what we can sell for, minus what the ingredients sell for
-        const ourValue = goods[goodName].prices[1] / (startTime + goods[goodName].duration)
         replace = ourValue > existing.value
       }
     }
     if (replace) {
-      bestGoodByBuilding[building] = {good: goodName, startTime: startTime, ourPriority, duration: startTime + ourDuration, value: goods[goodName].prices[1] / (startTime + ourDuration)}
+      bestGoodByBuilding[building] = {good: goodName, startTime: startTime, ourPriority, duration: startTime + ourDuration, value: ourValue}
     }
-  }
+  }, [liveTokens])
 
-  const removePriorities = (goodList, opPriorities) => {
+  const removePriorities = useCallback((goodList, opPriorities) => {
     goodList.forEach(op => {
       if (op.childOperations) {
         removePriorities(op.childOperations, opPriorities)
@@ -336,8 +354,9 @@ function App() {
         opPriorities[goodName][priority] -= 1
       }
     })
-  }
-  const scheduleOperations = useCallback((shoppingLists, listPriority, opPriorities, existingOps, buildingPipelines, usedSuggestions) => {
+  }, [])
+
+  const scheduleOperations = useCallback((shoppingLists, listPriority, opPriorities, existingOps, buildingPipelines, usedSuggestions, startFactoryGoods) => {
     /**
      *  We are going to loop until we've decided we've done enough loop entails
      *
@@ -352,15 +371,30 @@ function App() {
      *  Schedule all such ops, and call it a day.  Once some ops are kicked off this will go back in and try
      *  more.
      */
+    const computeNeeded = (needed, existingOps) => {
+      if (existingOps) {
+        existingOps.forEach(op => {
+          if (op.fromStorage || op.runningId !== undefined) {
+            if (op.count && op.count > 1) {
+              needed -= op.count
+            } else {
+              needed -= 1
+            }
+          }
+        })
+      }
+      return needed
+    }
+
     let finishedBuildings = {}
     let done = false
     let endingTimes = []
     let count = 0
     let listToOpMap = []
-    while (!done) {
-      done = true
-      count += 1
-      for (let priorityIndex = 0; priorityIndex < listPriority.length; priorityIndex += 1) {
+
+    function startFactoryItemsForFinishedLists(lowestPriorityEvaluated, priority) {
+      while (lowestPriorityEvaluated < priority - 1) {  // we don't want to evaluate ourselves until we start everything
+        const priorityIndex = lowestPriorityEvaluated + 1
         const listIndex = listPriority[priorityIndex]
         if (endingTimes[listIndex] === undefined) {
           const list = shoppingLists[listIndex]
@@ -370,27 +404,31 @@ function App() {
             const good = items[itemIndex]
             const op = createOperation(good)
             if (op.ingredients && Object.keys(op.ingredients).length > 0) {
-              let needed = list.items[good]
-              if (existingOps[good]) {
-                existingOps[good].forEach(op => {
-                  if (op.count && op.count > 1) {
-                    needed -= op.count
-                  } else {
-                    needed -= 1
-                  }
-                })
-              }
+              let needed = computeNeeded(list.items[good], existingOps[good])
               allCommercialItemsStarted = needed <= 0
             }
           }
           if (allCommercialItemsStarted) {
-            const result = addOrder(list.items, buildingPipelines, existingOps, 0, 0)
+            const result = addOrder(list.items, buildingPipelines, existingOps, 0, 0, liveTokens)
             endingTimes[listIndex] = result.timeOfCompletion
             listToOpMap[listIndex] = result.added
+          } else if (startFactoryGoods[listIndex]) {
+            const goodToStart = startFactoryGoods[listIndex]
+            startFactoryGoods[listIndex] = undefined
+            let orderItems = {}
+            orderItems[goodToStart] = list.items[goodToStart]
+            addOrder(orderItems, buildingPipelines, existingOps, 0, 0, liveTokens)
           }
         }
+        lowestPriorityEvaluated = priorityIndex
       }
-      // first only look at good we need to make
+      return lowestPriorityEvaluated;
+    }
+
+    while (!done) {
+      done = true
+      count += 1
+      // first only look at goods we need to make
       let bestGoodByBuilding = {}
       let goodNames = Object.keys(opPriorities)
       for (let goodNameIndex = 0; goodNameIndex < goodNames.length; goodNameIndex += 1) {
@@ -407,43 +445,54 @@ function App() {
       let goodsToMake = Object.keys(bestGoodByBuilding)
       goodsToMake.sort((goodA, goodB) => {
         if (bestGoodByBuilding[goodA].startTime === bestGoodByBuilding[goodB].startTime) {
-          return bestGoodByBuilding[goodA].priority - bestGoodByBuilding[goodB].priority
+          return bestGoodByBuilding[goodA].ourPriority - bestGoodByBuilding[goodB].ourPriority
         } else {
           return bestGoodByBuilding[goodA].startTime - bestGoodByBuilding[goodB].startTime
         }
       })
+      let lowestPriorityEvaluated = -1
       for (let goodsToMakeIndex = 0; goodsToMakeIndex < goodsToMake.length; goodsToMakeIndex += 1) {
-        let localExistingOps = cloneOperations(existingOps)
-        let localBuildingPipelines = cloneOperations(buildingPipelines)
-        let order = {}
         const building = goodsToMake[goodsToMakeIndex]
         const goodName = bestGoodByBuilding[building].good
+        const priority = getPriority(goodName, opPriorities)
+        lowestPriorityEvaluated = startFactoryItemsForFinishedLists(lowestPriorityEvaluated, priority);
+        let order = {}
         order[goodName] = 1
         const expectedStartTime = bestGoodByBuilding[goodsToMake[goodsToMakeIndex]].startTime
-        const expectedFinishBy = expectedStartTime + goods[goodName].duration
-        delete localExistingOps[goodName] // We want to make one from scratch
-        const addOrderResult = addOrder(order, localBuildingPipelines, localExistingOps, expectedFinishBy, 0)
-        if (addOrderResult.timeOfCompletion <= expectedFinishBy) {
-          // we were able to start when we expected, so update everything, but first restore the one we deleted
-          // then add the new one we created so other items can use it if necessary
-          if (count < 10) {
-            done = false
+        let expectedFinishBy = expectedStartTime + goods[goodName].duration
+        let keepGoing = true // add as long as item is still needed on the current prioritized list
+        while (keepGoing) {
+          let localExistingOps = cloneOperations(existingOps)
+          let localBuildingPipelines = cloneOperations(buildingPipelines)
+          delete localExistingOps[goodName] // We want to make one from scratch
+          let addOrderResult = addOrder(order, localBuildingPipelines, localExistingOps, expectedFinishBy, 0, liveTokens)
+          // We want to make all of the goods of this type for the given priority as long as they aren't bottle-necked
+          // tell the loop to keep going as long as we haven't gone through too many times
+          keepGoing = priority !== undefined && getPriority(goodName, opPriorities) === priority && addOrderResult.timeOfCompletion <= expectedFinishBy
+          if (keepGoing) {
+            if (count < 10) {
+              done = false
+            }
+            // add the newly created op to the list so others can use it
+            if (existingOps[goodName]) {
+              localExistingOps[goodName] = existingOps[goodName]
+              localExistingOps[goodName].push(addOrderResult.added[0])
+            } else {
+              localExistingOps[goodName] = [addOrderResult.added[0]]
+            }
+            buildingPipelines = localBuildingPipelines
+            existingOps = localExistingOps
+            // we don't really need to queue anything else for a building with a 6 hour+ backlog
+            if (addOrderResult.timeOfCompletion > 6 * 3600) {
+              finishedBuildings[building] = true
+            }
+            removePriorities(addOrderResult.added, opPriorities) // Adjust priority list for the fact this would be kicked off
+            expectedFinishBy += goods[goodName].duration
           }
-          if (existingOps[goodName]) {
-            localExistingOps[goodName] = existingOps[goodName]
-            localExistingOps[goodName].push(addOrderResult.added[0])
-          } else {
-            localExistingOps[goodName] = [addOrderResult.added[0]]
-          }
-          buildingPipelines = localBuildingPipelines
-          existingOps = localExistingOps
-          if (addOrderResult.timeOfCompletion > 6 * 3600) {
-            finishedBuildings[building] = true
-          }
-          // now pull this and all it's children from priority list or else we will keep building it
-          removePriorities(addOrderResult.added, opPriorities)
         }
       }
+      // start factory items for any list that hasn't been evaluated yet
+      startFactoryItemsForFinishedLists(lowestPriorityEvaluated, shoppingLists.length)
       if (buildingPipelines.byBuilding['Factory'] && buildingPipelines.byBuilding['Factory'].length > 100) {
         done = true
       }
@@ -479,10 +528,10 @@ function App() {
       order[suggestion.name] = 1
       let localExistingOps = cloneOperations(existingOps)
       delete localExistingOps[suggestion.name] // We want to see how long it would take to make one from scratch, so removed stored/running versions
-      addOrder(order, buildingPipelines, localExistingOps, 0, 0)
+      addOrder(order, buildingPipelines, localExistingOps, 0, 0, liveTokens)
     })
     return {listTimes: endingTimes, operations: buildingPipelines, listToOpMap: listToOpMap}
-  }, [])
+  }, [liveTokens, removePriorities, updateBestGood])
 
   const calculateOperations = useCallback((shoppingLists, running, storage, localPrioritySwitches, usedSuggestions) => {
     let existingOps = cloneOperations(running)
@@ -520,7 +569,7 @@ function App() {
     localPriorityOrder = updatePriorityOrder(localPriorityOrder, localPrioritySwitches)
     setPrioritySwitches(localPrioritySwitches)
     setPriorityOrder(localPriorityOrder)
-    const scheduleResult = scheduleOperations(shoppingLists, localPriorityOrder, sortResult.opPriorities, opsByGood, existingOps, usedSuggestions)
+    const scheduleResult = scheduleOperations(shoppingLists, localPriorityOrder, sortResult.opPriorities, opsByGood, existingOps, usedSuggestions, sortResult.factoryGoodIsBottleneck)
     setOperationList(scheduleResult.operations)
     setActualTimes(scheduleResult.listTimes)
     let listToOpMap = sortResult.listToOpMap

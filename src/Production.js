@@ -114,13 +114,18 @@ function adjustStartTime(operation, startTime) {
     operation.end = operation.start + operation.duration
 }
 
-function insertOperation(operations, operation, building) {
+function insertOperation(operations, operation, building, liveTokens) {
     let pipeline = operations.byBuilding[building]
     let newPipeline = []
     let inserted = false
     const limit = buildingLimits[building] || 1
     let startTime = operation.start
     operation['building'] = building
+    let token
+    if (liveTokens && liveTokens[building]) {
+        token = liveTokens[building]
+    }
+
     if (pipeline) {
         for (let index = 0; index < pipeline.length; index += 1) {
             let existingOperation = pipeline[index]
@@ -129,6 +134,17 @@ function insertOperation(operations, operation, building) {
                 inserted = true
                 if (limit === 1 && operation.start > 0 && operation.start < startTime) {
                     adjustStartTime(operation, startTime)
+                }
+                if (token) {
+                    const remainingSpeedup = token.endTime - Date.now() - startTime
+                    if (remainingSpeedup > 0) {
+                        if (operation.duration > remainingSpeedup) {
+                            operation.end -= remainingSpeedup * token.speedMultiplier
+                        } else {
+                            let newDuration = operation.duration / token.speedMultiplier
+                            operation.end = startTime + newDuration
+                        }
+                    }
                 }
                 startTime = operation.end
             }
@@ -167,25 +183,24 @@ export function createOperation(goodName) {
     return good
 }
 
-function addOperation(operation, buildingPipelines, waitUntil, finishBy, deadline) {
+function addOperation(operation, buildingPipelines, waitUntil, finishBy) {
     let currentOperation = operation
     let scheduleTime = findBestTime(buildingPipelines, operation, waitUntil, finishBy)
     currentOperation.start = scheduleTime
     currentOperation.end = scheduleTime + currentOperation.duration
     currentOperation.fromStorage = false
     currentOperation.runningId = undefined
-    if (deadline === undefined || scheduleTime < deadline) {
-        insertOperation(buildingPipelines, currentOperation, operation.building)
-    }
+    insertOperation(buildingPipelines, currentOperation, operation.building)
 }
 
-export function addOrder(order, buildingPipelines, existingOps, finishBy, waitUntil, deadline) {
+export function addOrder(order, buildingPipelines, existingOps, finishBy, waitUntil, liveTokens) {
     let maxTimeOffset = 0
     let goodsAdded = []
     let allItems = []
     let buildingTimes = {}
     let expectedTimes = []
     let indexes = []
+    let factoryGoodIsBottleneck = false
     Object.keys(order).forEach(key => {
         for (let count = 0; count < order[key]; count += 1) {
             if (goods[key] === undefined) {
@@ -224,20 +239,25 @@ export function addOrder(order, buildingPipelines, existingOps, finishBy, waitUn
             if (buildingLimit === 1) {
                 localFinishBy = Math.max(0, localFinishBy - buildingTimes[newOperation.building])
             }
-            scheduleNewOperation(newOperation, buildingPipelines, existingOps, waitUntil, localFinishBy, deadline)
+            scheduleNewOperation(newOperation, buildingPipelines, existingOps, waitUntil, localFinishBy)
         }
         buildingWaits[newOperation.building] = Math.max(buildingWaits[newOperation.building] || 0, newOperation.end)
         if (newOperation.end > maxTimeOffset) {
             maxTimeOffset = newOperation.end
+            if (newOperation.runningId === undefined && (newOperation.childOperations === undefined || newOperation.childOperations.length === 0)) {
+                factoryGoodIsBottleneck = newOperation.name
+            } else {
+                factoryGoodIsBottleneck = undefined
+            }
         }
         goodsAdded.push(newOperation)
     })
 
-    return {timeOfCompletion: maxTimeOffset, added: goodsAdded}
+    return {timeOfCompletion: maxTimeOffset, added: goodsAdded, factoryGoodIsBottleneck: factoryGoodIsBottleneck}
 }
 
-function scheduleNewOperation(operation, buildingPipelines, existingOps, waitUntil, finishBy, deadline) {
-    let addOrderResult = addOrder(goods[operation.name]['ingredients'], buildingPipelines, existingOps, Math.max(0, finishBy - operation.duration), waitUntil, deadline)
+function scheduleNewOperation(operation, buildingPipelines, existingOps, waitUntil, finishBy) {
+    let addOrderResult = addOrder(goods[operation.name]['ingredients'], buildingPipelines, existingOps, Math.max(0, finishBy - operation.duration), waitUntil)
     operation.childOperations = addOrderResult.added
-    addOperation(operation, buildingPipelines, Math.max(waitUntil, addOrderResult.timeOfCompletion), finishBy, deadline)
+    addOperation(operation, buildingPipelines, Math.max(waitUntil, addOrderResult.timeOfCompletion), finishBy)
 }
