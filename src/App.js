@@ -601,7 +601,7 @@ function App() {
 
   let visualOpList = {...operationList}
   return (
-    <div style={{width: "1700px"}}>
+    <div style={{color: "white", backgroundColor: "lightsteelblue", width: "1700px"}}>
       <Storage key={"storage"} storage={inStorage} addShoppingList={addShoppingList} addStorage={haveStorage} removeStorage={removeStorage}
                makeGoods={makeGoods} clear={clear} unassignedStorage={unassignedStorage}/>
       <div style={{display: "flex", width: "100%"}}>

@@ -2,7 +2,8 @@ import goods from "./Goods.js"
 export const buildingLimits = {
     'Factory': 33,
     'Green Factory': 5,
-    'Coconut Farm': 5
+    'Coconut Farm': 5,
+    'Fishery': 5
 }
 
 export function cloneOperations(operations) {

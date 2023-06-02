@@ -12,7 +12,7 @@ const goods = {
     'electrical components': {ingredients: {}, duration: 25200, building: 'Factory', prices: [120, 160], shortcut: 'ec'},
     vegetables: {ingredients: {seeds: 2}, duration: 960, building: 'Farmer\'s Market', prices: [120, 160], shortcut: 'vg'},
     flour: {ingredients: {seeds: 2, 'toilet paper rolls': 2}, duration: 1440, building: 'Farmer\'s Market', prices: [427, 570], shortcut: 'fl'},
-    fruit: {ingredients: {seeds: 2, trees: 1}, duration: 4320, building: 'Farmer\'s Market', prices: [547, 730], shortcut: 'fr'},
+    fruit: {ingredients: {seeds: 2, trees: 1}, duration: 4320, building: 'Farmer\'s Market', prices: [547, 730], shortcut: 'ft'},
     cream: {ingredients: {'animal feed': 1}, duration: 3600, building: 'Farmer\'s Market', prices: [330, 440], shortcut: 'ca'},
     corn: {ingredients: {'minerals': 1, seeds: 4}, duration: 2880, building: 'Farmer\'s Market', prices: [210, 280], shortcut: 'cn'},
     cheese: {ingredients: {'animal feed': 2}, duration: 5040, building: 'Farmer\'s Market', prices: [495, 660], shortcut: 'cz'},
@@ -55,7 +55,7 @@ const goods = {
     'ice cream sandwiches': {'singular': 'ice cream sandwich', ingredients: {'bread rolls': 1, cream: 1}, 'duration': 840, building: 'Fast Food Restaurant', prices: [1920, 2560], shortcut: 'ic'},
     pizzas: {ingredients: {flour: 1, cheese: 1, beef: 1}, duration: 1440, building: 'Fast Food Restaurant', prices: [1920, 2560], shortcut: 'pz'},
     cheeseburgers: {ingredients: {beef: 1, 'bread rolls': 1, 'BBQ Grills': 1}, duration: 2100, building: 'Fast Food Restaurant', prices: [2715, 3620], shortcut: 'cb'},
-    'cheese fries': {ingredients: {cheese: 1, vegetables: 1}, duration: 1200, building: 'Fast Food Restaurant', prices: [787, 1050], shortcut: 'cf'},
+    'cheese fries': {ingredients: {cheese: 1, vegetables: 1}, duration: 1200, building: 'Fast Food Restaurant', prices: [787, 1050], shortcut: 'fr'},
     'lemonades': {ingredients: {glass: 2, 'sugar&spices': 2, fruit: 1}, duration: 3600, building: 'Fast Food Restaurant', prices: [1267, 1690], shortcut: 'ln'},
     'popcorns': {ingredients: {'microwave ovens': 1, corn: 2}, duration: 1620, building: 'Fast Food Restaurant', prices: [937, 1250], shortcut: 'pc'},
     'reusable bags': {ingredients: {fabric: 2}, duration: 1200, building: 'Eco Shop', prices: [90, 120], shortcut: 'rb'},
@@ -74,7 +74,11 @@ const goods = {
     'easter basket': {ingredients: {wood: 1, grass: 1, 'sugar&spices': 1}, duration: 3600, building: 'Chocolate Factory', prices: [280, 340], shortcut: 'eb'},
     'jelly beans': {ingredients: {glass: 1, 'sugar&spices': 1}, duration: 4500, building: 'Chocolate Factory', prices: [280, 340], shortcut: 'jb'},
     'chocolate egg': {ingredients: {seeds: 1, 'sugar&spices': 1, cream: 1}, duration: 2700, building: 'Chocolate Factory', prices: [280, 340], shortcut: 'eg'},
-    'fruit cake': {ingredients: {fruit: 1, cream: 1, 'bread rolls': 1}, duration: 7200, building: 'Chocolate Factory', prices: [280, 340], shortcut: 'fk'}
+    'fruit cake': {ingredients: {fruit: 1, cream: 1, 'bread rolls': 1}, duration: 7200, building: 'Chocolate Factory', prices: [280, 340], shortcut: 'fk'},
+    fish: {ingredients: {}, duration: 360, building: 'Fishery', prices: [22, 30], shortcut: 'fi'},
+    'canned fish': {ingredients: {fish: 1, metal: 1}, duration: 1200, building: 'Fish Marketplace', prices: [1800, 2400], shortcut: 'cf'},
+    'fish soup': {ingredients: {vegetables: 1, fish: 2, utensils: 2}, duration: 7200, building: 'Fish Marketplace', prices: [1800, 2400], shortcut: 'fs'},
+    'salmon sandwich': {ingredients: {'bread rolls': 1, fish: 2}, duration: 10800, building: 'Fish Marketplace', prices: [1800, 2400], shortcut: 'ss'}
  };
 
 export default goods;

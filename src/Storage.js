@@ -150,7 +150,8 @@ function Storage(props) {
         ['Furniture Store', 'Home Appliances'],
         ['Donut Shop', 'Fast Food Restaurant'],
         ['Green Factory', 'Eco Shop'],
-        ['Coconut Farm', 'Tropical Products Store']
+        ['Coconut Farm', 'Tropical Products Store'],
+        ['Fishery', 'Fish Marketplace']
     ]
     return (
         <div style={{display: "flex", flexDirection: 'column'}}>
@@ -172,6 +173,9 @@ function Storage(props) {
                 </button>
                 <button onClick={() => makeShoppingList('Sunny Isles')} style={{"display": "grid", "width": "100px", "backgroundColor":"palegoldenrod"}}>
                     Sunny Isles
+                </button>
+                <button onClick={() => makeShoppingList('Frosty Fjords')} style={{"display": "grid", "width": "100px", "backgroundColor":"honeydew"}}>
+                    Frosty Fjords
                 </button>
                 <button onClick={() => makeShoppingList('Design')} style={{"display": "grid", "width": "100px", "backgroundColor":"khaki"}}>
                     Design
