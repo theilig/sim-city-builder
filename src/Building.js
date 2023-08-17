@@ -2,23 +2,23 @@ import React from 'react';
 import Operation from "./Operation";
 
 export const allBuildings = {
-    Factory: {pipelineSize: 1, parallelLimit: 49},
-    "Farmer's Market": {pipelineSize: 6, parallelLimit: 1},
-    'Building Supplies Store': {pipelineSize: 6, parallelLimit: 1},
-    'Hardware Store': {pipelineSize: 6, parallelLimit: 1},
-    'Fashion Store': {pipelineSize: 4, parallelLimit: 1},
-    'Furniture Store': {pipelineSize: 4, parallelLimit: 1},
-    'Gardening Supplies': {pipelineSize: 3, parallelLimit: 1},
-    'Donut Shop': {pipelineSize: 3, parallelLimit: 1},
-    'Fast Food Restaurant': {pipelineSize: 2, parallelLimit: 1},
-    'Home Appliances': {pipelineSize: 4, parallelLimit: 1},
-    'Green Factory': {pipelineSize: 1, parallelLimit: 5},
-    'Eco Shop': {pipelineSize: 4, parallelLimit: 1},
-    'Coconut Farm': {pipelineSize: 1, parallelLimit: 5},
-    'Tropical Products Store': {pipelineSize: 4, parallelLimit: 1},
-    'Chocolate Factory': {pipelineSize: 2, parallelLimit: 1},
-    'Fishery': {pipelineSize: 1, parallelLimit: 5},
-    'Fish Marketplace': {pipelineSize: 2, parallelLimit: 1}
+    Factory: {pipelineSize: 1, parallelLimit: 66},
+    "Farmer's Market": {pipelineSize: 11, parallelLimit: 1},
+    'Building Supplies Store': {pipelineSize: 11, parallelLimit: 1},
+    'Hardware Store': {pipelineSize: 11, parallelLimit: 1},
+    'Fashion Store': {pipelineSize: 10, parallelLimit: 1},
+    'Furniture Store': {pipelineSize: 7, parallelLimit: 1},
+    'Gardening Supplies': {pipelineSize: 7, parallelLimit: 1},
+    'Donut Shop': {pipelineSize: 7, parallelLimit: 1},
+    'Fast Food Restaurant': {pipelineSize: 4, parallelLimit: 1},
+    'Home Appliances': {pipelineSize: 11, parallelLimit: 1},
+    'Green Factory': {pipelineSize: 1, parallelLimit: 6},
+    'Eco Shop': {pipelineSize: 6, parallelLimit: 1},
+    'Coconut Farm': {pipelineSize: 1, parallelLimit: 6},
+    'Tropical Products Store': {pipelineSize: 8, parallelLimit: 1},
+//    'Chocolate Factory': {pipelineSize: 2, parallelLimit: 1},
+    'Fishery': {pipelineSize: 1, parallelLimit: 6},
+    'Fish Marketplace': {pipelineSize: 8, parallelLimit: 1}
 };
 
 function Building(props) {
@@ -54,6 +54,7 @@ function Building(props) {
                 combiners = {}
             }
             op.count = 1
+            visualOp.count = 1
             visualPipeline.push(visualOp)
             combiners[op.name] = visualOp
         }

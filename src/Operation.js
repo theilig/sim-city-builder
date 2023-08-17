@@ -70,7 +70,7 @@ function Operation(props) {
         style = {boxShadow: "0px 0px 0px 3px rgb(255, 0, 0)"}
     }
     if (props.operation.runningId !== undefined) {
-        style = {background: "#eeeeee"}
+        style = {background: "#909090"}
     }
     let displayTime = secondsToTime(props.operation.start)
     if (props.operation.runningId !== undefined) {

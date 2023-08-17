@@ -146,7 +146,7 @@ function Storage(props) {
         ['Factory'],
         ["Farmer's Market", 'Gardening Supplies'],
         ['Building Supplies Store', 'Hardware Store'],
-        ['Fashion Store', 'Chocolate Factory'],
+        ['Fashion Store'/*, 'Chocolate Factory'*/],
         ['Furniture Store', 'Home Appliances'],
         ['Donut Shop', 'Fast Food Restaurant'],
         ['Green Factory', 'Eco Shop'],

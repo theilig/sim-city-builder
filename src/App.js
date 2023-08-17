@@ -261,10 +261,15 @@ function App() {
       unusedStorage = updateUnused(result.added, unusedStorage)
     }
     indexes.sort((a, b) => {
-      if (shoppingLists[a].region === 'Design' && shoppingLists[b] !== 'Design') {
+      if ((shoppingLists[a].region === undefined || shoppingLists[a].region === 'Design') && shoppingLists[b].region && shoppingLists[b] !== 'Design') {
         return 1
-      } else if (shoppingLists[a].region !== 'Design' && shoppingLists[b] === 'Design') {
+      } else if (shoppingLists[a].region !== 'Design' && shoppingLists[b].region === 'Design') {
         return -1
+      } else if (shoppingLists[b].region === undefined && shoppingLists[a].region !== undefined) {
+        return -1
+      } else if (shoppingLists[a].region === undefined && shoppingLists[b].region === undefined) {
+        // if we are restocking inventory we want to prioritize the longer ops
+        return timesPerOrder[b] - timesPerOrder[a]
       } else {
         return timesPerOrder[a] - timesPerOrder[b]
       }
@@ -358,7 +363,7 @@ function App() {
 
   const scheduleOperations = useCallback((shoppingLists, listPriority, opPriorities, existingOps, buildingPipelines, usedSuggestions, startFactoryGoods) => {
     /**
-     *  We are going to loop until we've decided we've done enough loop entails
+     *  We are going to loop until we've decided we've done enough planning for now.
      *
      *  first start all factory items for lists that have everything else going/ready
      *
@@ -559,7 +564,23 @@ function App() {
         }
       })
     })
-    let sortResult = sortShoppingLists(shoppingLists, opsByGood, existingOps)
+    let localLists = [...shoppingLists]
+    let hardToFindOps = []
+
+    Object.keys(goods).forEach(good => {
+      const data = goods[good]
+      if (data.storeFrequency < 3 && Object.keys(data.ingredients).length > 0) {
+        hardToFindOps.push(good)
+      }
+    })
+
+    hardToFindOps.forEach(good => {
+      let items = {}
+      items[good] = 5
+      localLists.push({items: items})
+    })
+
+    let sortResult = sortShoppingLists(localLists, opsByGood, existingOps)
     let localPriorityOrder = sortResult.priorityOrder
     setExpectedTimes(sortResult.bestTimes)
     setListToOpMap(sortResult.listToOpMap)
@@ -569,7 +590,8 @@ function App() {
     localPriorityOrder = updatePriorityOrder(localPriorityOrder, localPrioritySwitches)
     setPrioritySwitches(localPrioritySwitches)
     setPriorityOrder(localPriorityOrder)
-    const scheduleResult = scheduleOperations(shoppingLists, localPriorityOrder, sortResult.opPriorities, opsByGood, existingOps, usedSuggestions, sortResult.factoryGoodIsBottleneck)
+
+    const scheduleResult = scheduleOperations(localLists, localPriorityOrder, sortResult.opPriorities, opsByGood, existingOps, usedSuggestions, sortResult.factoryGoodIsBottleneck)
     setOperationList(scheduleResult.operations)
     setActualTimes(scheduleResult.listTimes)
     let listToOpMap = sortResult.listToOpMap
@@ -582,8 +604,19 @@ function App() {
 
   useEffect(() => {
     if (!loaded) {
-      const loadedShoppingLists = JSON.parse(localStorage.getItem("simShoppingLists"))
-      const storage = JSON.parse(localStorage.getItem("simStorage"))
+      let loadedShoppingLists = JSON.parse(localStorage.getItem("simShoppingLists"))
+      let storage = JSON.parse(localStorage.getItem("simStorage"))
+      loadedShoppingLists = undefined
+      storage = undefined
+
+      if (loadedShoppingLists === undefined || loadedShoppingLists === null) {
+        loadedShoppingLists = []
+      }
+
+      if (storage === undefined || storage === null) {
+        storage = []
+      }
+
       const newRunning = {byBuilding: {}}
       calculateOperations(loadedShoppingLists, newRunning, storage, prioritySwitches, takenSuggestions)
       setRunningOperations(newRunning)
