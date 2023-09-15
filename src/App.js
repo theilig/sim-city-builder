@@ -8,6 +8,7 @@ import {cloneOperations} from "./Production"
 import Suggestions from "./Suggestions";
 import {addToRunning, finishOperation, finishRunning, speedUpOperation, updateRunning} from "./Running";
 import goods from "./Goods";
+import Settings from "./Settings";
 import {allBuildings} from "./Building";
 
 function App() {
@@ -26,6 +27,9 @@ function App() {
   const [takenSuggestions, setTakenSuggestions] = useState([])
   const [pauseUpdate, setPauseUpdate] = useState(false)
   const [liveTokens, setLiveTokens] = useState({})
+  const [showSettings, setShowSettings] = useState(false)
+  const [settings, setSettings] = useState({})
+  const [currentCity, setCurrentCity] = useState('')
 
   document.addEventListener("contextmenu", (event) => {
     event.preventDefault();
@@ -606,8 +610,7 @@ function App() {
     if (!loaded) {
       let loadedShoppingLists = JSON.parse(localStorage.getItem("simShoppingLists"))
       let storage = JSON.parse(localStorage.getItem("simStorage"))
-      loadedShoppingLists = undefined
-      storage = undefined
+      let loadedSettings = JSON.parse(localStorage.getItem("simSettings"))
 
       if (loadedShoppingLists === undefined || loadedShoppingLists === null) {
         loadedShoppingLists = []
@@ -615,6 +618,18 @@ function App() {
 
       if (storage === undefined || storage === null) {
         storage = []
+      }
+
+      if (loadedSettings === undefined || loadedSettings === null) {
+        loadedSettings = {}
+      }
+
+      setSettings(loadedSettings)
+
+      if (!loadedSettings.cities || loadedSettings.cities.length === 0) {
+        setShowSettings(true)
+      } else {
+        setCurrentCity(Object.keys(loadedSettings.cities)[0])
       }
 
       const newRunning = {byBuilding: {}}
@@ -633,30 +648,48 @@ function App() {
   }, [loaded, calculateOperations, shoppingLists, inStorage, runningOperations, prioritySwitches, pauseUpdate, takenSuggestions])
 
   let visualOpList = {...operationList}
-  return (
-    <div style={{color: "white", backgroundColor: "lightsteelblue", width: "1700px"}}>
-      <Storage key={"storage"} storage={inStorage} addShoppingList={addShoppingList} addStorage={haveStorage} removeStorage={removeStorage}
-               makeGoods={makeGoods} clear={clear} unassignedStorage={unassignedStorage}/>
-      <div style={{display: "flex", width: "100%"}}>
-        <div style={{display: "flex", flexDirection: "column"}}>
-          <div>Shopping Lists</div>
-          <ShoppingLists prioritySwitches={prioritySwitches} updatePrioritySwitches={updatePrioritySwitches}
-                         lists={shoppingLists} priorityOrder={priorityOrder}
-                         expectedTimes={expectedTimes} actualTimes={actualTimes} removeShoppingList={removeShoppingList}
-                         finishShoppingList={finishShoppingList} listToOpMap={listToOpMap}
-          />
+  if (showSettings) {
+    return <Settings exit={() => setShowSettings(false)} settings={settings} setSettings={(newSettings) => {
+      setSettings(newSettings)
+      localStorage.setItem('simSettings', JSON.stringify(newSettings))
+    }}/>
+  } else {
+    return (
+        <div style={{color: "white", backgroundColor: "lightsteelblue", width: "1700px"}}>
+          <div style={{display: "flex"}}>
+            {settings.cities && Object.keys(settings.cities).map(city => {
+                if (city === currentCity) {
+                  return <div style={{fontSize: '3em'}} key={city + '.tab'}>{city}</div>
+                } else {
+                  return <div key={city + '.tab'} style={{opacity: "50%", fontSize: "1.5em"}} onClick={() => setCurrentCity(city)}>{city}</div>
+              }
+            })}
+            <button onClick={() => setShowSettings(true)}>Settings</button>
+          </div>
+          <Storage key={"storage"} storage={inStorage} addShoppingList={addShoppingList} addStorage={haveStorage} removeStorage={removeStorage}
+                   makeGoods={makeGoods} clear={clear} unassignedStorage={unassignedStorage}/>
+          <div style={{display: "flex", width: "100%"}}>
+            <div style={{display: "flex", flexDirection: "column"}}>
+              <div>Shopping Lists</div>
+              <ShoppingLists prioritySwitches={prioritySwitches} updatePrioritySwitches={updatePrioritySwitches}
+                             lists={shoppingLists} priorityOrder={priorityOrder}
+                             expectedTimes={expectedTimes} actualTimes={actualTimes} removeShoppingList={removeShoppingList}
+                             finishShoppingList={finishShoppingList} listToOpMap={listToOpMap}
+              />
+            </div>
+            <div style={{display: "flex", flexDirection: "column"}}>
+              <div>Suggestions</div>
+              <Suggestions suggestions={suggestions} added={takenSuggestions}
+                           removeSuggestion={removeSuggestion} addSuggestion={addSuggestion} />
+            </div>
+          </div>
+          <OperationList key={"oplist"} operations={visualOpList}
+                         startOp={startOperations} finishOp={finishOperations} speedUp={speedUp}
+                         pauseUpdates={pauseUpdates}/>
         </div>
-        <div style={{display: "flex", flexDirection: "column"}}>
-          <div>Suggestions</div>
-          <Suggestions suggestions={suggestions} added={takenSuggestions}
-                       removeSuggestion={removeSuggestion} addSuggestion={addSuggestion} />
-        </div>
-      </div>
-      <OperationList key={"oplist"} operations={visualOpList}
-                     startOp={startOperations} finishOp={finishOperations} speedUp={speedUp}
-                      pauseUpdates={pauseUpdates}/>
-    </div>
-  )
+    )
+  }
+
 }
 
 export default App;
