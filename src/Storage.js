@@ -156,8 +156,8 @@ function Storage(props) {
     return (
         <div style={{display: "flex", flexDirection: 'column'}}>
             <div style={{display: "flex"}}>
-                {layout.map(group => {
-                    return (<div style={{display: "flex", flexDirection: 'column'}}>
+                {layout.map((group, index) => {
+                    return (<div key={'group.' + index} style={{display: "flex", flexDirection: 'column'}}>
                         {group.map(building => {
                             return display(building)
                         })}
