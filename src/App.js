@@ -654,8 +654,12 @@ function App() {
         loadedShoppingLists = {}
       }
 
-      delete loadedShoppingLists['']
-      delete storage['']
+      if (loadedShoppingLists && loadedShoppingLists['']) {
+        delete loadedShoppingLists['']
+      }
+      if (storage && storage['']) {
+        delete storage['']
+      }
 
       if (storage === undefined || storage === null) {
         storage = []
