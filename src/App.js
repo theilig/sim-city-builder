@@ -586,7 +586,7 @@ function App() {
       cityGoods = settings.cities[currentCity].goods || {}
     }
     let allShoppingLists = {...shoppingLists}
-    allShoppingLists[currentCity] = updatedShoppingLists
+    allShoppingLists[currentCity] = updatedShoppingLists || []
     setShoppingLists(allShoppingLists)
     localStorage.setItem("simShoppingLists", JSON.stringify(allStorage))
     let opsByGood = {}
@@ -609,7 +609,7 @@ function App() {
         }
       })
     })
-    let localLists = [...updatedShoppingLists]
+    let localLists = [...allShoppingLists[currentCity]]
 
     Object.keys(cityGoods).forEach(good => {
       const data = cityGoods[good]
