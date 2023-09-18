@@ -33,7 +33,6 @@ function App() {
   });
 
   function clear(clearLists) {
-    let lists = shoppingLists[currentCity] || []
     setOperationList({byBuilding: {}})
     let newRunningOperations = {...runningOperations}
     newRunningOperations[currentCity] = {byBuilding: {}}
