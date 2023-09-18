@@ -23,7 +23,7 @@ function App() {
   const [priorityOrder, setPriorityOrder] = useState([])
   const [suggestions, setSuggestions] = useState([])
   const [takenSuggestions, setTakenSuggestions] = useState([])
-  const [liveTokens, setLiveTokens] = useState({})
+  const [liveTokens] = useState({})
   const [showSettings, setShowSettings] = useState(false)
   const [settings, setSettings] = useState({})
   const [currentCity, setCurrentCity] = useState('')
@@ -34,9 +34,6 @@ function App() {
 
   function clear(clearLists) {
     let lists = shoppingLists[currentCity] || []
-    if (clearLists) {
-      lists = []
-    }
     setOperationList({byBuilding: {}})
     let newRunningOperations = {...runningOperations}
     newRunningOperations[currentCity] = {byBuilding: {}}

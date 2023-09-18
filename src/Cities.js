@@ -1,4 +1,3 @@
-import { Tabs, Tab, TabList, TabPanel } from 'react-tabs';
 import City from "./City";
 import EditableBox from "./EditableBox";
 import {updateSettings} from "./BuildingSettings";
