@@ -1,6 +1,4 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import goods from "./Goods"
-import {allBuildings} from "./Building";
 export function removeGood(storage, good) {
     let newStorage = {...storage}
     let found = newStorage[good] && newStorage[good] > 0
@@ -78,6 +76,7 @@ function Storage(props) {
         }
     }
     function display(building) {
+        const localStorage = props.storage || {}
         const nameStyle = {}
         const rowStyle = {}
         const adjustmentStyle = {width: '10px'}
@@ -88,13 +87,13 @@ function Storage(props) {
                 </th></tr>
                 </thead>
                 <tbody>
-                {Object.keys(goods).map((good, index) => {
-                    if (goods[good].building === building) {
+                {Object.keys(props.goodsSettings).map((good, index) => {
+                    if (props.goodsSettings[good].building === building) {
                         return (
                             <tr key={index} style={rowStyle} onClick={() => goodWasClicked(good, false)}
                                 onContextMenu={() => goodWasClicked(good, true)}>
                                 <td><div style={nameStyle}>{good}</div></td>
-                                {wrap(props.storage[good], undefined, {}, '', '', true)}
+                                {wrap(localStorage[good], undefined, {}, '', '', true)}
                                 {wrap(props.unassignedStorage[good], undefined, {}, '(', ')', false)}
                                 {wrap(adjustments[good], undefined, {adjustmentStyle}, '+', '', false)}
                             </tr>
@@ -126,8 +125,8 @@ function Storage(props) {
                     newStoredKeys[0] = 1
                 }
                 const shortcut = newStoredKeys[1] + newStoredKeys[2]
-                Object.keys(goods).forEach(good => {
-                    if (goods[good].shortcut === shortcut) {
+                Object.keys(props.goodsSettings).forEach(good => {
+                    if (props.goodsSettings[good].shortcut === shortcut) {
                         updateCount(good, newStoredKeys[0])
                     }
                 })
@@ -141,12 +140,12 @@ function Storage(props) {
         return function cleanup() {
             document.removeEventListener('keydown', updateKeys);
         }
-    }, [storedKeys, updateCount]);
+    }, [storedKeys, updateCount, props.goodsSettings]);
     const layout = [
         ['Factory'],
         ["Farmer's Market", 'Gardening Supplies'],
         ['Building Supplies Store', 'Hardware Store'],
-        ['Fashion Store'/*, 'Chocolate Factory'*/],
+        ['Fashion Store', 'Chocolate Factory'],
         ['Furniture Store', 'Home Appliances'],
         ['Donut Shop', 'Fast Food Restaurant'],
         ['Green Factory', 'Eco Shop'],
@@ -159,26 +158,18 @@ function Storage(props) {
                 {layout.map((group, index) => {
                     return (<div key={'group.' + index} style={{display: "flex", flexDirection: 'column'}}>
                         {group.map(building => {
-                            return display(building)
+                            if (props.buildingSettings && props.buildingSettings[building] && props.buildingSettings[building].haveBuilding) {
+                                return display(building)
+                            } else {
+                                return ''
+                            }
                         })}
                     </div>)
                 })}
             </div>
             <div style={{"marginTop": "25px", "display":"flex"}}>
                 <button onClick={() => makeShoppingList('Capital City')} style={{"display": "grid", "width": "100px", "backgroundColor":"#6699ff"}}>
-                    Capital City
-                </button>
-                <button onClick={() => makeShoppingList('Green Valley')} style={{"display": "grid", "width": "100px", "backgroundColor":"greenyellow"}}>
-                    Green Valley
-                </button>
-                <button onClick={() => makeShoppingList('Sunny Isles')} style={{"display": "grid", "width": "100px", "backgroundColor":"palegoldenrod"}}>
-                    Sunny Isles
-                </button>
-                <button onClick={() => makeShoppingList('Frosty Fjords')} style={{"display": "grid", "width": "100px", "backgroundColor":"honeydew"}}>
-                    Frosty Fjords
-                </button>
-                <button onClick={() => makeShoppingList('Design')} style={{"display": "grid", "width": "100px", "backgroundColor":"khaki"}}>
-                    Design
+                    order
                 </button>
                 <button onClick={addGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"aqua"}}>
                     have
@@ -190,7 +181,7 @@ function Storage(props) {
                     make goods
                 </button>
                 <button onClick={() => props.clear(false)} onContextMenu={() => props.clear(true)} style={{"display": "grid", "width": "100px", "backgroundColor":"tomato"}}>
-                    clear
+                    reset
                 </button>
             </div>
         </div>

@@ -30,7 +30,10 @@ export function addList(shoppingLists, goodsNeeded, region, prioritySwitches) {
 export function updatePriorityOrder(localPriorityOrder, prioritySwitches) {
     let remaining = [...localPriorityOrder]
     let finalOrder = []
-    let remainingSwitches = [...prioritySwitches]
+    let remainingSwitches = []
+    if (prioritySwitches) {
+        remainingSwitches = [...prioritySwitches]
+    }
     for (let index = 0; index < localPriorityOrder.length; index += 1) {
         let target = undefined
         for (let targetIndex = 0; target === undefined && targetIndex < remaining.length; targetIndex += 1) {
@@ -157,8 +160,9 @@ function ShoppingLists(props) {
     }
 
     const createVisualList = () => {
+        const lists = props.lists || []
         let visualShoppingListIndexes = []
-        for (let i = 0; i < props.lists.length; i += 1) {
+        for (let i = 0; i < lists.length; i += 1) {
             visualShoppingListIndexes.push(i)
         }
         if (listSortBy === 'time') {
@@ -188,6 +192,7 @@ function ShoppingLists(props) {
                               dragStart={(e) => dragStart(e, shoppingListIndex)}
                               dragEnter={(e) => dragEnter(e, shoppingListIndex)}
                               dragEnd={dragEnd}
+                              cityGoods = {props.cityGoods}
                 />
             )}
         </div>

@@ -80,7 +80,7 @@ function Operation(props) {
 
     return (
         <tr style={style} >
-            <td style={{textAlign: "left"}}>{props.operation.count + " " + displayName(props.operation.name, props.operation.count)}</td>
+            <td style={{textAlign: "left"}}>{props.operation.count + " " + displayName(props.operation, props.operation.count)}</td>
             <td style={{textAlign: "right"}}>{displayTime}</td>
             <td>{showButton()}</td>
         </tr>

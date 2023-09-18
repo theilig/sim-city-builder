@@ -1,10 +1,14 @@
-import {buildingLimits, cloneOperations, createOperation} from "./Production";
+import {cloneOperations, createOperation} from "./Production";
 
-export function addToRunning(operation, running) {
+export function addToRunning(operation, running, cityBuildings) {
     let localRunning = cloneOperations(running)
     let localOperation = {...operation}
     let building = localOperation.building
-    let buildingLimit = buildingLimits[building] || 1
+    let buildingLimit = 1
+    if (cityBuildings[building] && cityBuildings[building].isParallel) {
+        buildingLimit = cityBuildings[building].slots
+    }
+
     let startTime = 0
     if (localRunning.byBuilding[building] === undefined) {
         localRunning.byBuilding[building] = [localOperation]
@@ -26,9 +30,9 @@ export function addToRunning(operation, running) {
     return localRunning
 }
 
-export function finishRunning(good, running) {
+export function finishRunning(good, running, cityGoods) {
     let localRunning = cloneOperations(running)
-    let operation = createOperation(good)
+    let operation = createOperation(good, cityGoods)
     let removed = false
     let buildingRunning = []
     if (localRunning.byBuilding[operation.building]) {

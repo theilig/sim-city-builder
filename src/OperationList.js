@@ -26,7 +26,7 @@ function OperationList(props) {
                 <Building key={building} name={building} pipeline={sortPipeline(props.operations.byBuilding[building])}
                           startOp={props.startOp} finishOp={props.finishOp}
                           speedUp={props.speedUp}
-                          pauseUpdates={props.pauseUpdates}
+                          buildingSettings={props.buildingSettings}
                 />
             )}
         </div>
