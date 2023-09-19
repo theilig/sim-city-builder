@@ -732,11 +732,6 @@ function App() {
                              cityGoods={goodsSettings}
               />
             </div>
-            <div style={{display: "flex", flexDirection: "column"}}>
-              <div>Suggestions</div>
-              <Suggestions suggestions={suggestions} added={takenSuggestions}
-                           removeSuggestion={removeSuggestion} addSuggestion={addSuggestion} />
-            </div>
           </div>
           <OperationList key={"oplist"} operations={visualOpList}
                          buildingSettings={buildingSettings}
