@@ -5,7 +5,6 @@ import React, {useState, useEffect, useCallback} from 'react';
 import ShoppingLists, {addList, removeList, updatePriorityOrder} from "./ShoppingLists";
 import Storage, {addStorage, removeGood} from "./Storage";
 import {cloneOperations} from "./Production"
-import Suggestions from "./Suggestions";
 import {addToRunning, finishOperation, finishRunning, speedUpOperation, updateRunning} from "./Running";
 import Settings from "./Settings";
 
@@ -22,7 +21,6 @@ function App() {
   const [prioritySwitches, setPrioritySwitches] = useState({})
   const [priorityOrder, setPriorityOrder] = useState([])
   const [suggestions, setSuggestions] = useState([])
-  const [takenSuggestions, setTakenSuggestions] = useState([])
   const [liveTokens] = useState({})
   const [showSettings, setShowSettings] = useState(false)
   const [settings, setSettings] = useState({})
@@ -180,30 +178,6 @@ function App() {
     }
     const result = addList(shoppingLists[currentCity], filteredGoods, region, prioritySwitches[currentCity])
     calculateOperations(result.shoppingLists[currentCity], runningOperations[currentCity], inStorage[currentCity], result.prioritySwitches, takenSuggestions)
-  }
-
-  function addSuggestion(suggestion) {
-    let newTaken = [...takenSuggestions]
-    let newSuggestion = {...suggestion}
-    newSuggestion.added = true
-    newTaken.push(newSuggestion)
-    setTakenSuggestions(newTaken)
-    calculateOperations(shoppingLists[currentCity], runningOperations[currentCity], inStorage[currentCity], prioritySwitches[currentCity], newTaken)
-  }
-
-  function removeSuggestion(suggestionToRemove) {
-    let newTaken = [...takenSuggestions]
-    let foundIndex
-    newTaken.forEach((suggestion, index) => {
-      if (suggestion.good === suggestionToRemove.good) {
-        foundIndex = index
-      }
-    })
-    if (foundIndex !== undefined) {
-      newTaken.splice(foundIndex)
-    }
-    setTakenSuggestions(newTaken)
-    calculateOperations(shoppingLists[currentCity], runningOperations[currentCity], inStorage[currentCity], prioritySwitches[currentCity], newTaken)
   }
 
   const updateUnused = useCallback((newOps, unusedStorage) => {
