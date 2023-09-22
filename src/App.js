@@ -96,7 +96,7 @@ function App() {
     allRunning[currentCity] = newRunning
     setRunningOperations(allRunning)
 
-    calculateOperations(shoppingLists, newRunning, inStorage, prioritySwitches, takenSuggestions)
+    calculateOperations(shoppingLists[currentCity], newRunning, inStorage, prioritySwitches, takenSuggestions)
   }
 
   function finishOperations(operation, count) {
@@ -120,7 +120,7 @@ function App() {
         let allRunning = {...runningOperations}
         allRunning[currentCity] = newRunning
         setRunningOperations(allRunning)
-        calculateOperations(shoppingLists, newRunning, inStorage[currentCity], prioritySwitches[currentCity], takenSuggestions)
+        calculateOperations(shoppingLists[currentCity] || [], newRunning, inStorage[currentCity], prioritySwitches[currentCity], takenSuggestions)
       }
     })
   }
@@ -160,12 +160,12 @@ function App() {
     let allRunning = {...runningOperations}
     allRunning[currentCity] = result.running
     setRunningOperations(allRunning)
-    calculateOperations(shoppingListsResult.shoppingLists, result.running, result.storage, shoppingListsResult.prioritySwitches, takenSuggestions)
+    calculateOperations(shoppingListsResult.shoppingLists[currentCity], result.running, result.storage, shoppingListsResult.prioritySwitches, takenSuggestions)
   }
 
   function removeShoppingList(index) {
     const shoppingListsResult = removeList(shoppingLists[currentCity], index, prioritySwitches[currentCity])
-    calculateOperations(shoppingListsResult.shoppingLists, runningOperations[currentCity], inStorage[currentCity], shoppingListsResult.prioritySwitches, takenSuggestions)
+    calculateOperations(shoppingListsResult.shoppingLists[currentCity], runningOperations[currentCity], inStorage[currentCity], shoppingListsResult.prioritySwitches, takenSuggestions)
   }
 
   function addShoppingList(goodsNeeded, region) {
@@ -179,7 +179,7 @@ function App() {
       return;
     }
     const result = addList(shoppingLists[currentCity], filteredGoods, region, prioritySwitches[currentCity])
-    calculateOperations(result.shoppingLists, runningOperations[currentCity], inStorage[currentCity], result.prioritySwitches, takenSuggestions)
+    calculateOperations(result.shoppingLists[currentCity], runningOperations[currentCity], inStorage[currentCity], result.prioritySwitches, takenSuggestions)
   }
 
   function addSuggestion(suggestion) {
@@ -287,7 +287,7 @@ function App() {
   }, [updateOpPriority, updateUnused, currentCity, settings.cities])
 
   const updatePrioritySwitches = (newPrioritySwitches, newShoppingLists) => {
-    calculateOperations(newShoppingLists, runningOperations[currentCity], inStorage[currentCity], newPrioritySwitches, takenSuggestions)
+    calculateOperations(newShoppingLists[currentCity], runningOperations[currentCity], inStorage[currentCity], newPrioritySwitches, takenSuggestions)
   }
 
   const getPriority = (good, opPriorities) => {
@@ -578,6 +578,10 @@ function App() {
   const calculateOperations = useCallback((updatedShoppingLists, running, storage, localPrioritySwitches, usedSuggestions) => {
     let existingOps = cloneOperations(running)
     let allStorage = {...inStorage}
+    if (!Array.isArray(updatedShoppingLists)) {
+      alert("bad lists")
+      updatedShoppingLists = []
+    }
     allStorage[currentCity] = storage
     setInStorage(allStorage)
     localStorage.setItem("simStorage", JSON.stringify(allStorage))
