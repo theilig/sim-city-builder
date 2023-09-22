@@ -20,7 +20,6 @@ function App() {
   const [runningOperations, setRunningOperations] = useState({byBuilding: {}})
   const [prioritySwitches, setPrioritySwitches] = useState({})
   const [priorityOrder, setPriorityOrder] = useState([])
-  const [suggestions, setSuggestions] = useState([])
   const [liveTokens] = useState({})
   const [showSettings, setShowSettings] = useState(false)
   const [settings, setSettings] = useState({})
@@ -41,7 +40,11 @@ function App() {
     let newStorage = {...inStorage}
     newStorage[currentCity] = {}
     setInStorage(newStorage)
-    calculateOperations([], {byBuilding: {}}, {}, [], takenSuggestions)
+    if (clearLists) {
+      calculateOperations([], {byBuilding: {}}, {}, [])
+    } else {
+      calculateOperations(shoppingLists[currentCity], {byBuilding: {}}, {}, [])
+    }
   }
 
   function removeStorageOrRunning(itemsNeeded, storage, running) {
@@ -75,17 +78,7 @@ function App() {
     let allRunning = {...runningOperations}
     allRunning[currentCity] = newRunningForCity
     setRunningOperations(allRunning)
-    let newSuggestions = []
-    let found = false
-    takenSuggestions.forEach(suggestion => {
-      if (found || suggestion.good !== operation) {
-        newSuggestions.push(suggestion)
-      } else {
-        found = true
-      }
-    })
-    setTakenSuggestions(newSuggestions)
-    calculateOperations(shoppingLists[currentCity], newRunningForCity, newStorage, prioritySwitches[currentCity], newSuggestions)
+    calculateOperations(shoppingLists[currentCity], newRunningForCity, newStorage, prioritySwitches[currentCity])
   }
 
   function speedUp(operation, amount) {
@@ -94,7 +87,7 @@ function App() {
     allRunning[currentCity] = newRunning
     setRunningOperations(allRunning)
 
-    calculateOperations(shoppingLists[currentCity], newRunning, inStorage, prioritySwitches, takenSuggestions)
+    calculateOperations(shoppingLists[currentCity], newRunning, inStorage, prioritySwitches)
   }
 
   function finishOperations(operation, count) {
@@ -118,7 +111,7 @@ function App() {
         let allRunning = {...runningOperations}
         allRunning[currentCity] = newRunning
         setRunningOperations(allRunning)
-        calculateOperations(shoppingLists[currentCity] || [], newRunning, inStorage[currentCity], prioritySwitches[currentCity], takenSuggestions)
+        calculateOperations(shoppingLists[currentCity] || [], newRunning, inStorage[currentCity], prioritySwitches[currentCity])
       }
     })
   }
@@ -137,7 +130,7 @@ function App() {
     let allRunning = {...runningOperations}
     allRunning[currentCity] = newRunning
     setRunningOperations(allRunning)
-    calculateOperations(shoppingLists[currentCity], newRunning, newInStorage, prioritySwitches[currentCity], takenSuggestions)
+    calculateOperations(shoppingLists[currentCity], newRunning, newInStorage, prioritySwitches[currentCity])
   }
 
   function removeStorage(goods) {
@@ -148,7 +141,7 @@ function App() {
         storage = result.storage
       }
     })
-    calculateOperations(shoppingLists[currentCity], runningOperations[currentCity], storage, prioritySwitches[currentCity], takenSuggestions)
+    calculateOperations(shoppingLists[currentCity], runningOperations[currentCity], storage, prioritySwitches[currentCity])
   }
 
   function finishShoppingList(index) {
@@ -158,12 +151,12 @@ function App() {
     let allRunning = {...runningOperations}
     allRunning[currentCity] = result.running
     setRunningOperations(allRunning)
-    calculateOperations(shoppingListsResult.shoppingLists[currentCity], result.running, result.storage, shoppingListsResult.prioritySwitches, takenSuggestions)
+    calculateOperations(shoppingListsResult.shoppingLists[currentCity], result.running, result.storage, shoppingListsResult.prioritySwitches)
   }
 
   function removeShoppingList(index) {
     const shoppingListsResult = removeList(shoppingLists[currentCity], index, prioritySwitches[currentCity])
-    calculateOperations(shoppingListsResult.shoppingLists[currentCity], runningOperations[currentCity], inStorage[currentCity], shoppingListsResult.prioritySwitches, takenSuggestions)
+    calculateOperations(shoppingListsResult.shoppingLists[currentCity], runningOperations[currentCity], inStorage[currentCity], shoppingListsResult.prioritySwitches)
   }
 
   function addShoppingList(goodsNeeded, region) {
@@ -177,7 +170,7 @@ function App() {
       return;
     }
     const result = addList(shoppingLists[currentCity], filteredGoods, region, prioritySwitches[currentCity])
-    calculateOperations(result.shoppingLists[currentCity], runningOperations[currentCity], inStorage[currentCity], result.prioritySwitches, takenSuggestions)
+    calculateOperations(result.shoppingLists[currentCity], runningOperations[currentCity], inStorage[currentCity], result.prioritySwitches)
   }
 
   const updateUnused = useCallback((newOps, unusedStorage) => {
@@ -261,7 +254,7 @@ function App() {
   }, [updateOpPriority, updateUnused, currentCity, settings.cities])
 
   const updatePrioritySwitches = (newPrioritySwitches, newShoppingLists) => {
-    calculateOperations(newShoppingLists[currentCity], runningOperations[currentCity], inStorage[currentCity], newPrioritySwitches, takenSuggestions)
+    calculateOperations(newShoppingLists[currentCity], runningOperations[currentCity], inStorage[currentCity], newPrioritySwitches)
   }
 
   const getPriority = (good, opPriorities) => {
@@ -512,11 +505,6 @@ function App() {
         updateBestGood(good, existingOps, buildingPipelines, newSuggestions, opPriorities)
       }
     }
-    const suggestionList = Object.keys(newSuggestions).map(building => {
-      const suggestion = newSuggestions[building]
-      return {name: suggestion.good, startTime: suggestion.startTime, valuePerHour: suggestion.value * 3600}
-    })
-    setSuggestions(suggestionList)
     usedSuggestions.forEach(suggestion => {
       let order = {}
       order[suggestion.name] = 1
@@ -657,7 +645,7 @@ function App() {
 
       const newRunning = {byBuilding: {}}
       if (currentCity !== '') {
-        calculateOperations(loadedShoppingLists[currentCity] || [], newRunning, storage[currentCity] || {}, prioritySwitches[currentCity], takenSuggestions)
+        calculateOperations(loadedShoppingLists[currentCity] || [], newRunning, storage[currentCity] || {}, prioritySwitches[currentCity])
       }
       setLoaded(true)
     }
@@ -666,10 +654,10 @@ function App() {
       let allRunning = {...runningOperations}
       allRunning[currentCity] = newRunning
       setRunningOperations(allRunning)
-      calculateOperations(shoppingLists[currentCity] || [], newRunning, inStorage[currentCity] || {}, prioritySwitches[currentCity], takenSuggestions)
+      calculateOperations(shoppingLists[currentCity] || [], newRunning, inStorage[currentCity] || {}, prioritySwitches[currentCity])
     }, 10000)
     return () => clearInterval(interval)
-  }, [loaded, calculateOperations, shoppingLists, inStorage, runningOperations, prioritySwitches, takenSuggestions, currentCity])
+  }, [loaded, calculateOperations, shoppingLists, inStorage, runningOperations, prioritySwitches, currentCity])
 
   let visualOpList = {...operationList}
   if (showSettings) {
