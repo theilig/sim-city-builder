@@ -224,7 +224,6 @@ export function addOrder(order, buildingPipelines, existingOps, finishBy, waitUn
         return expectedTimes[b] - expectedTimes[a]
     })
     let buildingWaits = {}
-    let skippedList = {}
     indexes.forEach(index => {
         let newOperation = allItems[index]
         const good = newOperation.name
@@ -238,40 +237,21 @@ export function addOrder(order, buildingPipelines, existingOps, finishBy, waitUn
         if (buildingLimit === 1) {
             localFinishBy = Math.max(finishBy, (buildingWaits[building] || 0) + newOperation.duration)
         }
-        let localExistingOps = cloneOperations(existingOps)
-        let localBuildingPipelines = cloneOperations(buildingPipelines)
-        delete localExistingOps[good] // We want to make one from scratch
-        let singleOrder = {}
-        singleOrder[good] = 1
-        let useNewOp = true
-        skippedList = scheduleNewOperation(newOperation, localBuildingPipelines, localExistingOps, waitUntil, localFinishBy, liveTokens, cityGoods, cityBuildings)
-
         if (existingOps[good] && existingOps[good].length > 0) {
-            if (newOperation.end <= localFinishBy) {
-                /** We don't need to grab a running op so we won't, however if nobody takes it
-                 * we want to signal to use it instead of creating another
-                 */
-                skippedList[good] = true
-            } else {
-                skippedList = {} // we aren't going to use the result from above because it's too late
-                useNewOp = false
-                // Take the last one from the list that still meets our needs
-                let existingIndex = existingOps[good].length - 1
-                while (existingIndex > 0 && existingOps[good][existingIndex].end > localFinishBy) {
-                    existingIndex -= 1;
-                }
-                let existingOp = existingOps[good][existingIndex]
-                if (existingOp.count > 1) {
-                    existingOp.count -= 1
-                    newOperation = {...existingOp}
-                } else {
-                    newOperation = existingOp
-                    existingOps[good].splice(existingIndex, 1)
-                }
+            // Take the last one from the list that still meets our needs
+            let existingIndex = existingOps[good].length - 1
+            while (existingIndex > 0 && existingOps[good][existingIndex].end > localFinishBy) {
+                existingIndex -= 1;
             }
-        }
-
-        if (useNewOp) {
+            let existingOp = existingOps[good][existingIndex]
+            if (existingOp.count > 1) {
+                existingOp.count -= 1
+                newOperation = {...existingOp}
+            } else {
+                newOperation = existingOp
+                existingOps[good].splice(existingIndex, 1)
+            }
+        } else {
             scheduleNewOperation(newOperation, buildingPipelines, existingOps, waitUntil, localFinishBy, liveTokens, cityGoods, cityBuildings)
         }
 
@@ -287,7 +267,7 @@ export function addOrder(order, buildingPipelines, existingOps, finishBy, waitUn
         goodsAdded.push(newOperation)
     })
 
-    return {timeOfCompletion: maxTimeOffset, added: goodsAdded, factoryGoodIsBottleneck: factoryGoodIsBottleneck, runningSkipped: skippedList}
+    return {timeOfCompletion: maxTimeOffset, added: goodsAdded, factoryGoodIsBottleneck: factoryGoodIsBottleneck}
 }
 
 function scheduleNewOperation(operation, buildingPipelines, existingOps, waitUntil, finishBy, tokens, cityGoods, cityBuildings) {
@@ -303,5 +283,4 @@ function scheduleNewOperation(operation, buildingPipelines, existingOps, waitUnt
     )
     operation.childOperations = addOrderResult.added
     addOperation(operation, buildingPipelines, Math.max(waitUntil, addOrderResult.timeOfCompletion), finishBy, tokens, cityBuildings)
-    return addOrderResult.runningSkipped
 }
