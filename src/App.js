@@ -331,7 +331,7 @@ function App() {
     })
   }, [])
 
-  const scheduleOperations = useCallback((shoppingLists, listPriority, opPriorities, existingOps, buildingPipelines, usedSuggestions, startFactoryGoods) => {
+  const scheduleOperations = useCallback((shoppingLists, listPriority, opPriorities, existingOps, buildingPipelines, startFactoryGoods) => {
     /**
      *  We are going to loop until we've decided we've done enough planning for now.
      *
@@ -479,20 +479,13 @@ function App() {
         done = true
       }
     }
-    let takenSuggestionsByBuilding = {}
-    usedSuggestions.forEach(suggestion => {
-      takenSuggestionsByBuilding[cityGoods[suggestion.name].building] = suggestion
-    })
-    let newSuggestions = {}
     let buildings = {}
     if (settings && settings.cities && settings.cities[currentCity]) {
       buildings = settings.cities[currentCity].buildings || {}
     }
-    // add suggestions for buildings that are empty
     const buildingsToStart = Object.keys(buildings).filter(building =>
         settings.cities[currentCity].buildings[building].haveBuilding &&
-        (buildingPipelines.byBuilding[building] === undefined || buildingPipelines.byBuilding[building].length === 0) &&
-        takenSuggestionsByBuilding[building] === undefined
+        (buildingPipelines.byBuilding[building] === undefined || buildingPipelines.byBuilding[building].length === 0)
     )
     let goodNames = Object.keys(cityGoods)
     for (let goodNameIndex = 0; goodNameIndex < goodNames.length; goodNameIndex += 1) {
@@ -502,20 +495,9 @@ function App() {
       good.name = goodName
       if (buildings && buildings[building] && !buildings[building].isParallel && buildingsToStart.find(b => b === building)) {
         // We only want to start commercial buildings, factories will take care of themselves
-        updateBestGood(good, existingOps, buildingPipelines, newSuggestions, opPriorities)
+        updateBestGood(good, existingOps, buildingPipelines, opPriorities)
       }
     }
-    usedSuggestions.forEach(suggestion => {
-      let order = {}
-      order[suggestion.name] = 1
-      let localExistingOps = cloneOperations(existingOps)
-      delete localExistingOps[suggestion.name] // We want to see how long it would take to make one from scratch, so removed stored/running versions
-      addOrder(order, buildingPipelines, localExistingOps, 0, 0, liveTokens, cityGoods, cityBuildings)
-      if (existingOps[suggestion.name]) {
-        localExistingOps[suggestion.name] = existingOps[suggestion.name]
-      }
-      existingOps = localExistingOps
-    })
     // lastly we replace new operations with any running ones that weren't assigned
     Object.keys(existingOps).forEach(good => {
       if (existingOps[good]) {
@@ -537,7 +519,7 @@ function App() {
     return {listTimes: endingTimes, operations: buildingPipelines, listToOpMap: listToOpMap}
   }, [liveTokens, removePriorities, updateBestGood, currentCity, settings])
 
-  const calculateOperations = useCallback((updatedShoppingLists, running, storage, localPrioritySwitches, usedSuggestions) => {
+  const calculateOperations = useCallback((updatedShoppingLists, running, storage, localPrioritySwitches) => {
     let existingOps = cloneOperations(running)
     let allStorage = {...inStorage}
     if (!Array.isArray(updatedShoppingLists)) {
@@ -599,7 +581,7 @@ function App() {
     setPrioritySwitches(allPrioritySwitches)
     setPriorityOrder(localPriorityOrder)
 
-    const scheduleResult = scheduleOperations(localLists, localPriorityOrder, sortResult.opPriorities, opsByGood, existingOps, usedSuggestions, sortResult.factoryGoodIsBottleneck)
+    const scheduleResult = scheduleOperations(localLists, localPriorityOrder, sortResult.opPriorities, opsByGood, existingOps, sortResult.factoryGoodIsBottleneck)
     setOperationList(scheduleResult.operations)
     setActualTimes(scheduleResult.listTimes)
     let listToOpMap = sortResult.listToOpMap

@@ -164,7 +164,7 @@ function updateGoodSettings(level, buildingData, goodsSettings) {
 export function renderGoodsSettings(name, level, buildingSettings, goodSettings, updateCallback) {
     const building = goodSettings['building']
     if (buildingSettings[building]['haveBuilding'] && level >= goodSettings.requiredLevel) {
-        return <EditableNumber value={goodSettings['stockAmount']} name={name} updateCallback={updateCallback} />
+        return <EditableNumber key={name} value={goodSettings['stockAmount']} name={name} updateCallback={updateCallback} />
     } else {
         return ''
     }
