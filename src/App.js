@@ -3,10 +3,11 @@ import {addOrder, createOperation} from "./Production";
 import OperationList from "./OperationList";
 import React, {useState, useEffect, useCallback} from 'react';
 import ShoppingLists, {addList, removeList, updatePriorityOrder} from "./ShoppingLists";
-import Storage, {addStorage, removeGood} from "./Storage";
+import Storage from "./Storage";
 import {cloneOperations} from "./Production"
 import {addToRunning, finishOperation, finishRunning, speedUpOperation, updateRunning} from "./Running";
 import Settings from "./Settings";
+import {useStorage} from "./StorageHook";
 
 function App() {
   const [shoppingLists, setShoppingLists] = useState({})
@@ -14,8 +15,6 @@ function App() {
   const [operationList, setOperationList] = useState({byBuilding: {}})
   const [expectedTimes, setExpectedTimes] = useState([])
   const [actualTimes, setActualTimes] = useState([])
-  const [inStorage, setInStorage] = useState({})
-  const [unassignedStorage, setUnassignedStorage] = useState({})
   const [listToOpMap, setListToOpMap] = useState([])
   const [runningOperations, setRunningOperations] = useState({byBuilding: {}})
   const [prioritySwitches, setPrioritySwitches] = useState({})
@@ -24,6 +23,11 @@ function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [settings, setSettings] = useState({})
   const [currentCity, setCurrentCity] = useState('')
+
+  const {
+    inStorage, addStorage, clearStorage, unassignedStorage,
+    setUnassignedStorage, removeGoods, loadStorage, updateStorage
+  } = useStorage()
 
   document.addEventListener("contextmenu", (event) => {
     event.preventDefault();
@@ -37,13 +41,10 @@ function App() {
     let newPrioritySwitches = {...prioritySwitches}
     newPrioritySwitches[currentCity] = []
     setPrioritySwitches(newPrioritySwitches)
-    let newStorage = {...inStorage}
-    newStorage[currentCity] = {}
-    setInStorage(newStorage)
     if (clearLists) {
-      calculateOperations([], {byBuilding: {}}, {}, [])
+      calculateOperations([], {byBuilding: {}}, clearStorage(currentCity), [])
     } else {
-      calculateOperations(shoppingLists[currentCity], {byBuilding: {}}, {}, [])
+      calculateOperations(shoppingLists[currentCity], {byBuilding: {}}, clearStorage(currentCity), [])
     }
   }
 
@@ -57,20 +58,16 @@ function App() {
   }
 
   function removeStorageOrRunning(itemsNeeded, storage, running) {
+    let storageResult = removeGoods(itemsNeeded, storage, currentCity)
     Object.keys(itemsNeeded).forEach((good) => {
-      for (let i = 0; i < itemsNeeded[good]; i += 1) {
-        let result = removeGood(storage, good)
+      for (let i = 0; i < itemsNeeded[good] - (storageResult.found[good] || 0); i += 1) {
+        let result = finishRunning(good, running, settings.cities[currentCity].goods)
         if (result.found) {
-          storage = result.storage
-        } else {
-          result = finishRunning(good, running, settings.cities[currentCity].goods)
-          if (result.found) {
-            running = result.running
-          }
+          running = result.running
         }
       }
     })
-    return {running: running, storage: storage}
+    return {running: running, storage: storageResult.storage}
   }
 
   function startOperations(operation, count) {
@@ -143,13 +140,7 @@ function App() {
   }
 
   function removeStorage(goods) {
-    let storage = inStorage[currentCity]
-    Object.keys(goods).forEach((good) => {
-      for (let i = 0; i < goods[good]; i += 1) {
-        const result = removeGood(storage, good)
-        storage = result.storage
-      }
-    })
+    let storage = removeGoods(goods).storage
     calculateOperations(shoppingLists[currentCity], runningOperations[currentCity], storage, prioritySwitches[currentCity])
   }
 
@@ -530,13 +521,10 @@ function App() {
 
   const calculateOperations = useCallback((updatedShoppingLists, running, storage, localPrioritySwitches) => {
     let existingOps = cloneOperations(running)
-    let allStorage = {...inStorage}
+    updateStorage(storage, currentCity)
     if (!Array.isArray(updatedShoppingLists)) {
       updatedShoppingLists = []
     }
-    allStorage[currentCity] = storage
-    setInStorage(allStorage)
-    localStorage.setItem("simStorage", JSON.stringify(allStorage))
     let cityGoods = {}
     if (settings && settings.cities && settings.cities && settings.cities[currentCity]) {
       cityGoods = settings.cities[currentCity].goods || {}
@@ -544,7 +532,6 @@ function App() {
     let allShoppingLists = {...shoppingLists}
     allShoppingLists[currentCity] = updatedShoppingLists || []
     setShoppingLists(allShoppingLists)
-    localStorage.setItem("simShoppingLists", JSON.stringify(allStorage))
     let opsByGood = {}
     Object.keys(storage).forEach(good => {
       let op = createOperation(good, cityGoods)
@@ -598,15 +585,16 @@ function App() {
     })
     setListToOpMap(listToOpMap)
     setUnassignedStorage(sortResult.unusedStorage)
-  }, [sortShoppingLists, scheduleOperations, currentCity, settings, inStorage, prioritySwitches, shoppingLists])
+  }, [sortShoppingLists, scheduleOperations, currentCity, settings,
+    prioritySwitches, shoppingLists, setUnassignedStorage, updateStorage])
 
   useEffect(() => {
     if (!loaded) {
       let loadedShoppingLists = JSON.parse(localStorage.getItem("simShoppingLists"))
-      let storage = JSON.parse(localStorage.getItem("simStorage"))
       let loadedSettings = JSON.parse(localStorage.getItem("simSettings"))
       let localCurrentCity = currentCity
 
+      let storage = loadStorage()
       if (loadedShoppingLists === undefined || loadedShoppingLists === null) {
         loadedShoppingLists = {}
       }
@@ -614,13 +602,7 @@ function App() {
       if (loadedShoppingLists && loadedShoppingLists['']) {
         delete loadedShoppingLists['']
       }
-      if (storage && storage['']) {
-        delete storage['']
-      }
 
-      if (storage === undefined || storage === null) {
-        storage = []
-      }
 
       if (loadedSettings === undefined || loadedSettings === null) {
         loadedSettings = {}
@@ -634,7 +616,7 @@ function App() {
         localCurrentCity = Object.keys(loadedSettings.cities)[0]
         setCurrentCity(localCurrentCity)
       }
-      
+
       setInStorage(storage)
       setShoppingLists(loadedShoppingLists)
 
@@ -651,7 +633,8 @@ function App() {
       }
     }, 10000)
     return () => clearInterval(interval)
-  }, [loaded, calculateOperations, shoppingLists, inStorage, runningOperations, prioritySwitches, currentCity, showSettings])
+  }, [loaded, calculateOperations, shoppingLists, inStorage,
+    runningOperations, prioritySwitches, currentCity, loadStorage, showSettings])
 
   let visualOpList = {...operationList}
   if (showSettings) {

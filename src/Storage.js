@@ -1,26 +1,4 @@
 import React, {useCallback, useEffect, useState} from 'react';
-export function removeGood(storage, good) {
-    let newStorage = {...storage}
-    let found = newStorage[good] && newStorage[good] > 0
-    if (newStorage[good] > 1) {
-        newStorage[good] -= 1
-    } else {
-        delete newStorage[good]
-    }
-    return {found: found, storage: newStorage}
-}
-
-export function addStorage(storage, goods) {
-    let newStorage = {...storage}
-    Object.keys(goods).forEach(good => {
-        if (newStorage[good] === undefined) {
-            newStorage[good] = goods[good]
-        } else {
-            newStorage[good] += goods[good]
-        }
-    })
-    return newStorage
-}
 
 function Storage(props) {
     const [adjustments, setAdjustments] = useState({})
