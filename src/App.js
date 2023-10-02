@@ -650,7 +650,7 @@ function App() {
       }
     }, 10000)
     return () => clearInterval(interval)
-  }, [loaded, calculateOperations, shoppingLists, inStorage, runningOperations, prioritySwitches, currentCity])
+  }, [loaded, calculateOperations, shoppingLists, inStorage, runningOperations, prioritySwitches, currentCity, showSettings])
 
   let visualOpList = {...operationList}
   if (showSettings) {
