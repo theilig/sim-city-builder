@@ -90,7 +90,7 @@ function Storage(props) {
                 {Object.keys(props.goodsSettings).map((good, index) => {
                     if (props.goodsSettings[good].building === building) {
                         return (
-                            <tr key={index} style={rowStyle} onClick={() => goodWasClicked(good, false)}
+                            <tr title={props.goodsSettings[good].shortcut} key={index} style={rowStyle} onClick={() => goodWasClicked(good, false)}
                                 onContextMenu={() => goodWasClicked(good, true)}>
                                 <td><div style={nameStyle}>{good}</div></td>
                                 {wrap(localStorage[good], undefined, {}, '', '', true)}

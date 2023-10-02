@@ -18,7 +18,7 @@ function GoodsList(props) {
                     return (
                         <div key={index} style={style}>
                             {Object.keys(goods).map(good => (
-                                goods[good].building === building && <Good goodWasClicked={goodWasClicked} count={currentList[good] || 0} key={good} name={good} />
+                                goods[good].building === building && <Good goodWasClicked={goodWasClicked} count={currentList[good] || 0} key={good} name={good} shortcut={goods[good].shortcut}/>
                             ))}
                         </div>
                     )

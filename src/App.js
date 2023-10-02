@@ -47,6 +47,15 @@ function App() {
     }
   }
 
+  function stopSettings() {
+    if (Object.keys(settings.cities).length > 0) {
+      setShowSettings(false)
+      if (settings.cities[currentCity] === undefined) {
+        setCurrentCity(Object.keys(settings.cities)[0])
+      }
+    }
+  }
+
   function removeStorageOrRunning(itemsNeeded, storage, running) {
     Object.keys(itemsNeeded).forEach((good) => {
       for (let i = 0; i < itemsNeeded[good]; i += 1) {
@@ -636,14 +645,16 @@ function App() {
       let allRunning = {...runningOperations}
       allRunning[currentCity] = newRunning
       setRunningOperations(allRunning)
-      calculateOperations(shoppingLists[currentCity] || [], newRunning, inStorage[currentCity] || {}, prioritySwitches[currentCity])
+      if (!showSettings) {
+        calculateOperations(shoppingLists[currentCity] || [], newRunning, inStorage[currentCity] || {}, prioritySwitches[currentCity])
+      }
     }, 10000)
     return () => clearInterval(interval)
   }, [loaded, calculateOperations, shoppingLists, inStorage, runningOperations, prioritySwitches, currentCity])
 
   let visualOpList = {...operationList}
   if (showSettings) {
-    return <Settings exit={() => setShowSettings(false)} settings={settings} setSettings={(newSettings) => {
+    return <Settings exit={stopSettings} settings={settings} setSettings={(newSettings) => {
       setSettings(newSettings)
       localStorage.setItem('simSettings', JSON.stringify(newSettings))
     }}/>
