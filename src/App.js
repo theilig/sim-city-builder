@@ -634,9 +634,7 @@ function App() {
         localCurrentCity = Object.keys(loadedSettings.cities)[0]
         setCurrentCity(localCurrentCity)
       }
-
-      const newRunning = {byBuilding: {}}
-
+      
       setInStorage(storage)
       setShoppingLists(loadedShoppingLists)
 
