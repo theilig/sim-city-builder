@@ -532,7 +532,6 @@ function App() {
     let existingOps = cloneOperations(running)
     let allStorage = {...inStorage}
     if (!Array.isArray(updatedShoppingLists)) {
-      alert("bad lists")
       updatedShoppingLists = []
     }
     allStorage[currentCity] = storage
@@ -606,6 +605,7 @@ function App() {
       let loadedShoppingLists = JSON.parse(localStorage.getItem("simShoppingLists"))
       let storage = JSON.parse(localStorage.getItem("simStorage"))
       let loadedSettings = JSON.parse(localStorage.getItem("simSettings"))
+      let localCurrentCity = currentCity
 
       if (loadedShoppingLists === undefined || loadedShoppingLists === null) {
         loadedShoppingLists = {}
@@ -631,13 +631,16 @@ function App() {
       if (!loadedSettings.cities || loadedSettings.cities.length === 0) {
         setShowSettings(true)
       } else {
-        setCurrentCity(Object.keys(loadedSettings.cities)[0])
+        localCurrentCity = Object.keys(loadedSettings.cities)[0]
+        setCurrentCity(localCurrentCity)
       }
 
       const newRunning = {byBuilding: {}}
-      if (currentCity !== '') {
-        calculateOperations(loadedShoppingLists[currentCity] || [], newRunning, storage[currentCity] || {}, prioritySwitches[currentCity])
-      }
+
+      setInStorage(storage)
+      setShoppingLists(loadedShoppingLists)
+
+      setPrioritySwitches({})
       setLoaded(true)
     }
     const interval = setInterval(() => {
@@ -645,7 +648,7 @@ function App() {
       let allRunning = {...runningOperations}
       allRunning[currentCity] = newRunning
       setRunningOperations(allRunning)
-      if (!showSettings) {
+      if (!showSettings && currentCity) {
         calculateOperations(shoppingLists[currentCity] || [], newRunning, inStorage[currentCity] || {}, prioritySwitches[currentCity])
       }
     }, 10000)
