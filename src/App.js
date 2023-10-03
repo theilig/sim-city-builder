@@ -160,12 +160,12 @@ function App() {
     let allRunning = {...runningOperations}
     allRunning[currentCity] = result.running
     setRunningOperations(allRunning)
-    calculateOperations(shoppingListsResult.shoppingLists[currentCity], result.running, result.storage, shoppingListsResult.prioritySwitches)
+    calculateOperations(shoppingListsResult.shoppingLists, result.running, result.storage, shoppingListsResult.prioritySwitches)
   }
 
   function removeShoppingList(index) {
     const shoppingListsResult = removeList(shoppingLists[currentCity], index, prioritySwitches[currentCity])
-    calculateOperations(shoppingListsResult.shoppingLists[currentCity], runningOperations[currentCity], inStorage[currentCity], shoppingListsResult.prioritySwitches)
+    calculateOperations(shoppingListsResult.shoppingLists, runningOperations[currentCity], inStorage[currentCity], shoppingListsResult.prioritySwitches)
   }
 
   function addShoppingList(goodsNeeded, region) {
@@ -179,7 +179,7 @@ function App() {
       return;
     }
     const result = addList(shoppingLists[currentCity], filteredGoods, region, prioritySwitches[currentCity])
-    calculateOperations(result.shoppingLists[currentCity], runningOperations[currentCity], inStorage[currentCity], result.prioritySwitches)
+    calculateOperations(result.shoppingLists, runningOperations[currentCity], inStorage[currentCity], result.prioritySwitches)
   }
 
   const updateUnused = useCallback((newOps, unusedStorage) => {

@@ -3,26 +3,31 @@ import ShoppingList from "./ShoppingList";
 
 export function removeList(shoppingLists, index, prioritySwitches) {
     let newPrioritySwitches = []
-    prioritySwitches.forEach(s => {
-        if (s.above !== index && s.below !== index) {
-            let newAbove = s.above
-            let newBelow = s.below
-            if (newAbove > index) {
-                newAbove -= 1
+    if (prioritySwitches) {
+        prioritySwitches.forEach(s => {
+            if (s.above !== index && s.below !== index) {
+                let newAbove = s.above
+                let newBelow = s.below
+                if (newAbove > index) {
+                    newAbove -= 1
+                }
+                if (newBelow > index) {
+                    newBelow -= 1
+                }
+                newPrioritySwitches.push({above: newAbove, below: newBelow})
             }
-            if (newBelow > index) {
-                newBelow -= 1
-            }
-            newPrioritySwitches.push({above: newAbove, below: newBelow})
-        }
-    })
+        })
+    }
     let newShoppingLists = [...shoppingLists]
     newShoppingLists.splice(index, 1)
     return {shoppingLists: newShoppingLists, prioritySwitches: newPrioritySwitches}
 }
 
 export function addList(shoppingLists, goodsNeeded, region, prioritySwitches) {
-    let newShoppingLists = [...shoppingLists]
+    let newShoppingLists = []
+    if (shoppingLists !== undefined) {
+        newShoppingLists = [...shoppingLists]
+    }
     newShoppingLists.push({items: goodsNeeded, region: region});
     return {shoppingLists: newShoppingLists, prioritySwitches: prioritySwitches}
 }
