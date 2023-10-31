@@ -170,6 +170,26 @@ export function useShoppingLists() {
         return indexes
     }
 
+    const updateStockingLists = (citySettings, currentCity) => {
+        let newStockingLists = {...stockingLists}
+        newStockingLists[currentCity] = calculateStockingList(citySettings[currentCity])
+        setStockingLists(newStockingLists)
+    }
+
+    const calculateStockingList = (citySettings) => {
+        let stockingList = []
+        if (citySettings && citySettings.goods) {
+            Object.keys(citySettings.goods).forEach(good => {
+                const data = citySettings.goods[good]
+                if (data.stockAmount > 0) {
+                    let items = {}
+                    items[good] = data.stockAmount
+                    stockingList.push({items: items, region: 'sim.stocking'})
+                }
+            })
+        }
+        return stockingList
+    }
     const loadShoppingLists = (citySettings) => {
         let loadedShoppingLists = {}
         let loadedShoppingListsJson = localStorage.getItem("simShoppingLists")
@@ -189,18 +209,10 @@ export function useShoppingLists() {
         let allPrioritySwitches = {}
         let allPriorityOrder = {}
         let stockingLists = {}
-        Object.keys(loadedShoppingLists).forEach(city => {
-            let stockingList = []
-            Object.keys(citySettings[city].goods).forEach(good => {
-                const data = citySettings[city].goods[good]
-                if (data.stockAmount > 0) {
-                    let items = {}
-                    items[good] = data.stockAmount
-                    stockingList.push({items: items, region: 'sim.stocking'})
-                }
-            })
+        Object.keys(citySettings).forEach(city => {
+            const stockingList = calculateStockingList(citySettings[city])
             stockingLists[city] = stockingList
-            let order = updateShoppingLists(loadedShoppingLists[city], stockingList, [], city)
+            let order = updateShoppingLists(loadedShoppingLists[city] || [], stockingList, [], city)
             allPrioritySwitches[city] = []
             allPriorityOrder[city] = order
         })
@@ -219,6 +231,7 @@ export function useShoppingLists() {
         removeList,
         reorderList,
         changePriorityInList,
-        loadShoppingLists
+        loadShoppingLists,
+        updateStockingLists
     }
 }

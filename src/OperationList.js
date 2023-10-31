@@ -23,7 +23,7 @@ function OperationList(props) {
     return (
         <div style={{display: "flex"}}>
             {Object.keys(props.operations).map(building =>
-                <Building key={building} name={building} pipeline={sortPipeline(props.operations.byBuilding[building])}
+                <Building key={building} name={building} pipeline={[]}
                           startOp={props.startOp} finishOp={props.finishOp}
                           speedUp={props.speedUp}
                           buildingSettings={props.buildingSettings}

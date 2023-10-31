@@ -33,6 +33,7 @@ function App() {
     priorityOrder,
     loadShoppingLists,
     allShoppingLists,
+    updateStockingLists
   } = useShoppingLists()
 
   const {
@@ -66,11 +67,14 @@ function App() {
   function stopSettings() {
     if (Object.keys(settings.cities).length > 0) {
       setShowSettings(false)
+      let newCity = currentCity
       if (currentCity === undefined || settings.cities[currentCity] === undefined) {
-        setCurrentCity(Object.keys(settings.cities)[0])
+        newCity = Object.keys(settings.cities)[0]
+        setCurrentCity(newCity)
       }
+      updateStockingLists(settings.cities, newCity)
+      setRecommendationPriority(0)
     }
-    setRecommendationPriority(0)
   }
 
   function reorder(source, destination) {
@@ -138,7 +142,7 @@ function App() {
   function haveStorage(goods, clickedDone = false) {
     // in case you hit have instead of hitting done below
     changeRunningOperations([], goods, !clickedDone, currentCity)
-    addStorage(inStorage[currentCity], goods, currentCity)
+    addStorage(goods, currentCity)
     setRecommendationPriority(0)
   }
 
@@ -247,7 +251,7 @@ function App() {
               />
             </div>
           </div>
-          <OperationList key={"oplist"} operations={visualOpList}
+          <OperationList key={"oplist"} operations={{}}
                          buildingSettings={buildingSettings}
                          startOp={(good, count) => {
                            let items = {}

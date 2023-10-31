@@ -18,18 +18,20 @@ export function useOperations() {
         let newRunning = []
         let newRecommended = []
         let maxId = 0
-        running[currentCity].forEach(op => {
-            if (maxId < op.id) {
-                maxId = op.id
-            }
-            if (opsToRemove[op.name]
-                && opsToRemove[op.name] > 0
-                && (forcePull || op.end <= 50)) {
-                opsToRemove[op.name] -= 1
-            } else {
-                newRunning.push(op)
-            }
-        })
+        if (running && running[currentCity]) {
+            running[currentCity].forEach(op => {
+                if (maxId < op.id) {
+                    maxId = op.id
+                }
+                if (opsToRemove[op.name]
+                    && opsToRemove[op.name] > 0
+                    && (forcePull || op.end <= 50)) {
+                    opsToRemove[op.name] -= 1
+                } else {
+                    newRunning.push(op)
+                }
+            })
+        }
         opsToAdd.forEach(op => {
             op.lastUpdateTime = Date.now()
         })
@@ -42,15 +44,16 @@ export function useOperations() {
             op.end = op.duration
         })
 
-        recommended[currentCity].forEach(op => {
-            if (recommendedToRemove[op.name]
-                && recommendedToRemove[op.name] > 0) {
-                recommendedToRemove[op.name] -= 1
-            } else {
-                newRecommended.push(op)
-            }
-        })
-
+        if (recommended && recommended[currentCity]) {
+            recommended[currentCity].forEach(op => {
+                if (recommendedToRemove[op.name]
+                    && recommendedToRemove[op.name] > 0) {
+                    recommendedToRemove[op.name] -= 1
+                } else {
+                    newRecommended.push(op)
+                }
+            })
+        }
         updateOperations(newRunning, newRecommended, currentCity);
     }
 
