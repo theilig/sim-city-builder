@@ -24,6 +24,7 @@ function GoodsList(props) {
                     )
                 })}
             </div>
+        </div>
     )
 }
 export default GoodsList;

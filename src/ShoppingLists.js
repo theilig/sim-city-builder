@@ -1,37 +1,6 @@
 import React, {useRef, useState} from 'react';
 import ShoppingList from "./ShoppingList";
 
-export function removeList(shoppingLists, index, prioritySwitches) {
-    let newPrioritySwitches = []
-    if (prioritySwitches) {
-        prioritySwitches.forEach(s => {
-            if (s.above !== index && s.below !== index) {
-                let newAbove = s.above
-                let newBelow = s.below
-                if (newAbove > index) {
-                    newAbove -= 1
-                }
-                if (newBelow > index) {
-                    newBelow -= 1
-                }
-                newPrioritySwitches.push({above: newAbove, below: newBelow})
-            }
-        })
-    }
-    let newShoppingLists = [...shoppingLists]
-    newShoppingLists.splice(index, 1)
-    return {shoppingLists: newShoppingLists, prioritySwitches: newPrioritySwitches}
-}
-
-export function addList(shoppingLists, goodsNeeded, region, prioritySwitches) {
-    let newShoppingLists = []
-    if (shoppingLists !== undefined) {
-        newShoppingLists = [...shoppingLists]
-    }
-    newShoppingLists.push({items: goodsNeeded, region: region});
-    return {shoppingLists: newShoppingLists, prioritySwitches: prioritySwitches}
-}
-
 export function updatePriorityOrder(localPriorityOrder, prioritySwitches) {
     let remaining = [...localPriorityOrder]
     let finalOrder = []
@@ -94,74 +63,15 @@ function ShoppingLists(props) {
 
     const dragEnd = () => {
         if (listSortBy === 'time') {
-            return
+            alert("Can't reorder when listed by estimated time completed")
         }
-        let localPrioritySwitches = [...props.prioritySwitches]
         if (listSortBy === 'index') {
-            const newShoppingLists = [...props.lists];
-            const dragItemContent = newShoppingLists[dragItem.current];
-            newShoppingLists.splice(dragItem.current, 1);
-            newShoppingLists.splice(dragOverItem.current, 0, dragItemContent);
-            dragItem.current = null;
-            dragOverItem.current = null;
-            let newPrioritySwitches = []
-            localPrioritySwitches.forEach(sw => {
-                let newBelow = sw.below
-                let newAbove = sw.above
-                if (dragItem.current < dragOverItem.current) {
-                    if (newBelow === dragItem.current) {
-                        newBelow = dragOverItem.current
-                    } else if (newBelow <= dragOverItem.current && newBelow > dragItem.current) {
-                        newBelow -= 1
-                    }
-                    if (newAbove === dragItem.current) {
-                        newAbove = dragOverItem.current
-                    } else if (newAbove <= dragOverItem.current && newAbove > dragItem.current) {
-                        newAbove -= 1
-                    }
-                } else {
-                    if (newBelow === dragItem.current) {
-                        newBelow = dragOverItem.current
-                    } else if (newBelow >= dragOverItem.current && newBelow < dragItem.current) {
-                        newBelow += 1
-                    }
-                    if (newAbove === dragItem.current) {
-                        newAbove = dragOverItem.current
-                    } else if (newAbove >= dragOverItem.current && newAbove < dragItem.current) {
-                        newAbove += 1
-                    }
-
-                }
-                newPrioritySwitches.push({above: newAbove, below: newBelow})
-            })
-            localStorage.setItem("simShoppingLists", JSON.stringify(newShoppingLists))
-            props.updatePrioritySwitches(newPrioritySwitches, newShoppingLists)
+            props.reorderList(dragItem.current, dragOverItem.current)
         } else if (listSortBy === 'priority') {
-            const dragItemIndex = props.priorityOrder.indexOf(dragItem.current)
-            const dragOverItemIndex = props.priorityOrder.indexOf(dragOverItem.current)
-            let newPrioritySwitches = []
-            let pairs = []
-            if (dragItemIndex > dragOverItemIndex) {
-                for (let pi = dragOverItemIndex; pi < dragItemIndex; pi += 1) {
-                    pairs.push({above: dragItem.current, below: props.priorityOrder[pi]})
-                }
-            } else {
-                for (let pi = dragItemIndex + 1; pi <= dragOverItemIndex; pi += 1) {
-                    pairs.push({above: props.priorityOrder[pi], below: dragItem.current})
-                }
-            }
-            pairs.forEach(s => {
-                newPrioritySwitches = []
-                localPrioritySwitches.forEach(ps => {
-                    if (s.below !== ps.above || s.above !== ps.below) {
-                        newPrioritySwitches.push(ps)
-                    }
-                })
-                newPrioritySwitches.push(s)
-                localPrioritySwitches = newPrioritySwitches
-            })
-            props.updatePrioritySwitches(localPrioritySwitches, props.lists)
+            props.changePriority(dragItem.current, dragOverItem.current)
         }
+        dragItem.current = null;
+        dragOverItem.current = null;
     }
 
     const createVisualList = () => {

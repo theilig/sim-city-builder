@@ -68,7 +68,7 @@ export function speedUpOperation(running, operation, amount) {
 }
 
 export function finishOperation(running, operation, onlyComplete) {
-    let newRunning = cloneOperations(running)
+/*    let newRunning = cloneOperations(running)
     const building = operation.building
     const newBuildingOps = []
     let found = false
@@ -90,7 +90,7 @@ export function finishOperation(running, operation, onlyComplete) {
         newRunning.byBuilding[building] = newBuildingOps
 
     }
-    return newRunning
+    return newRunning */
 }
 
 export function updateRunning(runningOperations) {

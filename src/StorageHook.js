@@ -14,8 +14,8 @@ export function useStorage() {
         }
         return {found: found, storage: newStorage}
     }
-    const removeGoods = (goods, localStorage, currentCity) => {
-        let storage = localStorage[currentCity]
+    const removeGoods = (goods, currentCity) => {
+        let storage = inStorage[currentCity]
         let found = {}
         Object.keys(goods).forEach((good) => {
             for (let i = 0; i < goods[good]; i += 1) {
@@ -26,10 +26,11 @@ export function useStorage() {
                 }
             }
         })
-        return {storage, found}
+        updateStorage(storage, currentCity)
+        return found
     }
-    const addStorage = (storage, goods) => {
-        let newStorage = {...storage}
+    const addStorage = (goods, currentCity) => {
+        let newStorage = {...inStorage[currentCity]}
         Object.keys(goods).forEach(good => {
             if (newStorage[good] === undefined) {
                 newStorage[good] = goods[good]
@@ -37,11 +38,11 @@ export function useStorage() {
                 newStorage[good] += goods[good]
             }
         })
-        return newStorage
+        updateStorage(newStorage, currentCity)
     }
 
     const clearStorage = (currentCity) => {
-        return updateStorage({}, currentCity)
+        updateStorage({}, currentCity)
     }
 
     const updateStorage = (storage, currentCity) => {
@@ -49,18 +50,27 @@ export function useStorage() {
         allStorage[currentCity] = storage
         setInStorage(allStorage)
         localStorage.setItem("simStorage", JSON.stringify(allStorage))
-        return allStorage[currentCity]
     }
 
-    const loadStorage = () => {
-        let storage = JSON.parse(localStorage.getItem("simStorage"))
-        if (storage === undefined || storage === null) {
-            storage = {}
+    const loadStorage = (cityNames) => {
+        const storageJson = localStorage.getItem("simStorage")
+        let storage = {}
+
+        if (storageJson) {
+            try {
+                storage = JSON.parse(storageJson)
+            } catch {
+                alert("Couldn't load storage, clearing it out")
+            }
         }
-        if (storage && storage['']) {
-            delete storage['']
-        }
-        return storage
+
+        Object.keys(storage).forEach(city => {
+            if (!cityNames.includes(city)) {
+                delete storage[city]
+                localStorage.setItem("simStorage", JSON.stringify(storage))
+            }
+        })
+        setInStorage(storage)
     }
 
     return {
@@ -70,7 +80,6 @@ export function useStorage() {
         unassignedStorage,
         setUnassignedStorage,
         removeGoods,
-        updateStorage,
         loadStorage
     }
 
