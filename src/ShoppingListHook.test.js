@@ -44,12 +44,12 @@ function TestComponent() {
                 setRunningStep(1)
                 break;
             case 1:
-                addList({wood: 3}, 'something', 'testing')
+                addList({wood: 3}, 0, 'something', 'testing')
                 saveState()
                 setRunningStep(2)
                 break;
             case 2:
-                addList({nails: 2}, 'something', 'testing')
+                addList({nails: 2}, 0, 'something', 'testing')
                 saveState()
                 setRunningStep(3)
                 break;
@@ -59,7 +59,7 @@ function TestComponent() {
                 setRunningStep(4)
                 break;
             case 4:
-                addList({plastic: 2}, 'something', 'testing')
+                addList({plastic: 2}, 0, 'something', 'testing')
                 saveState()
                 setRunningStep(5)
                 break;

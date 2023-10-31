@@ -26,7 +26,7 @@ function ShoppingList(props) {
             <div style={style} title={props.delta + " seconds delayed"}>
                 <span onClick={() => props.expandOrCollapse(props.index, props.expanded)}>
                     {"You want " + Object.keys(props.list.items).map(key =>{
-                        return props.list.items[key] + " " + displayName(props.cityGoods[key], props.list.items[key])
+                        return props.list.items[key] + " " + displayName(key, props.cityGoods[key], props.list.items[key])
                     }).join(" and ") + " ready" + timeString
                     }
                 </span>

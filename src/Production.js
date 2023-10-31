@@ -30,17 +30,17 @@ export function secondsToTime(timeInSeconds) {
     return timeString
 }
 
-export function displayName(good, count) {
+export function displayName(name, good, count) {
     if (count === 1) {
         if (good.singular) {
             return good.singular
         } else {
-            if (good.name.charAt(good.name.length - 1) === "s") {
-                return good.name.substring(0, good.name.length - 1);
+            if (name.charAt(name - 1) === "s") {
+                return name.substring(0, name.length - 1);
             }
         }
     }
-    return good.name
+    return name
 }
 
 function getMaxConcurrentOps(changes, changeTimes, changeIndex, duration, waitUntil) {

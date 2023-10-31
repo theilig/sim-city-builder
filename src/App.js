@@ -8,6 +8,7 @@ import {useStorage} from "./StorageHook";
 import {useShoppingLists} from "./ShoppingListHook";
 import {useOperations} from "./OperationsHook";
 import {useRecommendations} from "./RecommendationHook";
+import {useProduction} from "./ProductionHook";
 
 function App() {
   const [loaded, setLoaded] = useState(false)
@@ -33,7 +34,8 @@ function App() {
     priorityOrder,
     loadShoppingLists,
     allShoppingLists,
-    updateStockingLists
+    updateStockingLists,
+    updateExpectedTimes
   } = useShoppingLists()
 
   const {
@@ -51,9 +53,31 @@ function App() {
     calculateRecommendations
   } = useRecommendations()
 
+  const {
+    bestProductionTime,
+    pipelines
+  } = useProduction()
+
   document.addEventListener("contextmenu", (event) => {
     event.preventDefault();
   });
+
+  function recalculateRecommendations() {
+    const lists = allShoppingLists(currentCity)
+    const expectedTimes = lists.map(list => {
+      return bestProductionTime(
+          list.items,
+          inStorage[currentCity],
+          running[currentCity],
+          settings[currentCity.goods],
+          settings[currentCity.buildings],
+          pipelines[currentCity]
+      )
+    })
+    updateExpectedTimes(expectedTimes, currentCity)
+    setRecommendationPriority(0)
+
+  }
 
   function clear(clearLists) {
     clearOperations(currentCity)
@@ -172,7 +196,15 @@ function App() {
     if (Object.keys(filteredGoods).length === 0) {
       return;
     }
-    addList(filteredGoods, region, currentCity)
+    const expectedTime = bestProductionTime(
+        filteredGoods,
+        inStorage[currentCity],
+        running[currentCity],
+        settings.cities[currentCity].goods,
+        settings.cities[currentCity].buildings,
+        pipelines[currentCity]
+    )
+    addList(filteredGoods, expectedTime, region, currentCity)
     setRecommendationPriority(0)
   }
 
@@ -208,8 +240,10 @@ function App() {
       setRecommendationPriority(recommendationPriority + 1)
     }, 1000)
     return () => clearInterval(interval)
-  }, [loaded, loadShoppingLists, shoppingLists, inStorage,
-    running, prioritySwitches, currentCity, loadStorage, showSettings])
+  }, [allShoppingLists, calculateRecommendations, createRecommendations, recommendationPriority,
+    setRecommendationPriority, recommended, updateAllRunningOps, updatedTime, currentCity, inStorage, loadShoppingLists,
+      loadStorage, loaded, running]
+  )
 
   let visualOpList = {...recommended}
   if (showSettings) {
@@ -225,6 +259,10 @@ function App() {
     let goodsSettings = {}
     if (settings && settings.cities && settings.cities[currentCity]) {
       goodsSettings = settings.cities[currentCity].goods || {}
+    }
+    let displayLists = []
+    if (currentCity && shoppingLists && shoppingLists[currentCity]) {
+      displayLists = shoppingLists[currentCity]
     }
     return (
         <div style={{color: "white", backgroundColor: "lightsteelblue", width: "1700px"}}>
@@ -244,7 +282,7 @@ function App() {
             <div style={{display: "flex", flexDirection: "column"}}>
               <div>Shopping Lists</div>
               <ShoppingLists prioritySwitches={prioritySwitches[currentCity]}
-                             lists={[]} priorityOrder={priorityOrder}
+                             lists={displayLists} priorityOrder={priorityOrder}
                              removeShoppingList={removeShoppingList}
                              finishShoppingList={finishShoppingList} reorderList={reorder}
                              changePriority={changePriority} cityGoods={goodsSettings}

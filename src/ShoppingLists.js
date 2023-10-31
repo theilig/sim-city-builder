@@ -99,9 +99,6 @@ function ShoppingLists(props) {
                 <ShoppingList list={props.lists[shoppingListIndex]} key={shoppingListIndex} index={shoppingListIndex}
                               remove={() => props.removeShoppingList(shoppingListIndex)}
                               finish={() => props.finishShoppingList(shoppingListIndex)}
-                              actualEnd={props.actualTimes[shoppingListIndex]}
-                              bestEnd={props.expectedTimes[shoppingListIndex]}
-                              operations={props.listToOpMap[shoppingListIndex]}
                               expandOrCollapse={expandOrCollapse}
                               expanded={shoppingListIndex === expandedList}
                               dragStart={(e) => dragStart(e, shoppingListIndex)}
