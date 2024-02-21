@@ -2,12 +2,13 @@ import React from 'react';
 import {displayName, secondsToTime} from './Production'
 import ListOps from "./ListOps";
 function ShoppingList(props) {
-    let timeString = '(' + secondsToTime(props.bestEnd) + ')'
-    if (props.actualEnd) {
-        timeString = " in " + secondsToTime(props.actualEnd)
-    }
-    if (props.actualEnd !== undefined && props.actualEnd <= 0) {
-        timeString = " now"
+    let timeString = '()'
+    if (props.actualEnd !== undefined) {
+        if (props.actualEnd <= 0) {
+            timeString = " now"
+        } else {
+            timeString = " in " + secondsToTime(props.actualEnd)
+        }
     }
 
     let style = {color: "#6699ff"}

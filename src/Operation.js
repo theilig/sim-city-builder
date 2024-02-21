@@ -57,33 +57,27 @@ function Operation(props) {
     if (props.operation.end === 0) {
         style = {boxShadow: "0px 0px 0px 3px rgb(0, 255, 0)"}
     }
-    if (goodToGo === true && Object.keys(props.operation.ingredients).length > 0 && props.operation.runningId === undefined) {
-        style = {boxShadow: "0px 0px 0px 3px rgb(255, 255, 0)"}
-    }
-    if (props.operation.nextUp === true && Object.keys(props.operation.ingredients).length === 0 && props.operation.runningId === undefined) {
-        style = {boxShadow: "0px 0px 0px 3px rgb(255, 255, 0)"}
-    }
     if (props.operation.start === 0) {
-        style = {boxShadow: "0px 0px 0px 3px rgb(255, 255, 0)"}
+        style = {boxShadow: "0px 0px 0px 1px rgb(255, 255, 0)"}
     }
     if (props.operation.start === 0 && props.operation.runningId === undefined && props.operation.nextUp) {
-        style = {boxShadow: "0px 0px 0px 3px rgb(255, 0, 0)"}
+        style = {boxShadow: "0px 0px 0px 1px rgb(255, 0, 0)"}
     }
     if (props.operation.runningId !== undefined) {
         style = {background: "#909090"}
     }
     let displayTime = secondsToTime(props.operation.start)
     if (props.operation.runningId !== undefined) {
-        displayTime = secondsToTime(props.operation.end)
+        displayTime = secondsToTime(props.operation.start + props.operation.duration)
     }
 
 
     return (
-        <tr style={style} >
-            <td style={{textAlign: "left"}}>{props.operation.count + " " + displayName(props.operation.name, props.operation, props.operation.count)}</td>
-            <td style={{textAlign: "right"}}>{displayTime}</td>
-            <td>{showButton()}</td>
-        </tr>
+        <div style={style} >
+            <div style={{textAlign: "left"}}>{props.operation.good}</div>
+            <div style={{textAlign: "right"}}>{displayTime}</div>
+            <div>{showButton()}</div>
+        </div>
     )
 }
 export default Operation;

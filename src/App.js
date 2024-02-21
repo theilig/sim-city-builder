@@ -9,6 +9,7 @@ import {useShoppingLists} from "./ShoppingListHook";
 import {useOperations} from "./OperationsHook";
 import {useRecommendations} from "./RecommendationHook";
 import {useProduction} from "./ProductionHook";
+import RecommendationList from "./RecommendationList";
 
 function App() {
   const [loaded, setLoaded] = useState(false)
@@ -19,8 +20,8 @@ function App() {
   const [recommendationPriority, setRecommendationPriority] = useState(0)
 
   const {
-    inStorage, addStorage, clearStorage, unassignedStorage,
-    removeGoods, loadStorage
+    inStorage, addStorage, clearStorage, getUnusedStorage,
+    removeGoods, loadStorage, updateUnassignedStorage
   } = useStorage()
 
   const {
@@ -34,23 +35,28 @@ function App() {
     priorityOrder,
     loadShoppingLists,
     allShoppingLists,
-    updateStockingLists,
-    updateExpectedTimes
+    updateExpectedTimes,
+    clearExpectedTimes,
+    getExpectedTimes,
+    getUnscheduledLists,
+    calculateStockingList
   } = useShoppingLists()
 
   const {
     running,
-    recommended,
-    clearOperations,
+    getRecommended,
+    clearRecommendations,
     createOperation,
     changeRunningOperations,
     speedUpOperations,
     updateAllRunningOps,
     createRecommendations,
+    updatePipelines
   } = useOperations()
 
   const {
-    calculateRecommendations
+    calculateRecommendations,
+    calculateStockingRecommendations
   } = useRecommendations()
 
   const {
@@ -63,29 +69,18 @@ function App() {
   });
 
   function recalculateRecommendations() {
-    const lists = allShoppingLists(currentCity)
-    const expectedTimes = lists.map(list => {
-      return bestProductionTime(
-          list.items,
-          inStorage[currentCity],
-          running[currentCity],
-          settings[currentCity.goods],
-          settings[currentCity.buildings],
-          pipelines[currentCity]
-      )
-    })
-    updateExpectedTimes(expectedTimes, currentCity)
-    setRecommendationPriority(0)
-
+    updateUnassignedStorage({...inStorage[currentCity]}, currentCity)
+    clearExpectedTimes(currentCity)
+    clearRecommendations(currentCity)
   }
 
   function clear(clearLists) {
-    clearOperations(currentCity)
+    clearRecommendations(currentCity)
     clearStorage(currentCity)
     if (clearLists) {
       clearShoppingLists(currentCity, settings.cities[currentCity].goods)
     }
-    setRecommendationPriority(0)
+    recalculateRecommendations()
   }
 
   function stopSettings() {
@@ -96,8 +91,8 @@ function App() {
         newCity = Object.keys(settings.cities)[0]
         setCurrentCity(newCity)
       }
-      updateStockingLists(settings.cities, newCity)
-      setRecommendationPriority(0)
+      updatePipelines(settings.cities, newCity)
+      recalculateRecommendations()
     }
   }
 
@@ -107,7 +102,7 @@ function App() {
 
   function changePriority(source, destination) {
     changePriorityInList(source, destination, currentCity)
-    setRecommendationPriority(0)
+    recalculateRecommendations()
   }
 
 
@@ -141,14 +136,14 @@ function App() {
 
   function speedUp(operation, amount) {
     speedUpOperations([operation], amount, currentCity);
-    setRecommendationPriority(0)
+    recalculateRecommendations()
   }
 
   function finishOperations(operation, count) {
     let newGoods = {}
     newGoods[operation.name] = count
     haveStorage(newGoods, true)
-    setRecommendationPriority(0)
+    recalculateRecommendations()
   }
 
   function makeGoods(goods, pullFromStorage) {
@@ -160,30 +155,30 @@ function App() {
       }
     })
     startOperations(operationsToAdd, pullFromStorage)
-    setRecommendationPriority(0)
+    recalculateRecommendations()
   }
 
   function haveStorage(goods, clickedDone = false) {
     // in case you hit have instead of hitting done below
     changeRunningOperations([], goods, !clickedDone, currentCity)
     addStorage(goods, currentCity)
-    setRecommendationPriority(0)
+    recalculateRecommendations()
   }
 
   function removeStorage(goods) {
-    setRecommendationPriority(0)
+    recalculateRecommendations()
     return removeGoods(goods, currentCity)
   }
 
   function finishShoppingList(index) {
     updateStorageAndRunningForNewOps(shoppingLists[currentCity][index].items, inStorage[currentCity], [])
     removeList(index, currentCity)
-    setRecommendationPriority(0)
+    recalculateRecommendations()
   }
 
   function removeShoppingList(index) {
     removeList(index, currentCity)
-    setRecommendationPriority(0)
+    recalculateRecommendations()
   }
 
   function addShoppingList(goodsNeeded, region) {
@@ -196,16 +191,8 @@ function App() {
     if (Object.keys(filteredGoods).length === 0) {
       return;
     }
-    const expectedTime = bestProductionTime(
-        filteredGoods,
-        inStorage[currentCity],
-        running[currentCity],
-        settings.cities[currentCity].goods,
-        settings.cities[currentCity].buildings,
-        pipelines[currentCity]
-    )
-    addList(filteredGoods, expectedTime, region, currentCity)
-    setRecommendationPriority(0)
+    addList(filteredGoods, region, currentCity)
+    recalculateRecommendations()
   }
 
   useEffect(() => {
@@ -223,10 +210,15 @@ function App() {
       loadShoppingLists(loadedSettings.cities)
       loadStorage(Object.keys(loadedSettings.cities))
 
-      if (Object.keys(loadedSettings.cities).length === 0) {
+      const cities = Object.keys(loadedSettings.cities)
+
+      if (cities.length === 0) {
         setShowSettings(true)
       } else {
         setCurrentCity(Object.keys(loadedSettings.cities)[0])
+        for (let i = 0; i < cities.length; i += 1) {
+          updatePipelines(loadedSettings.cities, cities[i])
+        }
       }
      setLoaded(true)
     }
@@ -235,17 +227,27 @@ function App() {
         setUpdatedTime(Date.now())
         updateAllRunningOps(currentCity)
       }
-      const result = calculateRecommendations(allShoppingLists(currentCity), inStorage[currentCity], running[currentCity], recommended[currentCity], recommendationPriority)
-      createRecommendations(result.newRecommendations)
-      setRecommendationPriority(recommendationPriority + 1)
+      if (currentCity) {
+        const unscheduledLists = getUnscheduledLists(currentCity)
+        if (unscheduledLists !== undefined && unscheduledLists.length > 0) {
+          const result = calculateRecommendations(getUnusedStorage(currentCity) || {}, running[currentCity], unscheduledLists)
+          updateUnassignedStorage(result.updatedStorage, currentCity)
+          createRecommendations(result.updatedPipelines, currentCity)
+          updateExpectedTimes(result.shoppingListIndex, result.expectedTime, currentCity)
+        } else {
+          const stockingLists = calculateStockingRecommendations(settings[currentCity])
+          const result = calculateStockingRecommendations(getUnusedStorage(currentCity) || {}, running[currentCity], stockingLists)
+          updateUnassignedStorage(result.updatedStorage, currentCity)
+          createRecommendations(result.updatedPipelines, currentCity)
+          updateExpectedTimes(result.shoppingListIndex, result.expectedTime, currentCity)
+        }
+      }
     }, 1000)
     return () => clearInterval(interval)
-  }, [allShoppingLists, calculateRecommendations, createRecommendations, recommendationPriority,
-    setRecommendationPriority, recommended, updateAllRunningOps, updatedTime, currentCity, inStorage, loadShoppingLists,
-      loadStorage, loaded, running]
+  }, [allShoppingLists, calculateRecommendations, createRecommendations, updateAllRunningOps, updatedTime, currentCity, inStorage, loadShoppingLists,
+      loadStorage, loaded, running, getUnscheduledLists, getUnusedStorage, updateUnassignedStorage, updateExpectedTimes, updatePipelines]
   )
 
-  let visualOpList = {...recommended}
   if (showSettings) {
     return <Settings exit={stopSettings} settings={settings} setSettings={(newSettings) => {
       setSettings(newSettings)
@@ -264,6 +266,12 @@ function App() {
     if (currentCity && shoppingLists && shoppingLists[currentCity]) {
       displayLists = shoppingLists[currentCity]
     }
+    let displayPipelines = []
+    if (pipelines && pipelines[currentCity]) {
+      displayPipelines = pipelines[currentCity]
+    }
+    let displayExpectedTimes = getExpectedTimes(currentCity)
+    const unusedStorage = getUnusedStorage(currentCity)
     return (
         <div style={{color: "white", backgroundColor: "lightsteelblue", width: "1700px"}}>
           <div style={{display: "flex"}}>
@@ -277,26 +285,24 @@ function App() {
             <button onClick={() => setShowSettings(true)}>Settings</button>
           </div>
           <Storage key={"storage"} storage={inStorage[currentCity]} addShoppingList={addShoppingList} addStorage={haveStorage} removeStorage={removeStorage}
-                   makeGoods={makeGoods} clear={clear} unassignedStorage={unassignedStorage} goodsSettings={goodsSettings} buildingSettings={buildingSettings}/>
+                   makeGoods={makeGoods} clear={clear} unassignedStorage={unusedStorage} goodsSettings={goodsSettings} buildingSettings={buildingSettings}/>
+          <div style={{height: '20px'}}></div>
+          <RecommendationList key={"reclist"} recommendations={getRecommended(currentCity)}
+                              startOp={(opList) => startOperations(opList)} />
           <div style={{display: "flex", width: "100%"}}>
             <div style={{display: "flex", flexDirection: "column"}}>
               <div>Shopping Lists</div>
               <ShoppingLists prioritySwitches={prioritySwitches[currentCity]}
                              lists={displayLists} priorityOrder={priorityOrder}
+                             expectedTimes={displayExpectedTimes}
                              removeShoppingList={removeShoppingList}
                              finishShoppingList={finishShoppingList} reorderList={reorder}
                              changePriority={changePriority} cityGoods={goodsSettings}
               />
             </div>
           </div>
-          <OperationList key={"oplist"} operations={{}}
-                         buildingSettings={buildingSettings}
-                         startOp={(good, count) => {
-                           let items = {}
-                           items[good] = count
-                           makeGoods(items, true)
-                         }}
-                         finishOp={finishOperations} speedUp={speedUp} startOperation={(operations) => startOperations(operations)}
+          <OperationList key={"oplist"} pipelines={displayPipelines}
+                         finishOp={finishOperations} speedUp={speedUp}
           />
         </div>
     )

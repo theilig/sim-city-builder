@@ -1,3 +1,4 @@
+import {goodsData} from "./BuildingSettings";
 export function cloneOperations(operations) {
     if (operations) {
         return JSON.parse(JSON.stringify(operations))
@@ -30,7 +31,11 @@ export function secondsToTime(timeInSeconds) {
     return timeString
 }
 
-export function displayName(name, good, count) {
+export function displayName(name, count) {
+    const good = goodsData[name]
+    if (good.display) {
+        name = good.display
+    }
     if (count === 1) {
         if (good.singular) {
             return good.singular

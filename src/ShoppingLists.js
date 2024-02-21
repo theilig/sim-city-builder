@@ -97,6 +97,7 @@ function ShoppingLists(props) {
             <div onClick={changeListSortBy}>Change Sort Order ({listSortBy})</div>
             {visualShoppingListIndexes.map(shoppingListIndex =>
                 <ShoppingList list={props.lists[shoppingListIndex]} key={shoppingListIndex} index={shoppingListIndex}
+                              actualEnd = {props.expectedTimes[shoppingListIndex]}
                               remove={() => props.removeShoppingList(shoppingListIndex)}
                               finish={() => props.finishShoppingList(shoppingListIndex)}
                               expandOrCollapse={expandOrCollapse}

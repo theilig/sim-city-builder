@@ -2,7 +2,7 @@ import {useState} from "react";
 
 export function useStorage() {
     const [inStorage, setInStorage] = useState({})
-    const [unassignedStorage, setUnassignedStorage] = useState({})
+    const [usedStorage, setUsedStorage] = useState({})
 
     const removeGood = (storage, good) => {
         let newStorage = {...storage}
@@ -52,6 +52,45 @@ export function useStorage() {
         localStorage.setItem("simStorage", JSON.stringify(allStorage))
     }
 
+    const grabFromStorage = (storage, good, amount) => {
+        let amountTaken = 0
+        if (storage[good]) {
+            if (storage[good] > amount) {
+                storage[good] -= amount
+                amountTaken = amount
+            } else {
+                amountTaken = storage[good]
+                delete storage[good]
+            }
+        }
+        return amountTaken
+    }
+
+    const getUnusedStorage = (currentCity) => {
+        let currentCityStorage = inStorage[currentCity] || {}
+        let currentCityUsed = usedStorage[currentCity]
+        let newUnusedStorage = {}
+        Object.keys(currentCityStorage).forEach(good => {
+            newUnusedStorage[good] = currentCityStorage[good] - (currentCityUsed[good] || 0)
+        })
+        return newUnusedStorage
+    }
+
+    const updateUnassignedStorage = (newStorage, currentCity) => {
+        let allStorage = {...usedStorage}
+        let currentCityStorage = inStorage[currentCity] || {}
+        let newUsedStorage = {}
+        Object.keys(currentCityStorage).forEach(good => {
+            if (newStorage[good]) {
+                newUsedStorage[good] = Math.max(currentCityStorage[good] - newStorage[good], 0)
+            } else {
+                newUsedStorage[good] = currentCityStorage[good]
+            }
+        })
+        allStorage[currentCity] = newUsedStorage
+        setUsedStorage(allStorage)
+    }
+
     const loadStorage = (cityNames) => {
         const storageJson = localStorage.getItem("simStorage")
         let storage = {}
@@ -70,17 +109,20 @@ export function useStorage() {
                 localStorage.setItem("simStorage", JSON.stringify(storage))
             }
         })
+        let usedStorage = {}
+        Object.keys(storage).forEach(city => usedStorage[city] = {})
         setInStorage(storage)
+        setUsedStorage(usedStorage)
     }
 
     return {
         inStorage,
         addStorage,
         clearStorage,
-        unassignedStorage,
-        setUnassignedStorage,
+        updateUnassignedStorage,
         removeGoods,
-        loadStorage
+        loadStorage,
+        grabFromStorage,
+        getUnusedStorage
     }
-
 }
