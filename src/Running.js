@@ -37,7 +37,7 @@ export function finishRunning(good, running, cityGoods) {
     let buildingRunning = []
     if (localRunning.byBuilding[operation.building]) {
         localRunning.byBuilding[operation.building].forEach(op => {
-            if (!removed && op.name === operation.name) {
+            if (!removed && op.good === operation.good) {
                 removed = true
             } else {
                 buildingRunning.push(op)

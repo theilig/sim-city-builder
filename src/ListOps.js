@@ -5,7 +5,7 @@ function ListOps(props) {
         return (<ul>
             {ops.map((op, index) => {
                 return (<li key={index}>
-                    {[op.name, op.start, op.end, op.runningId].join(" ")}
+                    {[op.good, op.start, op.end, op.runningId].join(" ")}
                     {op.childOperations && op.childOperations.length > 0 && opList(op.childOperations)}
                 </li>)
             })}

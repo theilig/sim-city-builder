@@ -7,7 +7,7 @@ export function useShoppingLists() {
     const [priorityOrder, setPriorityOrder] = useState({})
 
     const clearShoppingLists = (currentCity) => {
-        return updateShoppingLists([], stockingLists[currentCity], [], [], currentCity)
+        return updateShoppingLists([], [], [], currentCity)
     }
 
     const addList = (goodsNeeded, region, currentCity) => {
@@ -19,7 +19,6 @@ export function useShoppingLists() {
 
         updateShoppingLists(
             localShoppingLists,
-            stockingLists[currentCity],
             prioritySwitches[currentCity],
             [],
             currentCity)
@@ -47,7 +46,6 @@ export function useShoppingLists() {
 
         updateShoppingLists(
             localShoppingLists,
-            stockingLists[currentCity],
             newPrioritySwitches,
             [],
             currentCity
@@ -85,7 +83,6 @@ export function useShoppingLists() {
         })
         return updateShoppingLists(
             localShoppingLists,
-            stockingLists[currentCity],
             localPrioritySwitches,
             expectedTimes[currentCity],
             currentCity
@@ -121,20 +118,18 @@ export function useShoppingLists() {
         })
         updateShoppingLists(
             shoppingLists[currentCity],
-            stockingLists[currentCity],
             localPrioritySwitches,
             expectedTimes[currentCity],
             currentCity
         )
     }
 
-    const updateShoppingLists = (lists, stockingLists, switches, updatedExpectedTimes, currentCity) => {
+    const updateShoppingLists = (lists, switches, updatedExpectedTimes, currentCity) => {
         let allShoppingLists = {...shoppingLists}
         let allPrioritySwitches = {...prioritySwitches}
         let allPriorityOrder = {...priorityOrder}
         let allExpectedTimes = {...expectedTimes}
-        const totalList = lists.concat(stockingLists)
-        const order = sortLists(totalList, switches, updatedExpectedTimes)
+        const order = sortLists(lists, switches, updatedExpectedTimes)
         allShoppingLists[currentCity] = lists
         setShoppingLists(allShoppingLists)
         allPrioritySwitches[currentCity] = switches
@@ -148,14 +143,9 @@ export function useShoppingLists() {
     }
 
     const clearExpectedTimes = (currentCity) => {
-        let newExpectedTimes = []
-        updateShoppingLists(
-            shoppingLists[currentCity],
-            stockingLists[currentCity],
-            prioritySwitches[currentCity],
-            newExpectedTimes,
-            currentCity
-        )
+        let allExpectedTimes = {...expectedTimes}
+        allExpectedTimes[currentCity] = []
+        setExpectedTimes(allExpectedTimes)
     }
 
     const getUnscheduledLists = (currentCity) => {
@@ -182,10 +172,7 @@ export function useShoppingLists() {
     }
 
     const allShoppingLists = (currentCity) => {
-        if (shoppingLists[currentCity] !== undefined && stockingLists[currentCity] !== undefined) {
-            return shoppingLists[currentCity].concat(stockingLists[currentCity])
-        }
-        return shoppingLists[currentCity] || stockingLists[currentCity] || []
+        return shoppingLists[currentCity] || []
     }
 
     const sortLists = (lists, switches, newExpectedTimes) => {
@@ -229,12 +216,6 @@ export function useShoppingLists() {
         return indexes
     }
 
-    const updateStockingLists = (citySettings, currentCity) => {
-        let newStockingLists = {...stockingLists}
-        newStockingLists[currentCity] = calculateStockingList(citySettings[currentCity])
-        setStockingLists(newStockingLists)
-    }
-
     const calculateStockingList = (citySettings) => {
         let stockingList = []
         if (citySettings && citySettings.goods) {
@@ -267,18 +248,12 @@ export function useShoppingLists() {
 
         let allPrioritySwitches = {}
         let allPriorityOrder = {}
-        let stockingLists = {}
         Object.keys(citySettings).forEach(city => {
-            const stockingList = calculateStockingList(citySettings[city])
             let cityShoppingLists = loadedShoppingLists[city] || []
-            stockingLists[city] = stockingList
-            let expectedShoppingTimes = []
-            let stockingListTimes = []
             let order = updateShoppingLists(
                 cityShoppingLists,
-                stockingList,
                 [],
-                expectedShoppingTimes.concat(stockingListTimes),
+                [],
                 city
             )
             loadedShoppingLists[city] = cityShoppingLists
@@ -288,19 +263,20 @@ export function useShoppingLists() {
         setPriorityOrder(allPriorityOrder)
         setPrioritySwitches(allPrioritySwitches)
         setShoppingLists(loadedShoppingLists)
-        setStockingLists(stockingLists)
         localStorage.setItem("simShoppingLists", JSON.stringify(loadedShoppingLists))
     }
 
-    const updateExpectedTimes = (index, time, currentCity) => {
+    const updateExpectedTimes = (updates, currentCity) => {
         let newExpectedTimes = []
         if (expectedTimes[currentCity]) {
             newExpectedTimes = [...expectedTimes[currentCity]]
         }
-        newExpectedTimes[index] = time
+        Object.keys(updates).forEach(index => {
+            const key = parseInt(index)
+            newExpectedTimes[key] = updates[index]
+        })
         updateShoppingLists(
             shoppingLists[currentCity],
-            stockingLists[currentCity],
             prioritySwitches[currentCity],
             newExpectedTimes,
             currentCity
@@ -315,19 +291,25 @@ export function useShoppingLists() {
         }
     }
 
+    const getPrioritySwitches = (currentCity) => {
+        return prioritySwitches[currentCity]
+    }
+
+    const getPriorityOrder = (currentCity) => {
+        return priorityOrder[currentCity]
+    }
+
     return {
         allShoppingLists,
-        prioritySwitches,
-        priorityOrder,
+        getPrioritySwitches,
+        getPriorityOrder,
         clearShoppingLists,
         addList,
         removeList,
         reorderList,
         changePriorityInList,
         loadShoppingLists,
-        updateStockingLists,
         clearExpectedTimes,
-        shoppingLists,
         updateExpectedTimes,
         getUnscheduledLists,
         calculateStockingList,

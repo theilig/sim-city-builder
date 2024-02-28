@@ -1,4 +1,5 @@
 import React, {useCallback, useEffect, useState} from 'react';
+import {goodsData} from "./BuildingSettings";
 
 function Storage(props) {
     const [adjustments, setAdjustments] = useState({})
@@ -48,42 +49,57 @@ function Storage(props) {
             value = list[key]
         }
         if (list && value) {
-            return (<td><div style={style}>{before + value + after}</div></td>)
+            return (<div style={style}>{before + value + after}</div>)
         } else {
-            return (<td><div style={style}>{showZero && 0}</div></td>)
+            return (<div style={style}>{showZero && 0}</div>)
         }
     }
-    function display(building) {
+
+    const sortStorage = () => {
         const localStorage = props.storage || {}
-        const nameStyle = {}
-        const rowStyle = {}
-        const adjustmentStyle = {width: '10px'}
-        return (
-            <table key={building} style={{height: '0px'}}>
-                <thead><tr><th style={rowStyle}>
-                    {building}
-                </th></tr>
-                </thead>
-                <tbody>
-                {Object.keys(props.goodsSettings).map((good, index) => {
-                    if (props.goodsSettings[good].building === building) {
-                        return (
-                            <tr title={props.goodsSettings[good].shortcut} key={index} style={rowStyle} onClick={() => goodWasClicked(good, false)}
-                                onContextMenu={() => goodWasClicked(good, true)}>
-                                <td><div style={nameStyle}>{good}</div></td>
-                                {wrap(localStorage[good], undefined, {}, '', '', true)}
-                                {wrap(props.unassignedStorage[good], undefined, {}, '(', ')', false)}
-                                {wrap(adjustments[good], undefined, {adjustmentStyle}, '+', '', false)}
-                            </tr>
-                        )
-                    } else {
-                        return ("")
+        const groups = [['Factory'], [], ['Green Factory', 'Eco Shop'], ['Coconut Farm', 'Tropical Products Store'], ['Fishery', 'Fish Marketplace']]
+        Object.keys(props.goodsSettings).forEach(good => {
+            if (localStorage[good] === undefined) {
+                localStorage[good] = 0
+            }
+        })
+        let storageSorted = []
+        groups.forEach(group => {
+            let goodsToAdd = []
+            Object.keys(localStorage).forEach(good => {
+                if (goodsData[good]) {
+                    const building = goodsData[good].building
+                    const hasGroup = groups.find(g => g.includes(building))
+                    const thisGroup = group.includes(building)
+                    if ((hasGroup && thisGroup) || (!hasGroup && group.length === 0)) {
+                        goodsToAdd.push(good)
                     }
-                })}
-                </tbody>
-            </table>
-        )
+                }
+            })
+            goodsToAdd.sort((a, b) => {
+                if (localStorage[a] !== localStorage[b]) {
+                    return localStorage[b] - localStorage[a]
+                }
+                if (a < b) {
+                    return -1
+                } else {
+                    return 1
+                }
+            })
+            goodsToAdd.forEach(good => {
+                storageSorted.push(<div title={goodsData[good].shortcut} key={good}
+                            onClick={() => goodWasClicked(good, false)}
+                            onContextMenu={() => goodWasClicked(good, true)} style={{display: 'flex', width: '175px', alignItems: 'center'}}>
+                    <div style={{display: 'flex', width: '100px'}}>{good}</div>
+                    {wrap(localStorage[good], undefined, {width: '20px', alignItems: 'center'}, '', '', true)}
+                    {wrap(props.unassignedStorage[good], undefined, {width: '30px', textAlign: 'right'}, '(', ')', false)}
+                    {wrap(adjustments[good], undefined, {width: '10px'}, '+', '', false)}
+                </div>)
+            })
+        })
+        return storageSorted
     }
+
     useEffect(() => {
         function updateKeys(event) {
             let newStoredKeys = [...storedKeys]
@@ -103,8 +119,8 @@ function Storage(props) {
                     newStoredKeys[0] = 1
                 }
                 const shortcut = newStoredKeys[1] + newStoredKeys[2]
-                Object.keys(props.goodsSettings).forEach(good => {
-                    if (props.goodsSettings[good].shortcut === shortcut) {
+                Object.keys(goodsData).forEach(good => {
+                    if (goodsData[good].shortcut === shortcut) {
                         updateCount(good, newStoredKeys[0])
                     }
                 })
@@ -119,31 +135,13 @@ function Storage(props) {
             document.removeEventListener('keydown', updateKeys);
         }
     }, [storedKeys, updateCount, props.goodsSettings]);
-    const layout = [
-        ['Factory'],
-        ["Farmer's Market", 'Gardening Supplies'],
-        ['Building Supplies Store', 'Hardware Store'],
-        ['Fashion Store', 'Chocolate Factory'],
-        ['Furniture Store', 'Home Appliances'],
-        ['Donut Shop', 'Fast Food Restaurant'],
-        ['Green Factory', 'Eco Shop'],
-        ['Coconut Farm', 'Tropical Products Store'],
-        ['Fishery', 'Fish Marketplace']
-    ]
+
     return (
         <div style={{display: "flex", flexDirection: 'column'}}>
             <div style={{display: "flex"}}>
-                {layout.map((group, index) => {
-                    return (<div key={'group.' + index} style={{display: "flex", flexDirection: 'column'}}>
-                        {group.map(building => {
-                            if (props.buildingSettings && props.buildingSettings[building] && props.buildingSettings[building].haveBuilding) {
-                                return display(building)
-                            } else {
-                                return ''
-                            }
-                        })}
-                    </div>)
-                })}
+                <div key={'storageStuff'} style={{display: "flex", flexDirection: 'column', flexWrap: 'wrap', height: '200px'}}>
+                    {sortStorage()}
+                </div>
             </div>
             <div style={{"marginTop": "25px", "display":"flex"}}>
                 <button onClick={() => makeShoppingList('Capital City')} style={{"display": "grid", "width": "100px", "backgroundColor":"#6699ff"}}>

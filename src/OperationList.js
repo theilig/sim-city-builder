@@ -3,7 +3,9 @@ import Building from "./Building";
 
 function OperationList(props) {
     const activeBuildings = Object.keys(props.pipelines).filter(building => {
-        return props.pipelines[building].running.length > 0
+        return props.pipelines[building].running.filter(op => {
+            return (op.lastUpdateTime !== undefined) && (op.duration > 0)
+        }).length > 0
     })
     return (
         <div style={{display: "flex"}}>

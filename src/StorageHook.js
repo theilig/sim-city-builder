@@ -1,5 +1,19 @@
 import {useState} from "react";
 
+export const grabFromStorage = (storage, good, amount) => {
+    let amountTaken = 0
+    if (storage[good]) {
+        if (storage[good] > amount) {
+            storage[good] -= amount
+            amountTaken = amount
+        } else {
+            amountTaken = storage[good]
+            delete storage[good]
+        }
+    }
+    return amountTaken
+}
+
 export function useStorage() {
     const [inStorage, setInStorage] = useState({})
     const [usedStorage, setUsedStorage] = useState({})
@@ -39,6 +53,7 @@ export function useStorage() {
             }
         })
         updateStorage(newStorage, currentCity)
+        return newStorage
     }
 
     const clearStorage = (currentCity) => {
@@ -50,20 +65,6 @@ export function useStorage() {
         allStorage[currentCity] = storage
         setInStorage(allStorage)
         localStorage.setItem("simStorage", JSON.stringify(allStorage))
-    }
-
-    const grabFromStorage = (storage, good, amount) => {
-        let amountTaken = 0
-        if (storage[good]) {
-            if (storage[good] > amount) {
-                storage[good] -= amount
-                amountTaken = amount
-            } else {
-                amountTaken = storage[good]
-                delete storage[good]
-            }
-        }
-        return amountTaken
     }
 
     const getUnusedStorage = (currentCity) => {
@@ -122,7 +123,6 @@ export function useStorage() {
         updateUnassignedStorage,
         removeGoods,
         loadStorage,
-        grabFromStorage,
         getUnusedStorage
     }
 }

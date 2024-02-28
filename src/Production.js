@@ -10,7 +10,7 @@ export function cloneOperations(operations) {
 export function secondsToTime(timeInSeconds) {
     const hours = Math.floor(timeInSeconds / 3600)
     const minutes = Math.floor((timeInSeconds - hours * 3600) / 60)
-    const seconds = timeInSeconds - minutes * 60 - hours * 3600
+    const seconds = Math.floor(timeInSeconds - minutes * 60 - hours * 3600)
 
     let timeString = ""
     if (hours > 1) {

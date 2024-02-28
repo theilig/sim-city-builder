@@ -21,15 +21,19 @@ function Operation(props) {
     }
 
     function finishOne() {
-        props.finishOp(props.operation, 1)
+        props.finishOp([props.operation])
     }
 
     function finishAll() {
-        props.finishOp(props.operation, props.operation.count)
+        const ops = []
+        for (let i = 0; i < props.count; i += 1) {
+            ops.push(props.operation)
+        }
+        props.finishOp(ops)
     }
 
     function showButton() {
-        if (props.operation.runningId !== undefined) {
+        if (props.operation.lastUpdateTime !== undefined) {
             if (props.operation.end > 0) {
                 return <button
                     onClick={speedUp}
@@ -54,7 +58,7 @@ function Operation(props) {
         })
     }
     let style = {boxShadow: "0px 0px 0px 3px rgb(130, 130, 130)"}
-    if (props.operation.end === 0) {
+    if (props.operation.duration < 0) {
         style = {boxShadow: "0px 0px 0px 3px rgb(0, 255, 0)"}
     }
     if (props.operation.start === 0) {
@@ -63,11 +67,11 @@ function Operation(props) {
     if (props.operation.start === 0 && props.operation.runningId === undefined && props.operation.nextUp) {
         style = {boxShadow: "0px 0px 0px 1px rgb(255, 0, 0)"}
     }
-    if (props.operation.runningId !== undefined) {
+    if (props.operation.lastUpdateTime !== undefined) {
         style = {background: "#909090"}
     }
     let displayTime = secondsToTime(props.operation.start)
-    if (props.operation.runningId !== undefined) {
+    if (props.operation.lastUpdateTime !== undefined) {
         displayTime = secondsToTime(props.operation.start + props.operation.duration)
     }
 
