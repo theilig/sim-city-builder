@@ -58,11 +58,6 @@ function Storage(props) {
     const sortStorage = () => {
         const localStorage = props.storage || {}
         const groups = [['Factory'], [], ['Green Factory', 'Eco Shop'], ['Coconut Farm', 'Tropical Products Store'], ['Fishery', 'Fish Marketplace']]
-        Object.keys(props.goodsSettings).forEach(good => {
-            if (localStorage[good] === undefined) {
-                localStorage[good] = 0
-            }
-        })
         let storageSorted = []
         groups.forEach(group => {
             let goodsToAdd = []

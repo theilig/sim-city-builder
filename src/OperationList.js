@@ -2,16 +2,15 @@ import React from 'react';
 import Building from "./Building";
 
 function OperationList(props) {
-    const activeBuildings = Object.keys(props.pipelines).filter(building => {
-        return props.pipelines[building].running.filter(op => {
-            return (op.lastUpdateTime !== undefined) && (op.duration > 0)
-        }).length > 0
+    const commercialBuildings = Object.keys(props.pipelines).filter(building => {
+        return props.pipelines[building].isParallel === false
     })
     return (
-        <div style={{display: "flex"}}>
-            {activeBuildings.map(building =>
+        <div style={{display: "flex", flexWrap: "wrap"}}>
+            {commercialBuildings.map(building =>
                 <Building key={building} name={building} pipeline={props.pipelines[building]}
                           finishOp={props.finishOp}
+                          startOp={props.startOp}
                           speedUp={props.speedUp}
                 />
             )}

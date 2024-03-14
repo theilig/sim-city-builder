@@ -7,35 +7,47 @@ function RecommendationList(props) {
     let opCollections = []
     const factories = Object.keys(buildingData).filter(f => buildingData[f].isParallel)
     const haveCollections = {}
+    let remainingSlots = {}
+    factories.forEach(building => {
+        if (props.pipelines[building]) {
+            let available = props.pipelines[building].slots
+            props.pipelines[building].running.forEach(op => {
+                if (op.lastUpdateTime) {
+                    available -= 1
+                }
+            })
+            remainingSlots[building] = available
+        }
+    })
     props.recommendations.forEach(op => {
         let collection = undefined
-        let goodToGo = true
+        let goodToGo = op.children.length === 0
         const factory = factories.includes(op.building)
-        op.children.forEach(child => {
-            if (child.duration > 0) {
-                goodToGo = false
-            }
-        })
         opCollections.forEach(possibleCollection => {
             if (Math.abs(possibleCollection.start - op.start) < 600 && possibleCollection.good === op.good &&
                 possibleCollection.ops.length < maxCombine) {
                 collection = possibleCollection
             }
         })
-        if (collection) {
-            collection.ops.push(op)
-        } else {
-            const firstCollection = !(haveCollections[op.building] || false)
-            haveCollections[op.building] = true
-            opCollections.push({
-                goodToGo: goodToGo,
-                ops: [op],
-                good: op.good,
-                done: op.duration < 0,
-                start: op.start,
-                factory: factory,
-                firstCollection: firstCollection
-            })
+        if (!factory || remainingSlots[op.building] > 0) {
+            if (factory) {
+                remainingSlots[op.building] -= 1
+            }
+            if (collection) {
+                collection.ops.push(op)
+            } else {
+                const firstCollection = !(haveCollections[op.building] || false)
+                haveCollections[op.building] = true
+                opCollections.push({
+                    goodToGo: goodToGo,
+                    ops: [op],
+                    good: op.good,
+                    done: op.duration < 0,
+                    start: op.start,
+                    factory: factory,
+                    firstCollection: firstCollection
+                })
+            }
         }
     })
     opCollections = opCollections.slice(0, 49)

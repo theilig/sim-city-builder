@@ -1,4 +1,5 @@
 import {useState} from "react";
+import {goodsData} from "./BuildingSettings";
 
 export const grabFromStorage = (storage, good, amount) => {
     let amountTaken = 0
@@ -116,13 +117,41 @@ export function useStorage() {
         setUsedStorage(usedStorage)
     }
 
+    const updateStorageItems = (pipelines) => {
+        let updatedStorage = {}
+        Object.keys(pipelines).forEach(cityName => {
+            let newStorage = {}
+            Object.keys(goodsData).forEach(good => {
+                const building = goodsData[good].building
+                if (pipelines[cityName][building] &&
+                    pipelines[cityName][building].goods[good] !== undefined) {
+                    newStorage[good] = inStorage[cityName][good] || 0
+                }
+            })
+            updatedStorage[cityName] = newStorage
+        })
+        setInStorage(updatedStorage)
+        let usedStorage = {}
+        Object.keys(updatedStorage).forEach(city => usedStorage[city] = {})
+        setUsedStorage(usedStorage)
+    }
+
+    const getStorage = (currentCity) => {
+        if (inStorage && inStorage[currentCity]) {
+            return {...inStorage[currentCity]}
+        } else {
+            return {}
+        }
+    }
+
     return {
-        inStorage,
+        getStorage,
         addStorage,
         clearStorage,
         updateUnassignedStorage,
         removeGoods,
         loadStorage,
-        getUnusedStorage
+        getUnusedStorage,
+        updateStorageItems
     }
 }

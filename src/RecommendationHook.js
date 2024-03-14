@@ -1,13 +1,13 @@
 import {useProduction} from "./ProductionHook";
 import {goodsData} from "./BuildingSettings";
 
+export const EPHEMERAL_LIST_INDEX = -1
 export function useRecommendations() {
     const {
         addOrder
     } = useProduction()
 
-    const EPHEMERAL_LIST_INDEX = -1
-    const MAX_RECOMMENDATIONS_FOR_STOCKING = 50
+    const MAX_RECOMMENDATIONS_FOR_STOCKING = 300
 
     const calculateRecommendations = (unassignedStorage, running, unscheduledLists) => {
         const possibleLists = unscheduledLists
@@ -27,21 +27,29 @@ export function useRecommendations() {
                 expectedTime: result.expectedTime,
                 shoppingList: {items: possibleLists[bestExpectedIndex].items, index: shoppingListIndex},
                 updatedStorage: result.updatedStorage,
-                updatedPipelines: result.updatedPipelines
+                updatedPipelines: result.updatedPipelines,
+                addedPurchases: result.addedPurchases
             }
         }
         return {}
     }
 
-    const calculateStockingRecommendations = (unassignedStorage, running, stockingLists) => {
+    const calculateStockingRecommendations = (unassignedStorage, running, purchases, stockingLists) => {
         const lowestStart = (item) => {
             let low = item.start
-            item.children.forEach(child => {
-                const childLow = lowestStart(child)
-                if (childLow < low) {
-                    low = childLow
-                }
-            })
+            if (item.lastUpdateTime) {
+                low = item.start + item.duration
+            } else {
+                item.children.forEach(child => {
+                    // exclude factory items start times,we want to prioritize starting commercial buildings
+                    if (Object.keys(goodsData[child.good].ingredients).length > 0) {
+                        const childLow = lowestStart(child)
+                        if (childLow < low) {
+                            low = childLow
+                        }
+                    }
+                })
+            }
             return low
         }
         let alreadyHave = {...unassignedStorage}
@@ -49,7 +57,7 @@ export function useRecommendations() {
         let recommendationCount = 0
         Object.keys(running).forEach(building => {
             running[building].running.forEach(op => {
-                if (op.listIndex === undefined || op.listIndex === EPHEMERAL_LIST_INDEX) {
+                if (op.listIndex === undefined || (op.listIndex === EPHEMERAL_LIST_INDEX && op.topLevel)) {
                     if (alreadyHave[op.good] === undefined) {
                         alreadyHave[op.good] = 1
                     } else {
@@ -61,6 +69,15 @@ export function useRecommendations() {
                 }
             })
         })
+        purchases.forEach(op => {
+            if (alreadyHave[op.good] === undefined) {
+                alreadyHave[op.good] = 1
+            } else {
+                alreadyHave[op.good] += 1
+            }
+        })
+        let result
+        let stockingList
         if (recommendationCount <= MAX_RECOMMENDATIONS_FOR_STOCKING && stockingLists.length > 0) {
             let neededLists = []
             stockingLists.forEach(list => {
@@ -114,20 +131,34 @@ export function useRecommendations() {
                 }
                 return durations[bItem] - durations[aItem]
             })
-            let stockingList = {}
-            stockingList[Object.keys(neededLists[0].items)[0]] = 1
-            const result = addOrder(stockingList, unassignedStorage, running, 0, 0, EPHEMERAL_LIST_INDEX, true)
+            let done = false
+            let index = 0
+            while (!done && index < neededLists.length) {
+                stockingList = {}
+                stockingList[Object.keys(neededLists[index].items)[0]] = 1
+                result = addOrder(stockingList, unassignedStorage, running, 0, 0, EPHEMERAL_LIST_INDEX, true)
+                if (result.itemsAdded.filter(op => {return !op.purchase}).length > 0) {
+                    done = true
+                } else {
+                    result = undefined
+                    index = index + 1
+                }
+            }
+        }
+        if (result) {
             return {
                 expectedTime: result.expectedTime,
                 shoppingList: {items: stockingList, index: EPHEMERAL_LIST_INDEX},
                 updatedStorage: result.updatedStorage,
-                updatedPipelines: result.updatedPipelines
+                updatedPipelines: result.updatedPipelines,
+                addedPurchases: result.addedPurchases
             }
         } else {
             return {
                 expectedTime: 0,
                 updatedStorage: unassignedStorage,
-                updatedPipelines: running
+                updatedPipelines: running,
+                addedPurchases: []
             }
         }
     }

@@ -1,5 +1,6 @@
 import React from 'react';
 import {displayName, secondsToTime} from "./Production";
+import {randomGeneratorKey} from "./BuildingSettings";
 
 function OperationCollection(props) {
     function startOne() {
@@ -22,9 +23,12 @@ function OperationCollection(props) {
     if (props.collection.goodToGo) {
         if (props.collection.ops[0].start === 0) {
             style.boxShadow = "0px 0px 0px 1px rgb(255, 0, 0)"
-        } else if (!props.collection.factory && props. collection.firstCollection) {
+        } else if (!props.collection.factory && props.collection.firstCollection) {
             style.boxShadow = "0px 0px 0px 1px rgb(255, 255, 0)"
         }
+    }
+    if (props.collection.ops[0].building === randomGeneratorKey) {
+        style.backgroundColor = 'blue'
     }
     const displayTime = secondsToTime(props.collection.ops[0].start)
 

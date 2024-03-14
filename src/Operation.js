@@ -3,11 +3,7 @@ import { displayName, secondsToTime } from './Production';
 
 function Operation(props) {
     function startOne() {
-        props.startOp(props.operation, 1)
-    }
-
-    function startAll() {
-        props.startOp(props.operation, props.operation.count)
+        props.startOp([props.operation])
     }
 
     function speedUp(e) {
@@ -46,7 +42,7 @@ function Operation(props) {
                 >done</button>
             }
         } else {
-            return <button onClick={startOne} onContextMenu={startAll}>start</button>
+            return <button onClick={startOne} >start</button>
         }
     }
     let goodToGo = true
@@ -78,6 +74,7 @@ function Operation(props) {
 
     return (
         <div style={style} >
+            <div style={{textAlign: "left"}}>{props.operation.count}</div>
             <div style={{textAlign: "left"}}>{props.operation.good}</div>
             <div style={{textAlign: "right"}}>{displayTime}</div>
             <div>{showButton()}</div>

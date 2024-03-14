@@ -2,6 +2,9 @@ import React from 'react';
 
 function ListOps(props) {
     function opList(ops) {
+        if (ops === undefined) {
+            ops = []
+        }
         return (<ul>
             {ops.map((op, index) => {
                 return (<li key={index}>

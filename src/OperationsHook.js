@@ -2,6 +2,7 @@ import {useState} from "react";
 import {goodsData, randomGeneratorKey} from "./BuildingSettings";
 import {deepCopy} from "./BuildingSettings";
 import {adjustedDuration} from "./ProductionHook";
+import {EPHEMERAL_LIST_INDEX} from "./RecommendationHook";
 
 export const createOperation = (good, start, building, buildingSettings) => {
     return {
@@ -16,19 +17,21 @@ export const createOperation = (good, start, building, buildingSettings) => {
 export const grabFromRunning = (pipelines, goodName, amount, listIndex) => {
     let possibles = []
     let latestTime = 0
+    let itemsTaken = []
     Object.keys(pipelines).forEach(building => {
         if (
             pipelines[building].running &&
             pipelines[building].goods[goodName] !== undefined &&
             pipelines[building].running.length > 0) {
             pipelines[building].running.forEach(op => {
-                if (op.good === goodName && op.listIndex === undefined) {
+                if (op.good === goodName &&
+                    (op.listIndex === undefined ||
+                        (listIndex !== EPHEMERAL_LIST_INDEX && op.listIndex === EPHEMERAL_LIST_INDEX))) {
                     possibles.push(op)
                 }
             })
         }
     })
-    const amountTaken = Math.min(possibles.length, amount)
     if (possibles.length > 0) {
         possibles.sort((a, b) => {
             return a.start - b.start
@@ -38,36 +41,49 @@ export const grabFromRunning = (pipelines, goodName, amount, listIndex) => {
                 amount -= 1
                 op.listIndex = listIndex
                 latestTime = op.start + op.duration
+                itemsTaken.push(op)
             }
         })
     }
-    return {amount: amountTaken, end: latestTime}
+    return {end: latestTime, items: itemsTaken}
 }
 
 export function useOperations() {
     const [running, setRunning] = useState({})
-    const [recommendations, setRecommendations] = useState([])
     const clearRecommendations = (currentCity) => {
-        let newRunning = deepCopy(running[currentCity], 2)
-        Object.keys(running[currentCity]).forEach(building => {
+        const pipelines = getPipelines(currentCity)
+        let newRunning = deepCopy(pipelines, 2)
+        Object.keys(pipelines).forEach(building => {
             let newBuildingRunning = []
-            running[currentCity][building].running.forEach(op => {
+            pipelines[building].running.forEach(op => {
                 if (op.lastUpdateTime !== undefined) {
                     newBuildingRunning.push(op)
                 }
             })
             newRunning[building].running = newBuildingRunning
         })
-        setRecommendations([])
-        updateOperations(newRunning, currentCity)
+        updateOperations(newRunning, [], [], currentCity)
     }
 
-    const getRecommendedLists = () => {
-        return recommendations
+    const getRecommendedLists = (currentCity) => {
+        if (!running || !running.targets || !running.targets[currentCity]) {
+            return []
+        }
+        return running.targets[currentCity]
     }
 
-    const getRunning = (currentCity) => {
-        return running[currentCity]
+    const getPurchases = (currentCity) => {
+        if (!running || !running.purchases || !running.purchases[currentCity]) {
+            return []
+        }
+        return running.purchases[currentCity]
+    }
+
+    const getPipelines = (currentCity) => {
+        if (!running || !running.pipelines || !running.pipelines[currentCity]) {
+            return {}
+        }
+        return running.pipelines[currentCity]
     }
 
     const changeRunningOperations = (opsToAdd, opsToRemove, forcePull, currentCity) => {
@@ -75,36 +91,38 @@ export function useOperations() {
         let remainingRemovals = {...opsToRemove}
         let maxId = 0
         let timesToStart = {}
-        if (running && running[currentCity]) {
-            newRunning = {...running[currentCity]}
-            Object.keys(running[currentCity]).forEach(building => {
-                let newBuilding = {...running[currentCity][building]}
-                newBuilding.running = []
-                running[currentCity][building].running.forEach(op => {
-                    if (maxId < op.id) {
-                        maxId = op.id
-                    }
-                    if (op.lastUpdateTime !== undefined && op.duration > 0) {
-                        const finishTime = op.start + op.duration
-                        if (timesToStart[building] === undefined || timesToStart[building] < finishTime) {
-                            timesToStart[building] = finishTime
-                        }
-                    }
-                    if (remainingRemovals[op.good]
-                        && remainingRemovals[op.good] > 0
-                        && (forcePull || op.duration <= 50)) {
-                        remainingRemovals[op.good] -= 1
-                    } else {
-                        newBuilding.running.push(op)
-                    }
-                })
-                newRunning[building] = newBuilding
-            })
-        }
+        const pipelines = getPipelines(currentCity)
+        newRunning = {...pipelines}
         let allFound = true
+        Object.keys(pipelines).forEach(building => {
+            let newBuilding = {...pipelines[building]}
+            newBuilding.running = []
+            pipelines[building].running.forEach(op => {
+                if (maxId < op.id) {
+                    maxId = op.id
+                }
+                if (op.lastUpdateTime !== undefined && op.duration > 0) {
+                    const finishTime = op.start + op.duration
+                    if (timesToStart[building] === undefined || timesToStart[building] < finishTime) {
+                        timesToStart[building] = finishTime
+                    }
+                }
+                if (remainingRemovals[op.good]
+                    && remainingRemovals[op.good] > 0
+                    && (forcePull || op.duration <= 50 || op.lastUpdateTime === undefined)) {
+                    remainingRemovals[op.good] -= 1
+                    if (op.start > 300) {
+                        allFound = false
+                    }
+                } else {
+                    newBuilding.running.push(op)
+                }
+            })
+            newRunning[building] = newBuilding
+        })
         opsToAdd.forEach(op => {
             if (newRunning[op.building] === undefined) {
-                newRunning[op.building] = deepCopy(running[currentCity][op.building].running)
+                newRunning[op.building] = deepCopy(pipelines[op.building].running)
             }
             let finalOp;
             newRunning[op.building].running.forEach(existingOp => {
@@ -120,6 +138,7 @@ export function useOperations() {
             finalOp.lastUpdateTime = Date.now()
             if (newRunning[op.building].isParallel) {
                 finalOp.start = 0
+                finalOp.duration = adjustedDuration(finalOp.good, finalOp.start, newRunning[op.building])
             } else {
                 finalOp.start = timesToStart[finalOp.building] || 0
                 finalOp.duration = adjustedDuration(finalOp.good, finalOp.start, newRunning[finalOp.building])
@@ -132,34 +151,33 @@ export function useOperations() {
                 newRunning[building].running = newRunning[building].running.filter(op => op.lastUpdateTime !== undefined)
             })
         }
-        updateOperations(newRunning, currentCity);
-        return allFound
+        if (allFound) {
+            updateOperations(newRunning, getRecommendedLists(currentCity), getPurchases(currentCity), currentCity);
+        } else {
+            // We started an op that wasn't on the board, we want to re-evaluate recommendations
+            updateOperations(newRunning, [], [], currentCity)
+        }
     }
 
-    const updateOperations = (newRunning, currentCity) => {
-        let allRunning = {...running}
-        allRunning[currentCity] = newRunning
-        const countRunning = (pipelines) => {
-            let sum = 0
-            Object.keys(pipelines).forEach(pipe => {
-                sum += pipelines[pipe].running.length
-            })
-            return sum
-        }
-        const newCount = countRunning(newRunning)
+    const updateOperations = (newRunning, newTargets, newPurchases, currentCity) => {
+        let allRunning = deepCopy(running, 2)
+        allRunning.pipelines[currentCity] = newRunning
+        allRunning.targets[currentCity] = newTargets
+        allRunning.purchases[currentCity] = newPurchases
         setRunning(allRunning)
     }
 
     const speedUpOperations = (operations, amount, currentCity) => {
-        let newRunning = {...running[currentCity]}
+        const pipelines = getPipelines(currentCity)
+        let newRunning = {...pipelines}
         let idsToSpeedUp = {}
         operations.forEach(op => {
             idsToSpeedUp[op.id] = true;
         })
-        Object.keys(running[currentCity]).forEach(building => {
-            let newBuilding = {...running[currentCity][building]}
+        Object.keys(pipelines).forEach(building => {
+            let newBuilding = {...pipelines[building]}
             newBuilding.running = []
-            running[currentCity][building].running.forEach(op => {
+            pipelines[building].running.forEach(op => {
                 if (idsToSpeedUp[op.id]) {
                     let newOp = {...op}
                     newOp.duration -= amount
@@ -170,29 +188,38 @@ export function useOperations() {
             })
             newRunning[building] = newBuilding
         })
-        updateOperations(newRunning, currentCity)
+        updateOperations(newRunning, getRecommendedLists(currentCity), getPurchases(currentCity), currentCity)
     }
 
-    const createRecommendations = (pipelines, newList, currentRecommendations, currentCity) => {
+    const createRecommendations = (pipelines, newList, expectedTime, addedPurchases, currentCity) => {
+        let newTargets = getRecommendedLists(currentCity)
+        newTargets.push({
+            items: newList.items,
+            listIndex: newList.index,
+            expectedTime: expectedTime
+        })
+        let newPurchases = getPurchases(currentCity)
+        newPurchases = newPurchases.concat(addedPurchases)
         updateOperations(
             pipelines,
+            newTargets,
+            newPurchases,
             currentCity
         )
-        let newRecommendations = [...currentRecommendations]
-        newRecommendations.push(newList)
-        setRecommendations(newRecommendations)
     }
 
     const updateAllRunningOps = () => {
         let newRunningOps = {}
         let addToStorage = {}
-        Object.keys(running).forEach(city => {
+        Object.keys(running.pipelines).forEach(city => {
             let localAdd = {}
-            let newCityRunning = {...running[city]}
+            const pipelines = getPipelines(city)
+            let newCityRunning = {...pipelines}
             Object.keys(newCityRunning).forEach(building => {
+                let timeToStart = 0
                 let newBuilding = {...newCityRunning[building]}
                 newBuilding.running = []
-                running[city][building].running.forEach(op => {
+                pipelines[building].running.forEach(op => {
                     let newOp = {...op}
                     if (op.lastUpdateTime !== undefined) {
                         const timeDelta = (Date.now() - op.lastUpdateTime) / 1000
@@ -200,8 +227,9 @@ export function useOperations() {
                         if (op.start <= 0) {
                             newOp.duration -= timeDelta
                         } else {
-                            newOp.start -= timeDelta
+                            newOp.start = timeToStart
                         }
+                        timeToStart = Math.max(0, newOp.start + newOp.duration)
                         newOp.listIndex = undefined
                         if (newOp.duration > 0) {
                             newBuilding.running.push(newOp)
@@ -218,60 +246,74 @@ export function useOperations() {
             newRunningOps[city] = newCityRunning
             addToStorage[city] = localAdd
         })
-        return {running: newRunningOps, addToStorage: addToStorage};
+        return {pipelines: newRunningOps, addToStorage: addToStorage};
     }
 
-    const updatePipelines = (cities, currentCity, updatedSoFar) => {
-        const oldPipelines = running[currentCity] || []
-        let newPipelines = {}
-
-        if (updatedSoFar === undefined) {
-            updatedSoFar = {...running}
+    const getExpectedTimes = (currentCity) => {
+        let times = []
+        if (running && running.targets && running.targets[currentCity]) {
+            running.targets[currentCity].forEach(t => {
+                times[t.listIndex] = t.expectedTime
+            })
         }
-        const currentCitySettings = cities[currentCity]
-        if (currentCitySettings.buildings) {
-            Object.keys(currentCitySettings.buildings).forEach(building => {
-                const oldPipe = oldPipelines.building || {running: []}
-                let newPipe = {...oldPipe}
-                newPipe.slots = currentCitySettings.buildings[building].slots
-                newPipe.isParallel = currentCitySettings.buildings[building].isParallel
-                newPipe.goods = {}
-                Object.keys(goodsData).forEach(good => {
-                    let canMake =
-                        goodsData[good].building === building ||
-                        (building === randomGeneratorKey &&
-                            currentCitySettings.buildings[building].currentBuilding === goodsData[good].building)
-                    if (canMake) {
-                        let multiplier = 1
-                        const level = currentCitySettings.buildings[building].level
-                        if (level > 0) {
-                            multiplier -= .05 + .05 * level
-                        }
-                        newPipe.goods[good] = {...goodsData[good]}
-                        newPipe.goods[good].duration = multiplier * goodsData[good].duration
+        return times
+    }
+
+    const updatePipelines = (cities) => {
+        let allPipelines = {}
+        let allTargets = {}
+        let allPurchases = {}
+        Object.keys(cities).forEach(currentCity => {
+            const currentCitySettings = cities[currentCity]
+            const oldPipelines = getPipelines(currentCity)
+            let newPipelines = {}
+            if (currentCitySettings.buildings) {
+                Object.keys(currentCitySettings.buildings).forEach(building => {
+                    if (currentCitySettings.buildings[building].haveBuilding) {
+                        const oldPipe = oldPipelines[building] || {running: []}
+                        let newPipe = {...oldPipe}
+                        newPipe.running = []
+                        oldPipe.running.filter(op => op.lastUpdateTime !== undefined).forEach(op => {
+                            newPipe.running.push(op)
+                        })
+                        newPipe.slots = currentCitySettings.buildings[building].slots
+                        newPipe.isParallel = currentCitySettings.buildings[building].isParallel
+                        newPipe.goods = {}
+                        Object.keys(goodsData).forEach(good => {
+                            let canMake =
+                                goodsData[good].building === building ||
+                                (building === randomGeneratorKey &&
+                                    currentCitySettings.buildings[building].currentBuilding === goodsData[good].building)
+                            canMake = canMake && goodsData[good].requiredLevel <= currentCitySettings.level
+                            if (canMake) {
+                                let multiplier = 1
+                                const level = currentCitySettings.buildings[building].level
+                                if (level > 0) {
+                                    multiplier -= .05 + .05 * level
+                                }
+                                newPipe.goods[good] = {...goodsData[good]}
+                                newPipe.goods[good].duration = multiplier * goodsData[good].duration
+                            }
+                        })
+                        newPipelines[building] = newPipe
                     }
                 })
-                newPipelines[building] = newPipe
-            })
-        }
-        updatedSoFar[currentCity] = newPipelines
-        const countRunning = (pipelines) => {
-            let sum = 0
-            Object.keys(pipelines).forEach(pipe => {
-                sum += pipelines[pipe].running.length
-            })
-            return sum
-        }
-        const newCount = countRunning(newPipelines)
-        setRunning(updatedSoFar)
-        return updatedSoFar
+                allPipelines[currentCity] = newPipelines
+                allTargets[currentCity] = []
+                allPurchases[currentCity] = []
+            }
+        })
+
+        setRunning({
+            pipelines: allPipelines,
+            targets: allTargets,
+            purchases: allPurchases
+        })
+        return allPipelines
     }
 
     const getRecommended = (currentCity) => {
-        let cityRunning = {}
-        if (running && running[currentCity]) {
-            cityRunning = running[currentCity]
-        }
+        const cityRunning = getPipelines(currentCity)
         let allRecommended = []
         Object.keys(cityRunning).forEach(building => {
             cityRunning[building].running.forEach(op => {
@@ -296,6 +338,8 @@ export function useOperations() {
         getRecommended,
         getRecommendedLists,
         updateOperations,
-        getRunning
+        getPipelines,
+        getExpectedTimes,
+        getPurchases
     }
 }
