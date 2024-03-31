@@ -25,7 +25,7 @@ export function useStorage() {
         if (newStorage[good] > 1) {
             newStorage[good] -= 1
         } else {
-            delete newStorage[good]
+            newStorage[good] = 0
         }
         return {found: found, storage: newStorage}
     }
