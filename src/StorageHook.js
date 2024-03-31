@@ -29,8 +29,9 @@ export function useStorage() {
         }
         return {found: found, storage: newStorage}
     }
-    const removeGoods = (goods, currentCity) => {
-        let storage = inStorage[currentCity]
+    const removeGoods = (goods, currentCity, newStorage) => {
+        const allStorage = newStorage || inStorage
+        let storage = allStorage[currentCity]
         let found = {}
         Object.keys(goods).forEach((good) => {
             for (let i = 0; i < goods[good]; i += 1) {
@@ -41,35 +42,37 @@ export function useStorage() {
                 }
             }
         })
-        updateStorage(storage, currentCity)
-        return found
+
+        return {found: found, storage: updateStorage(storage, currentCity, allStorage)}
     }
-    const addStorage = (goods, currentCity) => {
-        let newStorage = {...inStorage[currentCity]}
+    const addStorage = (goods, currentCity, newStorage) => {
+        const allStorage = newStorage || inStorage
+        let currentStorage = {...allStorage[currentCity]}
         Object.keys(goods).forEach(good => {
-            if (newStorage[good] === undefined) {
-                newStorage[good] = goods[good]
+            if (currentStorage[good] === undefined) {
+                currentStorage[good] = goods[good]
             } else {
-                newStorage[good] += goods[good]
+                currentStorage[good] += goods[good]
             }
         })
-        updateStorage(newStorage, currentCity)
-        return newStorage
+        return updateStorage(newStorage, currentCity, newStorage)
     }
 
     const clearStorage = (currentCity) => {
         updateStorage({}, currentCity)
     }
 
-    const updateStorage = (storage, currentCity) => {
-        let allStorage = {...inStorage}
+    const updateStorage = (storage, currentCity, newStorage) => {
+        let allStorage = newStorage || {...inStorage}
         allStorage[currentCity] = storage
         setInStorage(allStorage)
         localStorage.setItem("simStorage", JSON.stringify(allStorage))
+        return allStorage
     }
 
-    const getUnusedStorage = (currentCity) => {
-        let currentCityStorage = inStorage[currentCity] || {}
+    const getUnusedStorage = (currentCity, newAllStorage) => {
+        let allStorage = newAllStorage || inStorage || {}
+        let currentCityStorage = allStorage[currentCity] || {}
         let currentCityUsed = usedStorage[currentCity]
         let newUnusedStorage = {}
         Object.keys(currentCityStorage).forEach(good => {
@@ -78,8 +81,8 @@ export function useStorage() {
         return newUnusedStorage
     }
 
-    const updateUnassignedStorage = (newStorage, currentCity) => {
-        let allStorage = {...usedStorage}
+    const updateUnassignedStorage = (newStorage, currentCity, newAllStorage) => {
+        let allStorage = newAllStorage || {...usedStorage}
         let currentCityStorage = inStorage[currentCity] || {}
         let newUsedStorage = {}
         Object.keys(currentCityStorage).forEach(good => {
@@ -141,9 +144,10 @@ export function useStorage() {
         setUsedStorage(usedStorage)
     }
 
-    const getStorage = (currentCity) => {
-        if (inStorage && inStorage[currentCity]) {
-            return {...inStorage[currentCity]}
+    const getStorage = (currentCity, newStorage) => {
+        const allStorage = newStorage || inStorage
+        if (allStorage && allStorage[currentCity]) {
+            return {...allStorage[currentCity]}
         } else {
             return {}
         }

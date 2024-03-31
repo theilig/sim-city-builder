@@ -165,6 +165,7 @@ export function useOperations() {
         allRunning.targets[currentCity] = newTargets
         allRunning.purchases[currentCity] = newPurchases
         setRunning(allRunning)
+        return allRunning
     }
 
     const speedUpOperations = (operations, amount, currentCity) => {

@@ -115,7 +115,7 @@ function App() {
     let storageResult = removeGoods(itemsNeeded, currentCity)
     let itemsToRemoveFromOperations = {}
     Object.keys(itemsNeeded).forEach((good) => {
-      const found = storageResult[good]
+      const found = storageResult.found[good]
       const needed = itemsNeeded[good]
       if (!found || needed > found) {
           itemsToRemoveFromOperations[good] = needed - (found || 0)
@@ -148,7 +148,8 @@ function App() {
       newGoods[op.good] = (newGoods[op.good] || 0) + 1
     })
     changeRunningOperations([], newGoods, true, currentCity)
-    addStorage(newGoods, currentCity)
+    const newStorage = addStorage(newGoods, currentCity)
+    return {pipes: undefined, storage: newStorage}
   }
 
   function makeGoods(goods, pullFromStorage) {
@@ -165,13 +166,15 @@ function App() {
   }
 
   function haveStorage(goods, clickedDone = false) {
-    addStorage(goods, currentCity)
+    const newStorage = addStorage(goods, currentCity)
     changeRunningOperations([], goods, clickedDone, currentCity)
+    return {pipes: undefined, storage: newStorage}
   }
 
   function removeStorage(goods) {
     recalculateRecommendations()
-    removeGoods(goods, currentCity)
+    let result = removeGoods(goods, currentCity)
+    return result.storage
   }
 
   function finishShoppingList(index) {
@@ -222,28 +225,31 @@ function App() {
       } else {
         setCurrentCity(Object.keys(loadedSettings.cities)[0])
         const newPipelines = updatePipelines(loadedSettings.cities)
-        updateStorageItems(newPipelines, newStorage)
+        updateStorageItems(newPipelines)
       }
      setLoaded(true)
     }
     const interval = setInterval(() => {
       if (currentCity) {
-        const running = getPipelines(currentCity)
+        let allStorage
+        let allPipes
+        let updatedRunning = getPipelines(currentCity)
         const recommendedLists = getRecommendedLists(currentCity)
-        let updatedRunning = running
         let updatedTimes = {}
-        let updatedStorage = getStorage(currentCity)
+        let unusedStorage = getStorage(currentCity)
         let newPurchases = []
         if (Date.now() - updatedTime > 10000) {
           setUpdatedTime(Date.now())
-          const updateResult = updateAllRunningOps(currentCity)
-          Object.keys(updateResult.addToStorage[currentCity]).forEach(item => {
-            updatedStorage = addStorage(updateResult.addToStorage[currentCity], currentCity)
+          const updateResult = updateAllRunningOps()
+          allPipes = updateResult.pipelines
+          Object.keys(updateResult.addToStorage).forEach(city => {
+            allStorage = addStorage(updateResult.addToStorage[city], city, allStorage)
           })
-          updatedRunning = updateResult.pipelines[currentCity]
+          unusedStorage = getStorage(currentCity, allStorage)
+          updatedRunning = getPipelines(currentCity, allPipes)
           recommendedLists.forEach((list, index) => {
-            const addOrderResult = addOrder(list.items, updatedStorage, updatedRunning, 0, 0, list.listIndex, list.listIndex === EPHEMERAL_LIST_INDEX)
-            updatedStorage = addOrderResult.updatedStorage
+            const addOrderResult = addOrder(list.items, unusedStorage, updatedRunning, 0, 0, list.listIndex, list.listIndex === EPHEMERAL_LIST_INDEX)
+            unusedStorage = addOrderResult.updatedStorage
             updatedRunning = addOrderResult.updatedPipelines
             newPurchases = newPurchases.concat(addOrderResult.addedPurchases)
             updatedTimes[index] = addOrderResult.expectedTime
@@ -252,29 +258,29 @@ function App() {
           Object.keys(updatedTimes).forEach(key => {
             newLists[parseInt(key)].expectedTime = updatedTimes[key]
           })
-          updateOperations(updatedRunning, newLists, newPurchases, currentCity)
+          allPipes = updateOperations(updatedRunning, newLists, newPurchases, currentCity, allPipes)
         } else {
-          updatedStorage = getUnusedStorage(currentCity)
+          unusedStorage = getUnusedStorage(currentCity)
         }
         const unscheduledLists = getUnscheduledLists(recommendedLists, currentCity)
         if (unscheduledLists !== undefined && unscheduledLists.length > 0) {
-          const result = calculateRecommendations(updatedStorage, updatedRunning, unscheduledLists)
+          const result = calculateRecommendations(unusedStorage, updatedRunning, unscheduledLists)
           if (result.shoppingList) {
             updatedRunning = result.updatedPipelines
-            updatedStorage = result.updatedStorage
-            createRecommendations(updatedRunning, result.shoppingList, result.expectedTime, result.addedPurchases, currentCity)
+            unusedStorage = result.updatedStorage
+            createRecommendations(updatedRunning, result.shoppingList, result.expectedTime, result.addedPurchases, currentCity, allPipes)
           }
           updatedTimes[result.shoppingList.index] = result.expectedTime
         } else {
-          const stockingLists = calculateStockingList(settings.cities[currentCity])
-          const result = calculateStockingRecommendations(updatedStorage, updatedRunning, getPurchases(currentCity), stockingLists)
+          const stockingLists = calculateStockingList(settings.cities[currentCity], allStorage, allPipes)
+          const result = calculateStockingRecommendations(unusedStorage, updatedRunning, getPurchases(currentCity), stockingLists)
           if (result.shoppingList) {
             updatedRunning = result.updatedPipelines
-            updatedStorage = result.updatedStorage
-            createRecommendations(updatedRunning, result.shoppingList, result.expectedTime, result.addedPurchases, currentCity)
+            unusedStorage = result.updatedStorage
+            createRecommendations(updatedRunning, result.shoppingList, result.expectedTime, result.addedPurchases, currentCity, allPipes)
           }
         }
-        updateUnassignedStorage(updatedStorage, currentCity)
+        updateUnassignedStorage(unusedStorage, currentCity, allStorage)
       }
     }, 1000)
     return () => clearInterval(interval)
@@ -407,7 +413,6 @@ function App() {
           <OperationList key={"oplist"} pipelines={displayPipelines}
                          startOp={(opList) => startOperations(opList)}
                          finishOp={finishOperations} speedUp={speedUp}
-                         changeToken={changeToken}
           />
         </div>
     )
