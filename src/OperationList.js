@@ -12,6 +12,7 @@ function OperationList(props) {
                           finishOp={props.finishOp}
                           startOp={props.startOp}
                           speedUp={props.speedUp}
+                          changeToken={props.changeToken}
                 />
             )}
         </div>
