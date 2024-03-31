@@ -50,7 +50,7 @@ export const grabFromRunning = (pipelines, goodName, amount, listIndex) => {
 
 export function useOperations() {
     const [running, setRunning] = useState({})
-    const clearRecommendations = (currentCity) => {
+    const clearRecommendations = (currentCity, newPipelines) => {
         const pipelines = getPipelines(currentCity)
         let newRunning = deepCopy(pipelines, 2)
         Object.keys(pipelines).forEach(building => {
@@ -62,10 +62,22 @@ export function useOperations() {
             })
             newRunning[building].running = newBuildingRunning
         })
-        updateOperations(newRunning, [], [], currentCity)
+        return updateOperations(newRunning, [], [], currentCity, newPipelines)
     }
 
-    const getRecommendedLists = (currentCity, newPipes) => {
+    const updateToken = (currentCity, building, speed, newPipelines) => {
+        let allPipelines = newPipelines || {...running}
+        let newBuilding = {...allPipelines[currentCity].pipelines[building]}
+        newBuilding.speedUp = {
+            speed: speed,
+            remaining: 3600,
+            lastUpdateTime: Date.now()
+        }
+        allPipelines[currentCity].pipelines[building] = newBuilding
+        return allPipelines
+    }
+
+    const getRecommendedLists = (currentCity, newPipelines) => {
         const pipes = newPipes || running
         if (!pipes || !pipes.targets || !pipes.targets[currentCity]) {
             return []
@@ -192,7 +204,12 @@ export function useOperations() {
             })
             newRunning[building] = newBuilding
         })
-        updateOperations(newRunning, getRecommendedLists(currentCity), getPurchases(currentCity), currentCity, newPipes)
+        return updateOperations(
+            newRunning,
+            getRecommendedLists(currentCity, newPipelines),
+            getPurchases(currentCity, newPipelines),
+            currentCity,
+            newPipelines)
     }
 
     const createRecommendations = (pipelines, newList, expectedTime, addedPurchases, currentCity, newPipes) => {
@@ -310,7 +327,6 @@ export function useOperations() {
                 allPurchases[currentCity] = []
             }
         })
-
         setRunning({
             pipelines: allPipelines,
             targets: allTargets,
@@ -347,6 +363,7 @@ export function useOperations() {
         updateOperations,
         getPipelines,
         getExpectedTimes,
-        getPurchases
+        getPurchases,
+        updateToken
     }
 }
