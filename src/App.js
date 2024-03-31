@@ -55,7 +55,8 @@ function App() {
     getRecommendedLists,
     updateOperations,
     getExpectedTimes,
-    getPurchases
+    getPurchases,
+    updateToken
   } = useOperations()
 
   const {
@@ -79,6 +80,17 @@ function App() {
       clearShoppingLists(currentCity, settings.cities[currentCity].goods)
     }
     recalculateRecommendations()
+  }
+
+  function changeToken(building, tokenType) {
+    const speeds = {
+      none: 1,
+      Turtle: 2,
+      Llama: 4,
+      Cheetah: 12
+    }
+    const newPipelines = updateToken(currentCity, building, speeds[tokenType])
+    recalculateRecommendations(newPipelines)
   }
 
   function stopSettings() {
@@ -121,7 +133,10 @@ function App() {
           itemsToRemoveFromOperations[good] = needed - (found || 0)
       }
     })
-    changeRunningOperations(newRunningOps, itemsToRemoveFromOperations, true, currentCity)
+    return {
+      pipes: changeRunningOperations(newRunningOps, itemsToRemoveFromOperations, true, currentCity),
+      storage: storageResult.storage
+    }
   }
 
   function startOperations(operations, pullFromStorage = true) {
@@ -147,9 +162,9 @@ function App() {
     operations.forEach(op => {
       newGoods[op.good] = (newGoods[op.good] || 0) + 1
     })
-    changeRunningOperations([], newGoods, true, currentCity)
+    const newPipes = changeRunningOperations([], newGoods, true, currentCity)
     const newStorage = addStorage(newGoods, currentCity)
-    return {pipes: undefined, storage: newStorage}
+    return {pipes: newPipes, storage: newStorage}
   }
 
   function makeGoods(goods, pullFromStorage) {
@@ -167,8 +182,8 @@ function App() {
 
   function haveStorage(goods, clickedDone = false) {
     const newStorage = addStorage(goods, currentCity)
-    changeRunningOperations([], goods, clickedDone, currentCity)
-    return {pipes: undefined, storage: newStorage}
+    const newPipes = changeRunningOperations([], goods, clickedDone, currentCity)
+    return {pipes: newPipes, storage: newStorage}
   }
 
   function removeStorage(goods) {
@@ -216,7 +231,7 @@ function App() {
       }
       setSettings(loadedSettings)
       loadShoppingLists(loadedSettings.cities)
-      loadStorage(Object.keys(loadedSettings.cities))
+      const newStorage = loadStorage(Object.keys(loadedSettings.cities))
 
       const cities = Object.keys(loadedSettings.cities)
 
@@ -225,7 +240,7 @@ function App() {
       } else {
         setCurrentCity(Object.keys(loadedSettings.cities)[0])
         const newPipelines = updatePipelines(loadedSettings.cities)
-        updateStorageItems(newPipelines)
+        updateStorageItems(newPipelines, newStorage)
       }
      setLoaded(true)
     }
