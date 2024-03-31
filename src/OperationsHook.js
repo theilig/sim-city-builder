@@ -65,33 +65,36 @@ export function useOperations() {
         updateOperations(newRunning, [], [], currentCity)
     }
 
-    const getRecommendedLists = (currentCity) => {
-        if (!running || !running.targets || !running.targets[currentCity]) {
+    const getRecommendedLists = (currentCity, newPipes) => {
+        const pipes = newPipes || running
+        if (!pipes || !pipes.targets || !pipes.targets[currentCity]) {
             return []
         }
-        return running.targets[currentCity]
+        return pipes.targets[currentCity]
     }
 
-    const getPurchases = (currentCity) => {
-        if (!running || !running.purchases || !running.purchases[currentCity]) {
+    const getPurchases = (currentCity, newPipes) => {
+        const pipes = newPipes || running
+        if (!pipes || !pipes.purchases || !pipes.purchases[currentCity]) {
             return []
         }
-        return running.purchases[currentCity]
+        return pipes.purchases[currentCity]
     }
 
-    const getPipelines = (currentCity) => {
-        if (!running || !running.pipelines || !running.pipelines[currentCity]) {
+    const getPipelines = (currentCity, newPipes) => {
+        const pipes = newPipes || running
+        if (!pipes || !pipes.pipelines || !pipes.pipelines[currentCity]) {
             return {}
         }
-        return running.pipelines[currentCity]
+        return pipes.pipelines[currentCity]
     }
 
-    const changeRunningOperations = (opsToAdd, opsToRemove, forcePull, currentCity) => {
+    const changeRunningOperations = (opsToAdd, opsToRemove, forcePull, currentCity, newPipes) => {
         let newRunning = {}
         let remainingRemovals = {...opsToRemove}
         let maxId = 0
         let timesToStart = {}
-        const pipelines = getPipelines(currentCity)
+        const pipelines = getPipelines(currentCity, newPipes)
         newRunning = {...pipelines}
         let allFound = true
         Object.keys(pipelines).forEach(building => {
@@ -152,15 +155,15 @@ export function useOperations() {
             })
         }
         if (allFound) {
-            updateOperations(newRunning, getRecommendedLists(currentCity), getPurchases(currentCity), currentCity);
+            return updateOperations(newRunning, getRecommendedLists(currentCity), getPurchases(currentCity), currentCity, newPipes);
         } else {
             // We started an op that wasn't on the board, we want to re-evaluate recommendations
-            updateOperations(newRunning, [], [], currentCity)
+            return updateOperations(newRunning, [], [], currentCity, newPipes)
         }
     }
 
-    const updateOperations = (newRunning, newTargets, newPurchases, currentCity) => {
-        let allRunning = deepCopy(running, 2)
+    const updateOperations = (newRunning, newTargets, newPurchases, currentCity, newPipes) => {
+        let allRunning = newPipes || deepCopy(running, 2)
         allRunning.pipelines[currentCity] = newRunning
         allRunning.targets[currentCity] = newTargets
         allRunning.purchases[currentCity] = newPurchases
@@ -168,8 +171,8 @@ export function useOperations() {
         return allRunning
     }
 
-    const speedUpOperations = (operations, amount, currentCity) => {
-        const pipelines = getPipelines(currentCity)
+    const speedUpOperations = (operations, amount, currentCity, newPipes) => {
+        const pipelines = getPipelines(currentCity, newPipes)
         let newRunning = {...pipelines}
         let idsToSpeedUp = {}
         operations.forEach(op => {
@@ -189,30 +192,32 @@ export function useOperations() {
             })
             newRunning[building] = newBuilding
         })
-        updateOperations(newRunning, getRecommendedLists(currentCity), getPurchases(currentCity), currentCity)
+        updateOperations(newRunning, getRecommendedLists(currentCity), getPurchases(currentCity), currentCity, newPipes)
     }
 
-    const createRecommendations = (pipelines, newList, expectedTime, addedPurchases, currentCity) => {
-        let newTargets = getRecommendedLists(currentCity)
+    const createRecommendations = (pipelines, newList, expectedTime, addedPurchases, currentCity, newPipes) => {
+        let newTargets = getRecommendedLists(currentCity, newPipes)
         newTargets.push({
             items: newList.items,
             listIndex: newList.index,
             expectedTime: expectedTime
         })
-        let newPurchases = getPurchases(currentCity)
+        let newPurchases = getPurchases(currentCity, newPipes)
         newPurchases = newPurchases.concat(addedPurchases)
         updateOperations(
             pipelines,
             newTargets,
             newPurchases,
-            currentCity
+            currentCity,
+            newPipes
         )
     }
 
-    const updateAllRunningOps = () => {
-        let newRunningOps = {}
+    const updateAllRunningOps = (newPipes) => {
+        let allPipes = newPipes || running
+        let newRunningOps = {...running}
         let addToStorage = {}
-        Object.keys(running.pipelines).forEach(city => {
+        Object.keys(allPipes.pipelines).forEach(city => {
             let localAdd = {}
             const pipelines = getPipelines(city)
             let newCityRunning = {...pipelines}
@@ -244,15 +249,16 @@ export function useOperations() {
                 })
                 newCityRunning[building] = newBuilding
             })
-            newRunningOps[city] = newCityRunning
+            newRunningOps.pipelines[city] = newCityRunning
             addToStorage[city] = localAdd
         })
         return {pipelines: newRunningOps, addToStorage: addToStorage};
     }
 
-    const getExpectedTimes = (currentCity) => {
+    const getExpectedTimes = (currentCity, newPipes) => {
+        const pipes = newPipes || running
         let times = []
-        if (running && running.targets && running.targets[currentCity]) {
+        if (pipes && pipes.targets && pipes.targets[currentCity]) {
             running.targets[currentCity].forEach(t => {
                 times[t.listIndex] = t.expectedTime
             })
@@ -313,8 +319,8 @@ export function useOperations() {
         return allPipelines
     }
 
-    const getRecommended = (currentCity) => {
-        const cityRunning = getPipelines(currentCity)
+    const getRecommended = (currentCity, newPipes) => {
+        const cityRunning = getPipelines(currentCity, newPipes)
         let allRecommended = []
         Object.keys(cityRunning).forEach(building => {
             cityRunning[building].running.forEach(op => {

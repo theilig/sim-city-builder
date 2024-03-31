@@ -55,7 +55,7 @@ export function useStorage() {
                 currentStorage[good] += goods[good]
             }
         })
-        return updateStorage(newStorage, currentCity, newStorage)
+        return updateStorage(currentStorage, currentCity, newStorage)
     }
 
     const clearStorage = (currentCity) => {
