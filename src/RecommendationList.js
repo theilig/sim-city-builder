@@ -29,10 +29,7 @@ function RecommendationList(props) {
                 collection = possibleCollection
             }
         })
-        if (!factory || remainingSlots[op.building] > 0) {
-            if (factory) {
-                remainingSlots[op.building] -= 1
-            }
+        if (!factory) {
             if (collection) {
                 collection.ops.push(op)
             } else {

@@ -11,6 +11,7 @@ import {EPHEMERAL_LIST_INDEX, useRecommendations} from "./RecommendationHook";
 import {useProduction} from "./ProductionHook";
 import RecommendationList from "./RecommendationList";
 import {deepCopy, goodsData, randomGeneratorKey} from "./BuildingSettings";
+import FactoryRecommendations from "./FactoryRecommendations";
 
 function App() {
   const [loaded, setLoaded] = useState(false)
@@ -220,34 +221,23 @@ function App() {
         setShowSettings(true)
       } else {
         setCurrentCity(Object.keys(loadedSettings.cities)[0])
-        updatePipelines(loadedSettings.cities)
+        const newPipelines = updatePipelines(loadedSettings.cities)
+        updateStorageItems(newPipelines, newStorage)
       }
      setLoaded(true)
     }
     const interval = setInterval(() => {
-      const countRunning = (pipelines) => {
-        let sum = 0
-        Object.keys(pipelines).forEach(pipe => {
-          sum += pipelines[pipe].running.length
-        })
-        return sum
-      }
       if (currentCity) {
         const running = getPipelines(currentCity)
         const recommendedLists = getRecommendedLists(currentCity)
         let updatedRunning = running
         let updatedTimes = {}
         let updatedStorage = getStorage(currentCity)
-        const original = countRunning(running)
-        let finished = 0
-        let storageUpdated = false
         let newPurchases = []
         if (Date.now() - updatedTime > 10000) {
           setUpdatedTime(Date.now())
           const updateResult = updateAllRunningOps(currentCity)
           Object.keys(updateResult.addToStorage[currentCity]).forEach(item => {
-            finished += updateResult.addToStorage[currentCity][item]
-            storageUpdated = true
             updatedStorage = addStorage(updateResult.addToStorage[currentCity], currentCity)
           })
           updatedRunning = updateResult.pipelines[currentCity]
@@ -285,17 +275,15 @@ function App() {
           }
         }
         updateUnassignedStorage(updatedStorage, currentCity)
-        // There's a race condition where we don't get the updated recommended list and drop some recommendations
-        // to protect against this we will not update if we drop more ops than expected unless we've already changed storage
-        const final = countRunning(updatedRunning)
-
       }
     }, 1000)
     return () => clearInterval(interval)
   }, [addOrder, addStorage, calculateRecommendations, calculateStockingRecommendations, calculateStockingList,
             createRecommendations, currentCity, getRecommendedLists, getUnscheduledLists, getUnusedStorage,
             loadShoppingLists, loadStorage, loaded, settings.cities, updateAllRunningOps, getPipelines,
-            updatePipelines, updateUnassignedStorage, updatedTime, updateOperations]
+            updatePipelines, updateUnassignedStorage, updatedTime, updateOperations, getPurchases,
+            getStorage, updateStorageItems
+      ]
   )
 
   if (showSettings) {
@@ -372,7 +360,8 @@ function App() {
                 } else {
                   return <div key={city + '.tab'} style={{opacity: "50%", fontSize: "1.5em"}} onClick={() => {
                     setCurrentCity(city)
-                    updatePipelines(settings.cities)
+                    const newPipelines = updatePipelines(settings.cities)
+                    updateStorageItems(newPipelines)
                   }}>{city}</div>
               }
             })}
@@ -381,10 +370,15 @@ function App() {
           </div>
           <Storage key={"storage"} storage={getStorage(currentCity)} addShoppingList={addShoppingList} addStorage={haveStorage} removeStorage={removeStorage}
                    makeGoods={makeGoods} clear={clear} unassignedStorage={unusedStorage} buildingSettings={buildingSettings}/>
-          <div style={{height: '20px'}} />
+          <div key={"spacer"} style={{height: '20px'}} />
           <RecommendationList key={"reclist"} recommendations={getRecommended(currentCity)} pipelines={running}
                               startOp={(opList) => startOperations(opList)}
                               finishOp={(opList) => finishOperations(opList)}
+          />
+          <FactoryRecommendations key={"faclist"} recommendations={getRecommended(currentCity)} pipelines={running}
+                                  purchases={purchases}
+                                  startOp={(opList) => startOperations(opList)}
+                                  finishOp={(opList) => finishOperations(opList)}
           />
           <div>Purchases</div>
           <div style={{display: 'flex'}}>
@@ -394,14 +388,14 @@ function App() {
                 style.backgroundColor = 'white'
                 style.color = 'steelblue'
               }
-              return <div style={style}>{purchasesDisplay[purchaseKey].count + ' ' + purchaseKey}</div>
+              return <div key={purchaseKey} style={style}>{purchasesDisplay[purchaseKey].count + ' ' + purchaseKey}</div>
             })}
           </div>
           <div>&nbsp;</div>
           <div style={{display: "flex", width: "100%"}}>
             <div style={{display: "flex", flexDirection: "column"}}>
               <div>Shopping Lists</div>
-              <ShoppingLists prioritySwitches={prioritySwitches}
+              <ShoppingLists key={"slists"} prioritySwitches={prioritySwitches}
                              lists={displayLists} priorityOrder={priorityOrder}
                              expectedTimes={displayExpectedTimes}
                              removeShoppingList={removeShoppingList}
@@ -413,14 +407,8 @@ function App() {
           <OperationList key={"oplist"} pipelines={displayPipelines}
                          startOp={(opList) => startOperations(opList)}
                          finishOp={finishOperations} speedUp={speedUp}
+                         changeToken={changeToken}
           />
-          <div>
-            {getRecommendedLists(currentCity).map(list => {
-                  return (<div style={{display: 'flex', flexDirection: 'row'}}>
-                    {Object.keys(list.items).map(i => {return (<div>{i}</div>)})}
-                  </div>)
-                })}
-              </div>
         </div>
     )
   }

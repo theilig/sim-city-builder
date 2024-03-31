@@ -111,9 +111,6 @@ export function useOperations() {
                     && remainingRemovals[op.good] > 0
                     && (forcePull || op.duration <= 50 || op.lastUpdateTime === undefined)) {
                     remainingRemovals[op.good] -= 1
-                    if (op.start > 300) {
-                        allFound = false
-                    }
                 } else {
                     newBuilding.running.push(op)
                 }
@@ -128,6 +125,9 @@ export function useOperations() {
             newRunning[op.building].running.forEach(existingOp => {
                 if (!finalOp && existingOp.good === op.good && existingOp.lastUpdateTime === undefined) {
                     finalOp = existingOp
+                } else if (!finalOp && existingOp.lastUpdateTime === undefined && newRunning[op.building].isParallel === false) {
+                    // we skipped an op that was supposed to go first, recalculate
+                    allFound = false
                 }
             })
             if (!finalOp) {

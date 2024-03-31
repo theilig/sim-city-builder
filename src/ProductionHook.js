@@ -197,10 +197,14 @@ export function useProduction() {
          for (let i = 0; i < amount; i += 1) {
              let localWaitUntil = waitUntil
              const preliminary = findBest(waitUntil, 0)
+             if (preliminary === undefined) {
+                 continue
+             }
              const buyTime = getBuyingTime(goodsData[goodName].storeFrequency)
              let newItem
              let final = preliminary
-             if (!forceProduction && buyTime && buyTime < preliminary.start + preliminary.duration) {
+             const finishTime = preliminary.start + preliminary.duration
+             if (!forceProduction && buyTime && buyTime < finishTime && finishTime > finishBy) {
                  newItem = {good: goodName, purchase: true, start: finishBy-buyTime, duration: buyTime, children: [], listIndex: listIndex}
                  final.duration = buyTime
                  final.start = 0

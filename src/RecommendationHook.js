@@ -82,34 +82,58 @@ export function useRecommendations() {
             let neededLists = []
             stockingLists.forEach(list => {
                 const good = Object.keys(list.items)[0]
-                if (goodsData[good] && list.items[good] > alreadyHave[good]) {
+                if (alreadyHave[good] === undefined) {
+                    alreadyHave[good] = 0
+                }
+                if (goodsData[good] && (list.items[good] > alreadyHave[good])) {
                     neededLists.push(list)
                     need[good] = list.items[good] - alreadyHave[good]
                 }
             })
-            let kickoffTimes = {}
-            let durations = {}
             neededLists = neededLists.filter(l => {
                 const item = Object.keys(l.items)[0]
                 let shortOnIngredients = false
                 Object.keys(goodsData[item].ingredients).forEach(ingredient => {
-                        if (need[ingredient] > need[item]) {
-                            shortOnIngredients = true
-                        }
+                    if (need[ingredient] > need[item]) {
+                        shortOnIngredients = true
                     }
-                )
+                })
                 return !shortOnIngredients
             })
-            neededLists.forEach(list => {
+
+            let kickoffTimes = {}
+            let durations = {}
+            let neededTimes = {}
+            // Can't use forEach here because we are adding to the list in the loop
+            for (let i = 0; i < neededLists.length; i += 1) {
+                const list = neededLists[i]
                 const good = Object.keys(list.items)[0]
                 let kickoffList = {}
                 kickoffList[good] = 1
                 const preliminary = addOrder(kickoffList, unassignedStorage, running, 0, 0, EPHEMERAL_LIST_INDEX, true)
                 // redo with finishBy to just in time everything, otherwise we end up making a bunch of metal that sits there
                 const result = addOrder(kickoffList, unassignedStorage, running, preliminary.expectedTime, 0, EPHEMERAL_LIST_INDEX, true)
-                kickoffTimes[good] = lowestStart(result.itemsAdded[0])
+                kickoffTimes[good] = Math.max(neededTimes[good] || 0, result.itemsAdded[0].start)
                 durations[good] = result.expectedTime
-            })
+                let descendants = [...result.itemsAdded[0].children]
+                for (let j = 0; j < descendants.length; j += 1) {
+                    const good = descendants[j].good
+                    if (!descendants[j].purchase && goodsData[good].ingredients.length > 0) {
+                        if (need[good]) {
+                            need[good] += 1
+                        } else {
+                            need[good] = 1
+                            let neededList = {items: {}}
+                            neededList.items[good] = 1
+                            neededLists.push(neededList)
+                        }
+                        if (neededTimes[good] === undefined || neededTimes[good] > descendants[j].start) {
+                            neededTimes[good] = descendants[j].start
+                        }
+                        descendants = descendants.concat(descendants[j].children)
+                    }
+                }
+            }
 
             neededLists.sort((a, b) => {
                 const aItem = Object.keys(a.items)[0]
@@ -118,16 +142,28 @@ export function useRecommendations() {
                 const bAmount = b.items[bItem]
                 const aPct = (alreadyHave[aItem] || 0) / aAmount
                 const bPct = (alreadyHave[bItem] || 0) / bAmount
-                const aWait = kickoffTimes[aItem] / durations[aItem]
-                const bWait = kickoffTimes[bItem] / durations[bItem]
-                if (aPct !== bPct) {
-                    return aPct - bPct
+                const aWait = kickoffTimes[aItem]
+                const bWait = kickoffTimes[bItem]
+                const aNeeded = need[aItem]
+                const bNeeded = need[bItem]
+                if (bWait === 0 && bNeeded >= aNeeded) {
+                    return 1
                 }
-                if (aWait !== bWait) {
-                    return aWait - bWait;
+                if (aWait === 0 && aNeeded >= bNeeded) {
+                    return -1
                 }
-                if (aAmount !== bAmount) {
-                    return bAmount - aAmount
+
+                if (bNeeded !== aNeeded && aWait > 0 && bWait > 0) {
+                    return bNeeded / bWait - aNeeded / aWait;
+                }
+                if (aWait === 0 && bWait > 0 && bWait / bNeeded > 600) {
+                    return -1
+                }
+                if (bWait === 0 && aWait > 0 && aWait / aNeeded > 600) {
+                    return 1
+                }
+                if (aNeeded !== bNeeded) {
+                    return bNeeded - aNeeded
                 }
                 return durations[bItem] - durations[aItem]
             })

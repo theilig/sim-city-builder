@@ -9,7 +9,7 @@ export const grabFromStorage = (storage, good, amount) => {
             amountTaken = amount
         } else {
             amountTaken = storage[good]
-            delete storage[good]
+            storage[good] = 0
         }
     }
     return amountTaken
@@ -115,17 +115,22 @@ export function useStorage() {
         Object.keys(storage).forEach(city => usedStorage[city] = {})
         setInStorage(storage)
         setUsedStorage(usedStorage)
+        return storage
     }
 
-    const updateStorageItems = (pipelines) => {
+    const updateStorageItems = (pipelines, loadedStorage) => {
         let updatedStorage = {}
         Object.keys(pipelines).forEach(cityName => {
             let newStorage = {}
+            let oldStorage = inStorage[cityName] || {}
+            if (loadedStorage) {
+                oldStorage = loadedStorage[cityName]
+            }
             Object.keys(goodsData).forEach(good => {
                 const building = goodsData[good].building
                 if (pipelines[cityName][building] &&
                     pipelines[cityName][building].goods[good] !== undefined) {
-                    newStorage[good] = inStorage[cityName][good] || 0
+                    newStorage[good] = oldStorage[good] || 0
                 }
             })
             updatedStorage[cityName] = newStorage
