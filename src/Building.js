@@ -4,9 +4,8 @@ import Operation from "./Operation";
 function Building(props) {
     let visualPipeline = []
     let lastOp = undefined
-    let needOne = true
     const [tokenSettings, setTokenSettings] = useState(false)
-    function toggleTokenSettings(e) {
+    function toggleTokenSettings() {
         setTokenSettings(true)
     }
     function checkForEscape(e) {
@@ -16,7 +15,9 @@ function Building(props) {
     }
     function addToken(e) {
         props.changeToken(props.name, e.target.value)
+        setTokenSettings(false)
     }
+    let taken = undefined
     props.pipeline.running.forEach((op, index) => {
         let visualOp = {...op}
         if (op.duration > 0 && op.lastUpdateTime !== undefined) {
@@ -27,24 +28,46 @@ function Building(props) {
                 lastOp = visualOp
                 visualPipeline.push(visualOp)
             }
-        } else if (needOne) {
-            needOne = false
-            visualOp.count = 1
-            visualPipeline.push(visualOp)
+        } else if (taken === undefined || taken.start > visualOp.start) {
+            taken = visualOp
         }
     })
-    let displayName = props.name
-    const token = props.pipeline.speedUp
-    if (token && token.speed > 1 && token.remaining > 0) {
-        displayName += " " + token.speed + "x"
+    if (taken) {
+        visualPipeline.push(taken)
     }
-    const style = {height: "40px", width: "170px"}
+    const style = {height: "20px", width: "170px"}
+    let displayName = props.name
+    let altText = ''
+    let defaultValue = ''
+    const token = props.pipeline.speedUp
+    if (token) {
+        if (token.remaining > 0) {
+            altText = Math.floor(token.remaining) + " seconds left"
+        }
+        switch (token.speed) {
+            case 2: style.color = '#CD7F32'
+                style.backgroundColor = 'white'
+                defaultValue = 'Turtle'
+                break
+            case 4: style.color = 'silver'
+                style.backgroundColor = 'white'
+                defaultValue = 'Llama'
+                break
+            case 12: style.color = 'gold'
+                style.backgroundColor = 'white'
+                defaultValue = 'Cheetah'
+                break
+            case 1:
+            default:
+                break
+        }
+    }
     const select =
         <select
             onChange={(e) => addToken(e)}
             onKeyDown={checkForEscape}
             style={style}
-            defaultValue={''}
+            defaultValue={defaultValue}
         >
         {displayName}
         <option onKeyDown={checkForEscape}>none</option>
@@ -54,7 +77,7 @@ function Building(props) {
     </select>
     return (<div style={{display: "flex", flexDirection: "column", marginRight: "5px", marginBottom: "10px"}}>
         {tokenSettings && select}
-        {!tokenSettings && <div style={style} onClick={toggleTokenSettings}>{displayName}</div>}
+        {!tokenSettings && <div style={style} title={altText} onClick={toggleTokenSettings}>{displayName}</div>}
         {visualPipeline.map((op, index) => {
             return (
                 <Operation operation={op} key={index}

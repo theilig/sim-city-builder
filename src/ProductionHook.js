@@ -76,11 +76,11 @@ export function useProduction() {
         return {expectedTime: finishBy, itemsAdded: itemsAdded}
     }
 
-    function getMaxConcurrentOps(changes, changeTimes, changeIndex, duration, waitUntil) {
+    function getMaxConcurrentOps(changes, changeTimes, changeIndex, duration) {
         let initialChangeTime = changeTimes[changeIndex]
         let maxConcurrentOps = changes[changeTimes[changeIndex]]
         changeIndex += 1
-        while (changeIndex < changeTimes.length && changeTimes[changeIndex] < initialChangeTime + duration + waitUntil) {
+        while (changeIndex < changeTimes.length && changeTimes[changeIndex] < initialChangeTime + duration) {
             if (changes[changeTimes[changeIndex]] > maxConcurrentOps) {
                 maxConcurrentOps = changes[changeTimes[changeIndex]]
             }

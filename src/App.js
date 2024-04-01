@@ -428,6 +428,7 @@ function App() {
           <OperationList key={"oplist"} pipelines={displayPipelines}
                          startOp={(opList) => startOperations(opList)}
                          finishOp={finishOperations} speedUp={speedUp}
+                         changeToken={changeToken}
           />
         </div>
     )

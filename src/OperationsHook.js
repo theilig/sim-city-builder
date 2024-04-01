@@ -67,17 +67,30 @@ export function useOperations() {
 
     const updateToken = (currentCity, building, speed, newPipelines) => {
         let allPipelines = newPipelines || {...running}
-        let newBuilding = {...allPipelines[currentCity].pipelines[building]}
+        let newBuilding = {...allPipelines.pipelines[currentCity][building]}
+        let oldSpeedup = newBuilding.speedUp || {speed: 1, remaining: 0}
         newBuilding.speedUp = {
             speed: speed,
             remaining: 3600,
             lastUpdateTime: Date.now()
         }
-        allPipelines[currentCity].pipelines[building] = newBuilding
+        let newOps = []
+        newBuilding.running.forEach(op => {
+            let newOp = {...op}
+            if (op.lastUpdateTime) {
+                newOps.push(newOp)
+            }
+            if (op.lastUpdateTime && op.duration > 0) {
+                newOp.duration += (oldSpeedup.speed - 1) * Math.min(op.duration, oldSpeedup.remaining)
+            }
+            newOp.duration -= (speed - 1) * Math.min(newBuilding.speedUp.remaining, op.duration / speed)
+        })
+        newBuilding.running = newOps
+        allPipelines.pipelines[currentCity][building] = newBuilding
         return allPipelines
     }
 
-    const getRecommendedLists = (currentCity, newPipelines) => {
+    const getRecommendedLists = (currentCity, newPipes) => {
         const pipes = newPipes || running
         if (!pipes || !pipes.targets || !pipes.targets[currentCity]) {
             return []
@@ -140,7 +153,7 @@ export function useOperations() {
             newRunning[op.building].running.forEach(existingOp => {
                 if (!finalOp && existingOp.good === op.good && existingOp.lastUpdateTime === undefined) {
                     finalOp = existingOp
-                } else if (!finalOp && existingOp.lastUpdateTime === undefined && newRunning[op.building].isParallel === false) {
+                } else if (existingOp.lastUpdateTime === undefined && newRunning[op.building].isParallel === false && finalOp.start > existingOp.start) {
                     // we skipped an op that was supposed to go first, recalculate
                     allFound = false
                 }
@@ -206,10 +219,10 @@ export function useOperations() {
         })
         return updateOperations(
             newRunning,
-            getRecommendedLists(currentCity, newPipelines),
-            getPurchases(currentCity, newPipelines),
+            getRecommendedLists(currentCity, newPipes),
+            getPurchases(currentCity, newPipes),
             currentCity,
-            newPipelines)
+            newPipes)
     }
 
     const createRecommendations = (pipelines, newList, expectedTime, addedPurchases, currentCity, newPipes) => {

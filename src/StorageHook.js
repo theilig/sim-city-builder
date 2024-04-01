@@ -59,7 +59,10 @@ export function useStorage() {
     }
 
     const clearStorage = (currentCity) => {
-        updateStorage({}, currentCity)
+        let newStorage = {}
+        const currentStorage = getStorage(currentCity)
+        Object.keys(currentStorage).forEach(good => newStorage[good] = 0)
+        updateStorage(newStorage, currentCity)
     }
 
     const updateStorage = (storage, currentCity, newStorage) => {
@@ -82,8 +85,9 @@ export function useStorage() {
     }
 
     const updateUnassignedStorage = (newStorage, currentCity, newAllStorage) => {
-        let allStorage = newAllStorage || {...usedStorage}
-        let currentCityStorage = inStorage[currentCity] || {}
+        let allUsed = {...usedStorage}
+        let allStorage = newAllStorage || inStorage
+        let currentCityStorage = allStorage[currentCity] || {}
         let newUsedStorage = {}
         Object.keys(currentCityStorage).forEach(good => {
             if (newStorage[good]) {
@@ -92,8 +96,8 @@ export function useStorage() {
                 newUsedStorage[good] = currentCityStorage[good]
             }
         })
-        allStorage[currentCity] = newUsedStorage
-        setUsedStorage(allStorage)
+        allUsed[currentCity] = newUsedStorage
+        setUsedStorage(allUsed)
     }
 
     const loadStorage = (cityNames) => {

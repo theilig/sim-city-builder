@@ -57,7 +57,10 @@ export function useRecommendations() {
         let recommendationCount = 0
         Object.keys(running).forEach(building => {
             running[building].running.forEach(op => {
-                if (op.listIndex === undefined || (op.listIndex === EPHEMERAL_LIST_INDEX && op.topLevel)) {
+                if (
+                    op.listIndex === undefined
+                    || (op.listIndex === EPHEMERAL_LIST_INDEX && op.topLevel && op.lastUpdateTime !== undefined)
+                ) {
                     if (alreadyHave[op.good] === undefined) {
                         alreadyHave[op.good] = 1
                     } else {
@@ -153,9 +156,6 @@ export function useRecommendations() {
                     return -1
                 }
 
-                if (bNeeded !== aNeeded && aWait > 0 && bWait > 0) {
-                    return bNeeded / bWait - aNeeded / aWait;
-                }
                 if (aWait === 0 && bWait > 0 && bWait / bNeeded > 600) {
                     return -1
                 }
@@ -165,7 +165,10 @@ export function useRecommendations() {
                 if (aNeeded !== bNeeded) {
                     return bNeeded - aNeeded
                 }
-                return durations[bItem] - durations[aItem]
+                if (bWait !== aWait) {
+                    return aWait - bWait
+                }
+                return durations[aItem] - durations[bItem]
             })
             let done = false
             let index = 0
