@@ -98,6 +98,20 @@ export function useOperations() {
         return pipes.targets[currentCity]
     }
 
+    const removeRecommendation = (recommendations, good) => {
+        let newTargets = []
+        let found = false
+        recommendations.forEach(target => {
+            const targetGood = Object.keys(target.items)[0]
+            if (found || targetGood !== good) {
+                newTargets.push(target)
+            } else {
+                found = true
+            }
+        })
+        return newTargets
+    }
+
     const getPurchases = (currentCity, newPipes) => {
         const pipes = newPipes || running
         if (!pipes || !pipes.purchases || !pipes.purchases[currentCity]) {
@@ -145,6 +159,7 @@ export function useOperations() {
             })
             newRunning[building] = newBuilding
         })
+        let targets = getRecommendedLists(currentCity)
         opsToAdd.forEach(op => {
             if (newRunning[op.building] === undefined) {
                 newRunning[op.building] = deepCopy(pipelines[op.building].running)
@@ -153,7 +168,7 @@ export function useOperations() {
             newRunning[op.building].running.forEach(existingOp => {
                 if (!finalOp && existingOp.good === op.good && existingOp.lastUpdateTime === undefined) {
                     finalOp = existingOp
-                } else if (existingOp.lastUpdateTime === undefined && newRunning[op.building].isParallel === false && finalOp.start > existingOp.start) {
+                } else if (finalOp && existingOp.lastUpdateTime === undefined && newRunning[op.building].isParallel === false && finalOp.start > existingOp.start) {
                     // we skipped an op that was supposed to go first, recalculate
                     allFound = false
                 }
@@ -162,6 +177,8 @@ export function useOperations() {
                 allFound = false;
                 finalOp = op
                 newRunning[op.building].running.push(op)
+            } else if (finalOp.listIndex === EPHEMERAL_LIST_INDEX) {
+                targets = removeRecommendation(targets, finalOp.good)
             }
             finalOp.lastUpdateTime = Date.now()
             if (newRunning[op.building].isParallel) {
@@ -180,7 +197,7 @@ export function useOperations() {
             })
         }
         if (allFound) {
-            return updateOperations(newRunning, getRecommendedLists(currentCity), getPurchases(currentCity), currentCity, newPipes);
+            return updateOperations(newRunning, targets, getPurchases(currentCity), currentCity, newPipes);
         } else {
             // We started an op that wasn't on the board, we want to re-evaluate recommendations
             return updateOperations(newRunning, [], [], currentCity, newPipes)
@@ -277,6 +294,18 @@ export function useOperations() {
                         }
                     }
                 })
+                if (newBuilding.speedUp && newBuilding.speedUp.remaining > 0) {
+                    if (newBuilding.speedUp.lastUpdateTime === undefined) {
+                        newBuilding.speedUp.lastUpdateTime = Date.now()
+                    }
+                    const timeDelta = Date.now() - newBuilding.speedUp.lastUpdateTime
+                    newBuilding.speedUp.lastUpdateTime = Date.now()
+                    if (newBuilding.speedUp.remaining < timeDelta) {
+                        newBuilding.speedUp.remaining = 0
+                    } else {
+                        newBuilding.speedUp.remaining -= Math.floor(timeDelta)
+                    }
+                }
                 newCityRunning[building] = newBuilding
             })
             newRunningOps.pipelines[city] = newCityRunning

@@ -7,12 +7,12 @@ export function useRecommendations() {
         addOrder
     } = useProduction()
 
-    const MAX_RECOMMENDATIONS_FOR_STOCKING = 300
+    const MAX_RECOMMENDATIONS_FOR_STOCKING = 1000
 
     const calculateRecommendations = (unassignedStorage, running, unscheduledLists) => {
         const possibleLists = unscheduledLists
         if (possibleLists.length > 0) {
-            let bestExpectedTime
+            let bestExpectedTime = undefined
             let bestExpectedIndex
             for (let i = 0; i < possibleLists.length; i += 1) {
                 const result = addOrder(possibleLists[i].items, unassignedStorage, running, 0, 0, EPHEMERAL_LIST_INDEX)
@@ -35,36 +35,25 @@ export function useRecommendations() {
     }
 
     const calculateStockingRecommendations = (unassignedStorage, running, purchases, stockingLists) => {
-        const lowestStart = (item) => {
-            let low = item.start
-            if (item.lastUpdateTime) {
-                low = item.start + item.duration
-            } else {
-                item.children.forEach(child => {
-                    // exclude factory items start times,we want to prioritize starting commercial buildings
-                    if (Object.keys(goodsData[child.good].ingredients).length > 0) {
-                        const childLow = lowestStart(child)
-                        if (childLow < low) {
-                            low = childLow
-                        }
-                    }
-                })
-            }
-            return low
-        }
         let alreadyHave = {...unassignedStorage}
+        let alreadyRecommended = {}
         let need = {}
         let recommendationCount = 0
         Object.keys(running).forEach(building => {
             running[building].running.forEach(op => {
-                if (
-                    op.listIndex === undefined
-                    || (op.listIndex === EPHEMERAL_LIST_INDEX && op.topLevel && op.lastUpdateTime !== undefined)
-                ) {
-                    if (alreadyHave[op.good] === undefined) {
-                        alreadyHave[op.good] = 1
+                if (op.listIndex === undefined || op.listIndex === EPHEMERAL_LIST_INDEX) {
+                    if (op.lastUpdateTime) {
+                        if (alreadyHave[op.good] === undefined) {
+                            alreadyHave[op.good] = 1
+                        } else {
+                            alreadyHave[op.good] += 1
+                        }
                     } else {
-                        alreadyHave[op.good] += 1
+                        if (alreadyRecommended[op.good] === undefined) {
+                            alreadyRecommended[op.good] = 1
+                        } else {
+                            alreadyRecommended[op.good] += 1
+                        }
                     }
                 }
                 if (op.lastUpdateTime === undefined) {
@@ -88,37 +77,31 @@ export function useRecommendations() {
                 if (alreadyHave[good] === undefined) {
                     alreadyHave[good] = 0
                 }
-                if (goodsData[good] && (list.items[good] > alreadyHave[good])) {
-                    neededLists.push(list)
-                    need[good] = list.items[good] - alreadyHave[good]
-                }
-            })
-            neededLists = neededLists.filter(l => {
-                const item = Object.keys(l.items)[0]
-                let shortOnIngredients = false
-                Object.keys(goodsData[item].ingredients).forEach(ingredient => {
-                    if (need[ingredient] > need[item]) {
-                        shortOnIngredients = true
-                    }
-                })
-                return !shortOnIngredients
+                neededLists.push(list)
+                need[good] = list.items[good] - alreadyHave[good]
             })
 
-            let kickoffTimes = {}
-            let durations = {}
-            let neededTimes = {}
+            let preliminaries = {}
+            let blockedBuildings = {}
+            let neededIngredients = {}
             // Can't use forEach here because we are adding to the list in the loop
+            const blockBuildings = (items) => {
+                if (items) {
+                    items.forEach(item => {
+                        blockedBuildings[item.building] = true
+                        blockBuildings(item.children)
+                    })
+                }
+            }
+
             for (let i = 0; i < neededLists.length; i += 1) {
                 const list = neededLists[i]
                 const good = Object.keys(list.items)[0]
                 let kickoffList = {}
                 kickoffList[good] = 1
                 const preliminary = addOrder(kickoffList, unassignedStorage, running, 0, 0, EPHEMERAL_LIST_INDEX, true)
-                // redo with finishBy to just in time everything, otherwise we end up making a bunch of metal that sits there
-                const result = addOrder(kickoffList, unassignedStorage, running, preliminary.expectedTime, 0, EPHEMERAL_LIST_INDEX, true)
-                kickoffTimes[good] = Math.max(neededTimes[good] || 0, result.itemsAdded[0].start)
-                durations[good] = result.expectedTime
-                let descendants = [...result.itemsAdded[0].children]
+                preliminaries[good] = preliminary
+                let descendants = [...preliminary.itemsAdded[0].children]
                 for (let j = 0; j < descendants.length; j += 1) {
                     const good = descendants[j].good
                     if (!descendants[j].purchase && goodsData[good].ingredients.length > 0) {
@@ -130,57 +113,71 @@ export function useRecommendations() {
                             neededList.items[good] = 1
                             neededLists.push(neededList)
                         }
-                        if (neededTimes[good] === undefined || neededTimes[good] > descendants[j].start) {
-                            neededTimes[good] = descendants[j].start
-                        }
                         descendants = descendants.concat(descendants[j].children)
                     }
+//                    blockBuildings(descendants)
                 }
             }
 
-            neededLists.sort((a, b) => {
-                const aItem = Object.keys(a.items)[0]
-                const aAmount = a.items[aItem]
-                const bItem = Object.keys(b.items)[0]
-                const bAmount = b.items[bItem]
-                const aPct = (alreadyHave[aItem] || 0) / aAmount
-                const bPct = (alreadyHave[bItem] || 0) / bAmount
-                const aWait = kickoffTimes[aItem]
-                const bWait = kickoffTimes[bItem]
-                const aNeeded = need[aItem]
-                const bNeeded = need[bItem]
-                if (bWait === 0 && bNeeded >= aNeeded) {
-                    return 1
+            neededLists.forEach(list => {
+                const good = Object.keys(list.items)[0]
+                let descendants = Object.keys(goodsData[good].ingredients)
+                for (let j = 0; j < descendants.length; j += 1) {
+                    const ingredient = descendants[j]
+                    if (need[ingredient] + goodsData[good].ingredients[ingredient] > need[good]) {
+                        neededIngredients[ingredient] = true
+                        neededIngredients[ingredient] = true
+                    }
                 }
-                if (aWait === 0 && aNeeded >= bNeeded) {
-                    return -1
-                }
-
-                if (aWait === 0 && bWait > 0 && bWait / bNeeded > 600) {
-                    return -1
-                }
-                if (bWait === 0 && aWait > 0 && aWait / aNeeded > 600) {
-                    return 1
-                }
-                if (aNeeded !== bNeeded) {
-                    return bNeeded - aNeeded
-                }
-                if (bWait !== aWait) {
-                    return aWait - bWait
-                }
-                return durations[aItem] - durations[bItem]
             })
             let done = false
-            let index = 0
-            while (!done && index < neededLists.length) {
-                stockingList = {}
-                stockingList[Object.keys(neededLists[index].items)[0]] = 1
-                result = addOrder(stockingList, unassignedStorage, running, 0, 0, EPHEMERAL_LIST_INDEX, true)
-                if (result.itemsAdded.filter(op => {return !op.purchase}).length > 0) {
-                    done = true
+            while (!done) {
+                let target;
+                let bestTime;
+                let mostNeeded;
+                neededLists.forEach(list => {
+                    let eligible = true
+                    const good = Object.keys(list.items)[0]
+                    let ingredients = goodsData[good].ingredients
+                    if (blockedBuildings[goodsData[good].building] && !neededIngredients[good]) {
+                        eligible = false
+                    }
+                    Object.keys(ingredients).forEach(ingredient => {
+                        if (need[ingredient] >= need[good]) {
+                            neededIngredients[ingredient] = true
+                            eligible = false
+                        }
+                    })
+                    if (eligible) {
+                        const have = alreadyHave[good] || 0
+                        const recommended = alreadyRecommended[good] || 0
+                        let pct = 1
+                        if (need[good]) {
+                            pct = (have + 1 + recommended) / (need[good] + have)
+                        }
+                        if (target === undefined || mostNeeded > pct
+                            || (mostNeeded === pct && preliminaries[good].expectedTime < bestTime)) {
+                            target = good
+                            bestTime = preliminaries[good].expectedTime
+                            mostNeeded = pct
+                        }
+                    }
+                })
+                if (target) {
+                    let kickoffList = {}
+                    kickoffList[target] = 1
+                    result = addOrder(kickoffList, unassignedStorage, running, preliminaries[target].expectedTime, 0, EPHEMERAL_LIST_INDEX, true)
+                    if (alreadyRecommended[target] === undefined) {
+                        alreadyRecommended[target] = 1
+                    } else {
+                        alreadyRecommended[target] += 1
+                    }
+                    if (result.itemsAdded.filter(op => {return !op.purchase}).length > 0) {
+                        done = true
+                        stockingList = kickoffList
+                    }
                 } else {
-                    result = undefined
-                    index = index + 1
+                    done = true
                 }
             }
         }

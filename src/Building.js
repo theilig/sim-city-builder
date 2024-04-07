@@ -35,7 +35,7 @@ function Building(props) {
     if (taken) {
         visualPipeline.push(taken)
     }
-    const style = {height: "20px", width: "170px"}
+    const style = {height: "20px", width: "240px"}
     let displayName = props.name
     let altText = ''
     let defaultValue = ''
@@ -43,23 +43,26 @@ function Building(props) {
     if (token) {
         if (token.remaining > 0) {
             altText = Math.floor(token.remaining) + " seconds left"
-        }
-        switch (token.speed) {
-            case 2: style.color = '#CD7F32'
-                style.backgroundColor = 'white'
-                defaultValue = 'Turtle'
-                break
-            case 4: style.color = 'silver'
-                style.backgroundColor = 'white'
-                defaultValue = 'Llama'
-                break
-            case 12: style.color = 'gold'
-                style.backgroundColor = 'white'
-                defaultValue = 'Cheetah'
-                break
-            case 1:
-            default:
-                break
+            switch (token.speed) {
+                case 2:
+                    style.color = '#CD7F32'
+                    style.backgroundColor = 'white'
+                    defaultValue = 'Turtle'
+                    break
+                case 4:
+                    style.color = 'silver'
+                    style.backgroundColor = 'white'
+                    defaultValue = 'Llama'
+                    break
+                case 12:
+                    style.color = 'gold'
+                    style.backgroundColor = 'white'
+                    defaultValue = 'Cheetah'
+                    break
+                case 1:
+                default:
+                    break
+            }
         }
     }
     const select =

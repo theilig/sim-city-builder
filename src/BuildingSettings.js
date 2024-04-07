@@ -110,7 +110,7 @@ export const goodsData = {
     'fish soup': {ingredients: {vegetables: 1, fish: 2, 'cooking utensils': 2}, duration: 7200, building: 'Fish Marketplace', price: 400, shortcut: 'fs', storeFrequency: 0, requiredLevel: 30},
     'salmon sandwich': {ingredients: {'bread rolls': 1, fish: 2}, duration: 10800, building: 'Fish Marketplace', price: 2200, shortcut: 'ss', storeFrequency: 0, requiredLevel: 35, display: 'salmon'},
     silk: {ingredients: {}, duration: 360, building: 'Mulberry Grove', price: 30, shortcut: 'sk', storeFrequency: 4, requiredLevel: 25},
-    string: {ingredients: {silk: 2}, duration: 1200, building: 'Silk Store', price: 120, shortcut: 'mo', storeFrequency: 0, requiredLevel: 25},
+    string: {ingredients: {silk: 2}, duration: 1200, building: 'Silk Store', singular: 'string', price: 120, shortcut: 'st', storeFrequency: 0, requiredLevel: 25},
     fan: {ingredients: {silk: 2, wood: 1, glue: 2}, duration: 9000, building: 'Silk Store', price: 1100, shortcut: 'fn', storeFrequency: 0, requiredLevel: 30},
     robe: {ingredients: {silk: 3, paint: 2, 'home textiles': 1}, duration: 14400, building: 'Silk Store', price: 2000, shortcut: 'ro', storeFrequency: 0, requiredLevel: 35},
     'crude oil': {ingredients: {}, duration: 360, building: 'Oil Plant', price: 30, shortcut: 'cd', storeFrequency: 4, requiredLevel: 25},
@@ -120,12 +120,12 @@ export const goodsData = {
     'tennis rackets': {ingredients: {minerals: 4, hammers: 2}, duration: 2700, building: 'Sports Shop', price: 2000, shortcut: 'rk', storeFrequency: 0, requiredLevel: 35, display: 'rackets'},
     'sports drink': {ingredients: {'fruit and berries': 2, 'sugar and spices': 4}, duration: 2100, building: 'Sports Shop', price: 2000, shortcut: 'sd', storeFrequency: 0, requiredLevel: 35},
     'soccer cleats': {ingredients: {shoes: 1, chemicals: 3}, duration: 2100, building: 'Sports Shop', price: 2000, shortcut: 'sc', storeFrequency: 0, requiredLevel: 35, display: 'cleats'},
-    'protien bar': {ingredients: {'cherry cheesecake': 1, 'sugar and spices': 2}, duration: 14400, building: 'Sports Shop', price: 2000, shortcut: 'pb', storeFrequency: 0, requiredLevel: 35, display: 'bars'},
+    'protien bar': {ingredients: {'cherry cheesecake': 1, 'sugar and spices': 2}, duration: 2430, building: 'Sports Shop', price: 2000, shortcut: 'pb', storeFrequency: 0, requiredLevel: 35, display: 'bars'},
     'ping pong table': {ingredients: {tables: 1, minerals: 4, wood: 4}, duration: 5400, building: 'Sports Shop', price: 2000, shortcut: 'pp', storeFrequency: 0, requiredLevel: 35},
     'letter blocks': {ingredients: {wood: 4, 'measuring tapes': 1}, duration: 3600, building: 'Toy Shop', price: 2000, shortcut: 'lb', storeFrequency: 0, requiredLevel: 35, display: 'blocks'},
     'kites': {ingredients: {'home textiles': 2, planks: 2, paint: 2}, duration: 4500, building: 'Toy Shop', price: 2000, shortcut: 'ki', storeFrequency: 0, requiredLevel: 35},
     'teddy bears': {ingredients: {'home textiles': 4, plastic: 2}, duration: 3600, building: 'Toy Shop', price: 2000, shortcut: 'te', storeFrequency: 0, requiredLevel: 35, display: 'bears'},
-    'game consoles': {ingredients: {'electrical components': 1, drills: 1, nails: 3}, duration: 4500, building: 'Toy Shop', price: 2000, shortcut: 'gc', storeFrequency: 0, requiredLevel: 35, display: 'games'},
+    'game consoles': {ingredients: {'electrical components': 3, glass: 3, 'lighting systems': 1}, duration: 4500, building: 'Toy Shop', price: 2000, shortcut: 'gc', storeFrequency: 0, requiredLevel: 35, display: 'games'},
 }
 
 export function updateSettings(oldSettings) {

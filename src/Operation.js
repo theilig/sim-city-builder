@@ -34,15 +34,17 @@ function Operation(props) {
                 return <button
                     onClick={speedUp}
                     onContextMenu={finishOne}
+                    style={{align: "right"}}
                 >done</button>
             } else {
                 return <button
                     onClick={finishOne}
                     onContextMenu={finishAll}
+                    style={{align: "right"}}
                 >done</button>
             }
         } else {
-            return <button onClick={startOne} >start</button>
+            return <button onClick={startOne} style={{align: "right"}}>start</button>
         }
     }
     let goodToGo = true
@@ -53,7 +55,7 @@ function Operation(props) {
             }
         })
     }
-    let style = {boxShadow: "0px 0px 0px 3px rgb(130, 130, 130)"}
+    let style = {display: 'flex', boxShadow: "0px 0px 0px 3px rgb(130, 130, 130)"}
     if (props.operation.duration < 0) {
         style = {boxShadow: "0px 0px 0px 3px rgb(0, 255, 0)"}
     }
@@ -75,9 +77,9 @@ function Operation(props) {
     return (
         <div style={style} >
             <div style={{textAlign: "left"}}>{props.operation.count}</div>
-            <div style={{textAlign: "left"}}>{props.operation.good}</div>
-            <div style={{textAlign: "right"}}>{displayTime}</div>
-            <div>{showButton()}</div>
+            <div style={{textAlign: "left", marginLeft: "3px"}}>{props.operation.good}</div>
+            <div style={{textAlign: "right", marginLeft: "3px"}}>{displayTime}</div>
+            <div style={{marginLeft: "auto"}}>{showButton()}</div>
         </div>
     )
 }
