@@ -104,7 +104,7 @@ export function useRecommendations() {
                 let descendants = [...preliminary.itemsAdded[0].children]
                 for (let j = 0; j < descendants.length; j += 1) {
                     const good = descendants[j].good
-                    if (!descendants[j].purchase && goodsData[good].ingredients.length > 0) {
+                    if (!descendants[j].purchase && !descendants[j].lastUpdateTime && Object.keys(goodsData[good].ingredients).length > 0) {
                         if (need[good]) {
                             need[good] += 1
                         } else {

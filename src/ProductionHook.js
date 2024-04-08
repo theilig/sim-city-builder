@@ -2,6 +2,7 @@ import {goodsData} from "./BuildingSettings";
 import {grabFromRunning} from "./OperationsHook";
 import {grabFromStorage} from "./StorageHook";
 import {deepCopy} from "./BuildingSettings";
+import {EPHEMERAL_LIST_INDEX} from "./RecommendationHook";
 // This is deprecated in favor of calling adjustedDuration (since we won't have to repeat the lookup of initial duration)
 export const adjustDuration = (start, duration, building) => {
     let speedUp = building.speedUp
@@ -166,6 +167,10 @@ export function useProduction() {
             for (let i = 0; i < buildings.length; i += 1) {
                 const building = buildings[i]
                 const pipeline = pipelines[building]
+                if (!pipeline.isParallel && listIndex === EPHEMERAL_LIST_INDEX) {
+                    // For recommendations we want to kick off asap
+                    localFinishBy = 0
+                }
                 if (pipeline.goods[goodName]) {
                     const expectedTimes = bestTime(pipeline, goodName, localFinishBy, localWaitUntil)
                     if (bestTimesResult === undefined || expectedTimes.start + expectedTimes.duration <= bestTimesResult.start + bestTimesResult.duration) {

@@ -120,7 +120,7 @@ export const goodsData = {
     'tennis rackets': {ingredients: {minerals: 4, hammers: 2}, duration: 2700, building: 'Sports Shop', price: 2000, shortcut: 'rk', storeFrequency: 0, requiredLevel: 35, display: 'rackets'},
     'sports drink': {ingredients: {'fruit and berries': 2, 'sugar and spices': 4}, duration: 2100, building: 'Sports Shop', price: 2000, shortcut: 'sd', storeFrequency: 0, requiredLevel: 35},
     'soccer cleats': {ingredients: {shoes: 1, chemicals: 3}, duration: 2100, building: 'Sports Shop', price: 2000, shortcut: 'sc', storeFrequency: 0, requiredLevel: 35, display: 'cleats'},
-    'protien bar': {ingredients: {'cherry cheesecake': 1, 'sugar and spices': 2}, duration: 2430, building: 'Sports Shop', price: 2000, shortcut: 'pb', storeFrequency: 0, requiredLevel: 35, display: 'bars'},
+    'protein bar': {ingredients: {'cherry cheesecake': 1, 'sugar and spices': 2}, duration: 2430, building: 'Sports Shop', price: 2000, shortcut: 'pb', storeFrequency: 0, requiredLevel: 35, display: 'bars'},
     'ping pong table': {ingredients: {tables: 1, minerals: 4, wood: 4}, duration: 5400, building: 'Sports Shop', price: 2000, shortcut: 'pp', storeFrequency: 0, requiredLevel: 35},
     'letter blocks': {ingredients: {wood: 4, 'measuring tapes': 1}, duration: 3600, building: 'Toy Shop', price: 2000, shortcut: 'lb', storeFrequency: 0, requiredLevel: 35, display: 'blocks'},
     'kites': {ingredients: {'home textiles': 2, planks: 2, paint: 2}, duration: 4500, building: 'Toy Shop', price: 2000, shortcut: 'ki', storeFrequency: 0, requiredLevel: 35},
