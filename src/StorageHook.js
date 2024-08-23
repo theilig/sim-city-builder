@@ -3,7 +3,7 @@ import {goodsData} from "./BuildingSettings";
 
 export const grabFromStorage = (storage, good, amount) => {
     let amountTaken = 0
-    if (storage[good]) {
+    if (storage && storage[good]) {
         if (storage[good] > amount) {
             storage[good] -= amount
             amountTaken = amount

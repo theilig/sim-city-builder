@@ -34,8 +34,8 @@ function Storage(props) {
         setAdjustments({})
     }
 
-    function makeGoods(removeFromStorage) {
-        props.makeGoods(adjustments, removeFromStorage)
+    function makeGoods(removeFromStorage, randomBuilding) {
+        props.makeGoods(adjustments, removeFromStorage, randomBuilding)
         setAdjustments({})
     }
     function makeShoppingList(region) {
@@ -57,7 +57,7 @@ function Storage(props) {
 
     const sortStorage = () => {
         const localStorage = props.storage || {}
-        const groups = [['Factory'], [], ['Green Factory', 'Eco Shop'], ['Coconut Farm', 'Tropical Products Store'], ['Fishery', 'Fish Marketplace']]
+        const groups = [['Factory'], [], ['Green Factory', 'Eco Shop'], ['Coconut Farm', 'Tropical Products Store'], ['Fishery', 'Fish Marketplace'], ['Mulberry Grove', 'Silk Store']]
         let storageSorted = []
         groups.forEach(group => {
             let goodsToAdd = []
@@ -148,7 +148,7 @@ function Storage(props) {
                 <button onClick={removeGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"rosybrown"}}>
                     gone
                 </button>
-                <button onClick={() => makeGoods(true)} onContextMenu={() => makeGoods(false)} style={{"display": "grid", "width": "100px", "backgroundColor":"darksalmon"}}>
+                <button onClick={(e) => makeGoods(true, e.shiftKey)} onContextMenu={(e) => makeGoods(false, e.shiftKey)} style={{"display": "grid", "width": "100px", "backgroundColor":"darksalmon"}}>
                     make goods
                 </button>
                 <button onClick={() => props.clear(false)} onContextMenu={() => props.clear(true)} style={{"display": "grid", "width": "100px", "backgroundColor":"tomato"}}>

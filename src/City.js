@@ -1,5 +1,6 @@
 import {renderGoodsSettings, updateSettings} from "./BuildingSettings";
 import EditableBuilding from "./EditableBuilding";
+import EditableBox from "./EditableBox";
 
 function City(props) {
     let localSettings = {...props.settings}
@@ -21,7 +22,30 @@ function City(props) {
                               }} level={localSettings.level} />
         )
     }
+    const renderReminder = (reminder, updateName, updatePeriod) => {
+        return <div>
+            <div style={{display: 'flex'}}>
+                <EditableBox name="somename" noField={true} value={reminder.name} updateValue={updateName} size={20} />
+                <EditableBox name="someperiod" noField={true} value={reminder.period} updateValue={updatePeriod} size={10} />
+            </div>
+        </div>
+    }
+    const addReminder = () => {
+        localSettings.currentReminders.push({name: 'New Reminder', period: 1})
+        props.update(localSettings)
+    }
     const height = Object.keys(localSettings['buildings']).length * 20
+    if (localSettings.currentReminders === undefined) {
+        localSettings.currentReminders = []
+    }
+    const updateReminderName = (name, index) => {
+        localSettings.currentReminders[index].name = name
+        props.update(localSettings)
+    }
+    const updateReminderPeriod = (period, index) => {
+        localSettings.currentReminders[index].period = period
+        props.update(localSettings)
+    }
     return <div style={{display: 'flex'}}>
         <div style={{display: 'flex', flexDirection: 'column', marginRight: '10px'}}>
             <div>Buildings</div>
@@ -38,6 +62,21 @@ function City(props) {
                 {Object.keys(localSettings['goods']).map(name =>
                     renderGoodsSettings(name, localSettings['level'], localSettings['buildings'], localSettings['goods'][name], (newSettings) => updateGood(name, newSettings))
                 )}
+            </div>
+        </div>
+        <div style={{display: 'flex', flexDirection: 'column'}}>
+            <div>Reminders</div>
+            <div style={{display: 'flex', flexDirection: 'column'}}>
+                {localSettings.currentReminders.map((reminder, index) =>
+                    <div key={index}>
+                        {renderReminder(
+                            reminder,
+                            (newName) => updateReminderName(newName, index),
+                            (newPeriod) => updateReminderPeriod(newPeriod, index)
+                        )}
+                    </div>
+                )}
+                <div onClick={addReminder}>Add Reminder</div>
             </div>
         </div>
     </div>

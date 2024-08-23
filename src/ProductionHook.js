@@ -96,7 +96,7 @@ export function useProduction() {
         }
         let changes = {}
         pipeline.running.forEach(op => {
-            const opDuration = adjustDuration(op.start, op.duration, pipeline)
+            const opDuration = op.duration
             const start = Math.floor(op.start)
             const end = Math.floor(op.start + opDuration)
             if (changes[end] === undefined) {

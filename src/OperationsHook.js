@@ -266,7 +266,7 @@ export function useOperations() {
         let addToStorage = {}
         Object.keys(allPipes.pipelines).forEach(city => {
             let localAdd = {}
-            const pipelines = getPipelines(city)
+            const pipelines = getPipelines(city, allPipes)
             let newCityRunning = {...pipelines}
             Object.keys(newCityRunning).forEach(building => {
                 let timeToStart = 0
@@ -298,7 +298,7 @@ export function useOperations() {
                     if (newBuilding.speedUp.lastUpdateTime === undefined) {
                         newBuilding.speedUp.lastUpdateTime = Date.now()
                     }
-                    const timeDelta = Date.now() - newBuilding.speedUp.lastUpdateTime
+                    const timeDelta = (Date.now() - newBuilding.speedUp.lastUpdateTime) / 1000
                     newBuilding.speedUp.lastUpdateTime = Date.now()
                     if (newBuilding.speedUp.remaining < timeDelta) {
                         newBuilding.speedUp.remaining = 0
