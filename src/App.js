@@ -317,7 +317,7 @@ function App() {
             recommendedLists = recommendedLists.concat(stockingRecommendations)
           }
           recommendedLists.forEach((list, index) => {
-            const addOrderResult = addOrder(list.items, unusedStorage, updatedRunning, 0, 0, list.listIndex, list.listIndex === EPHEMERAL_LIST_INDEX)
+            const addOrderResult = addOrder(list.items, unusedStorage, updatedRunning, 0, list.waitUntil || 0, list.listIndex, list.listIndex === EPHEMERAL_LIST_INDEX)
             unusedStorage = addOrderResult.updatedStorage
             updatedRunning = addOrderResult.updatedPipelines
             newPurchases = newPurchases.concat(addOrderResult.addedPurchases)
@@ -332,7 +332,7 @@ function App() {
           updateUnassignedStorage(unusedStorage, currentCity, allStorage)
         }
       }
-    }, 1000)
+    }, 5000)
     return () => clearInterval(interval)
   }, [addOrder, addStorage, calculateRecommendations, calculateStockingList,
             createRecommendations, currentCity, getRecommendedLists, getUnscheduledLists, getUnusedStorage,

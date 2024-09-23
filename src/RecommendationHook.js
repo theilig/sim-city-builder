@@ -66,7 +66,9 @@ export function useRecommendations() {
         let need = {}
         let pct = {}
         while (neededLists.length > 0) {
-            neededLists.forEach(list => {
+            need = {}
+            pct = {}
+            stockingLists.forEach(list => {
                 const good = Object.keys(list.items)[0]
                 const needed = list.items[good]
                 need[good] = needed - (alreadyHave[good] || 0) - (addedTimes[good] || []).length
@@ -149,7 +151,7 @@ export function useRecommendations() {
                         if (buildingCounts[newOp.building] > 11 && !running[newOp.building].isParallel) {
                             neededLists.splice(0, 1)
                         } else {
-                            added.push({items: kickoffList, listIndex: EPHEMERAL_LIST_INDEX})
+                            added.push({items: kickoffList, listIndex: EPHEMERAL_LIST_INDEX, waitUntil: waitUntil})
                             if (addedTimes[goodNeeded]) {
                                 addedTimes[goodNeeded].push(result.expectedTime)
                             } else {

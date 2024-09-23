@@ -209,7 +209,7 @@ export function useProduction() {
              let newItem
              let final = preliminary
              const finishTime = preliminary.start + preliminary.duration
-             if (!forceProduction && buyTime && buyTime < finishTime && finishTime > finishBy) {
+             if (!forceProduction && buyTime && buyTime < finishTime && finishTime > finishBy && buyTime < goodsData[goodName].duration) {
                  newItem = {good: goodName, purchase: true, start: finishBy-buyTime, duration: buyTime, children: [], listIndex: listIndex}
                  final.duration = buyTime
                  final.start = 0

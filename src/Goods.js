@@ -57,7 +57,7 @@ const goods = {
     cheeseburgers: {ingredients: {beef: 1, 'bread rolls': 1, 'BBQ Grills': 1}, duration: 2100, building: 'Fast Food Restaurant', prices: [2715, 3620], shortcut: 'cb', storeFrequency: 5},
     'cheese fries': {ingredients: {cheese: 1, vegetables: 1}, duration: 1200, building: 'Fast Food Restaurant', prices: [787, 1050], shortcut: 'fr', storeFrequency: 5},
     'lemonades': {ingredients: {glass: 2, 'sugar&spices': 2, fruit: 1}, duration: 3600, building: 'Fast Food Restaurant', prices: [1267, 1690], shortcut: 'ln', storeFrequency: 4},
-    'popcorns': {ingredients: {'microwave ovens': 1, corn: 2}, duration: 1620, building: 'Fast Food Restaurant', prices: [937, 1250], shortcut: 'pc', storeFrequency: 0},
+    'popcorn': {ingredients: {'microwave ovens': 1, corn: 2}, duration: 1620, building: 'Fast Food Restaurant', prices: [937, 1250], shortcut: 'pc', storeFrequency: 0},
     'reusable bags': {ingredients: {fabric: 2}, duration: 1080, building: 'Eco Shop', prices: [90, 120], shortcut: 'rb', storeFrequency: 2},
     'electric shoes': {ingredients: {fabric: 2, glue: 1, 'measuring tapes': 1}, duration: 6480, building: 'Eco Shop', prices: [562, 750], shortcut: 'es', storeFrequency: 0},
     'yoga mats': {ingredients: {fabric: 3, 'kitchen/bathroom tiles': 2, paint: 1}, duration: 12960, building: 'Eco Shop', prices: [1500, 2000], shortcut: 'ym', storeFrequency: 0},
@@ -78,7 +78,7 @@ const goods = {
     fish: {ingredients: {}, duration: 360, building: 'Fishery', prices: [22, 30], shortcut: 'fi', storeFrequency: 4},
     'canned fish': {ingredients: {fish: 1, metal: 1}, duration: 1200, building: 'Fish Marketplace', prices: [90, 120], shortcut: 'cf', storeFrequency: 3},
     'fish soup': {ingredients: {vegetables: 1, fish: 2, utensils: 2}, duration: 7200, building: 'Fish Marketplace', prices: [300, 400], shortcut: 'fs', storeFrequency: 0},
-    'salmon sandwich': {ingredients: {'bread rolls': 1, fish: 2}, duration: 10800, building: 'Fish Marketplace', prices: [1650, 2200], shortcut: 'ss', storeFrequency: 0}
+    'salmon sandwich': {ingredients: {'bread rolls': 1, fish: 2}, duration: 10800, building: 'Fish Marketplace', prices: [1650, 2200], shortcut: 'ss', storeFrequency: 0},
  };
 
 export default goods;
