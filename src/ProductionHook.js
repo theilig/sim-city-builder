@@ -15,6 +15,8 @@ export const adjustDuration = (start, duration, building) => {
     const speedUpTime = Math.min(speedUp.remaining - start, duration)
     if (speedUpTime > 0) {
         return duration - speedUpTime + speedUpTime / speedUp.speed
+    } else if (building.isParallel) {
+        return Math.min(duration, 15 * 60)
     } else {
         return duration
     }
@@ -205,32 +207,24 @@ export function useProduction() {
              if (preliminary === undefined) {
                  continue
              }
-             const buyTime = getBuyingTime(goodsData[goodName].storeFrequency)
              let newItem
              let final = preliminary
-             const finishTime = preliminary.start + preliminary.duration
-             if (!forceProduction && buyTime && buyTime < finishTime && finishTime > finishBy && buyTime < goodsData[goodName].duration) {
-                 newItem = {good: goodName, purchase: true, start: finishBy-buyTime, duration: buyTime, children: [], listIndex: listIndex}
-                 final.duration = buyTime
-                 final.start = 0
+             let ingredientItemsAdded = []
+             if (Object.keys(ingredients).length > 0) {
+                 const ingredientResult = addOrderInternal(ingredients, storage, pipelines, preliminary.start, waitUntil, listIndex, false, false)
+                 ingredientItemsAdded = ingredientResult.itemsAdded
+                 final = findBest(ingredientResult.expectedTime, finishBy)
+                 localWaitUntil = ingredientResult.expectedTime
              } else {
-                 let ingredientItemsAdded = []
-                 if (Object.keys(ingredients).length > 0) {
-                     const ingredientResult = addOrderInternal(ingredients, storage, pipelines, preliminary.start, waitUntil, listIndex, false, false)
-                     ingredientItemsAdded = ingredientResult.itemsAdded
-                     final = findBest(ingredientResult.expectedTime, finishBy)
-                     localWaitUntil = ingredientResult.expectedTime
-                 } else {
-                     final = findBest(waitUntil, finishBy)
-                 }
-                 newItem = addToPipeline(pipelines[final.pipeline], goodName, final.pipeline, final.start, localWaitUntil)
-                 newItem.children = ingredientItemsAdded
-                 newItem.listIndex = listIndex
+                 final = findBest(waitUntil, finishBy)
              }
-            itemsAdded.push(newItem)
-            if (final.start + final.duration > latestTime) {
-                latestTime = final.duration + final.start
-            }
+             newItem = addToPipeline(pipelines[final.pipeline], goodName, final.pipeline, final.start, localWaitUntil)
+             newItem.children = ingredientItemsAdded
+             newItem.listIndex = listIndex
+             itemsAdded.push(newItem)
+             if (final.start + final.duration > latestTime) {
+                 latestTime = final.duration + final.start
+             }
         }
         return {expectedTime: latestTime, itemsAdded: itemsAdded}
     }

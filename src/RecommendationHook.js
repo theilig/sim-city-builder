@@ -29,15 +29,7 @@ export function useRecommendations() {
         let currentRunning = running
         let currentStorage = unassignedStorage
         const getDescendantGoods = (good) => {
-            let descendants = {...goodsData[good].ingredients}
-            const childKeys = Object.keys(descendants)
-            for (let i = 0; i < childKeys.length; i += 1) {
-                const children = getDescendantGoods(childKeys[i])
-                Object.keys(children).forEach(child => {
-                    descendants[child] = (descendants[child] || 0) + children[child]
-                })
-            }
-            return descendants
+            return {...goodsData[good].ingredients}
         }
         let alreadyHave = {...unassignedStorage}
         let buildingCounts = {}
@@ -94,13 +86,21 @@ export function useRecommendations() {
                         const descendant = Object.keys(descendants)[k]
                         const alreadyAdded = (addedTimes[descendant] || []).length
                         const numberNeeded = descendants[descendant]
-                        if (need[descendant] !== undefined && need[descendant] + numberNeeded > need[goodNeeded]) {
-                            blocked = descendant
-                        } else if (need[descendant] !== undefined && need[descendant] + numberNeeded + alreadyAdded > need[goodNeeded]) {
-                            const neededIndex = need[descendant] + alreadyAdded + numberNeeded - need[goodNeeded] - 1
-                            const localWait = addedTimes[descendant][neededIndex]
-                            if (localWait > waitUntil) {
-                                waitUntil = localWait
+                        const descendentList = stockingLists.find(list => Object.keys(list.items)[0] === descendant)
+                        if (descendentList) {
+                            const descendentsNeeded = descendentList.items[descendant]
+                            const pctLeft = pct[descendant] - numberNeeded / descendentsNeeded
+                            if (pctLeft < pct[goodNeeded]) {
+                                blocked = descendant
+                            } else if (pctLeft - (alreadyAdded / descendentsNeeded) < pct[goodNeeded]) {
+                                const numberToWaitFor = alreadyAdded - Math.ceil((pct[goodNeeded] - pctLeft) * descendentsNeeded)
+                                if (numberToWaitFor > 0) {
+                                    const neededIndex = numberToWaitFor - 1
+                                    const localWait = addedTimes[descendant][neededIndex]
+                                    if (localWait > waitUntil) {
+                                        waitUntil = localWait
+                                    }
+                                }
                             }
                         }
                     }
@@ -156,6 +156,35 @@ export function useRecommendations() {
                                 addedTimes[goodNeeded].push(result.expectedTime)
                             } else {
                                 addedTimes[goodNeeded] = [result.expectedTime]
+                            }
+                            const descendants = getDescendantGoods(goodNeeded)
+                            for (let k = 0; k < Object.keys(descendants).length; k += 1) {
+                                const descendant = Object.keys(descendants)[k]
+                                const numberNeeded = descendants[descendant]
+                                stockingLists.forEach(list => {
+                                    if (Object.keys(list.items)[0] === descendant) {
+                                        let added = false
+                                        for (let neededKey = 0; neededKey < neededLists.length; neededKey += 1) {
+                                            if (Object.keys(neededLists[neededKey].items)[0] === descendant) {
+                                                neededLists[neededKey].items[descendant] += numberNeeded
+                                                added = true
+                                                break
+                                            }
+                                        }
+                                        if (!added) {
+                                            let newNeed = {}
+                                            newNeed[descendant] = numberNeeded
+                                            neededLists.push({items: newNeed, region: 'sim.stocking'})
+                                        }
+                                    }
+                                })
+                                if (numberNeeded > 0) {
+                                    if (need[descendant] === undefined) {
+                                        need[descendant] = numberNeeded
+                                    } else {
+                                        need[descendant] += numberNeeded
+                                    }
+                                }
                             }
                         }
                     }

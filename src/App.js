@@ -332,7 +332,7 @@ function App() {
           updateUnassignedStorage(unusedStorage, currentCity, allStorage)
         }
       }
-    }, 5000)
+    }, 1000)
     return () => clearInterval(interval)
   }, [addOrder, addStorage, calculateRecommendations, calculateStockingList,
             createRecommendations, currentCity, getRecommendedLists, getUnscheduledLists, getUnusedStorage,

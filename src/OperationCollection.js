@@ -10,8 +10,17 @@ function OperationCollection(props) {
         props.startOp(props.collection.ops)
     }
 
+    function finishOne() {
+        props.finishOp([props.collection.ops[0]])
+    }
+
     function showButton(op) {
-        if (op.duration > 0) {
+        if (op.lastUpdateTime !== undefined) {
+            return <button
+                onClick={finishOne}
+                style={{align: "right"}}
+            >done</button>
+        } else {
             return <button
                 onClick={startOne}
                 onContextMenu={startAll}
@@ -26,6 +35,9 @@ function OperationCollection(props) {
         } else if (!props.collection.factory && props.collection.firstCollection) {
             style.boxShadow = "0px 0px 0px 1px rgb(255, 255, 0)"
         }
+    }
+    if (props.collection.ops[0].lastUpdateTime !== undefined) {
+        style = {background: "#909090"}
     }
     if (props.collection.ops[0].building === randomGeneratorKey) {
         style.backgroundColor = 'blue'

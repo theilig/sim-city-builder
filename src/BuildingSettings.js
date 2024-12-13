@@ -26,8 +26,9 @@ export const buildingData = {
     'Toy Shop': {pipelineSize: 3, haveBuilding: false, isParallel: false, requiredLevel: 40},
     'Sports Shop': {pipelineSize: 3, haveBuilding: false, isParallel: false, requiredLevel: 40},
     "Vu's Random Generator": {pipelineSize: 3, haveBuilding: false, isParallel: false, requiredLevel: 10},
-    'Restoration': {pipelineSize: 3, haveBuilding: false, isParallel: false, requiredLevel: 10},
-    'Country Store': {pipelineSize: 3, haveBuilding: false, isParallel: false, requiredLevel: 10}
+    'Restoration': {pipelineSize: 3, haveBuilding: false, isParallel: false, requiredLevel: 30},
+    'Country Store': {pipelineSize: 3, haveBuilding: false, isParallel: false, requiredLevel: 30},
+    'Dessert Shop': {pipelineSize: 3, haveBuilding: false, isParallel: false, requiredLevel: 30},
 }
 
 export const goodsData = {
@@ -132,7 +133,8 @@ export const goodsData = {
     'picnic baskets': {ingredients: {'fruit and berries': 4, textiles: 4, glue: 2}, duration: 3600, building: 'Country Store', price: 2000, shortcut: 'pb', storeFrequency: 0, requiredLevel: 35},
     'wrought iron': {ingredients: {metal: 4, hammers: 2, chemicals: 2}, duration: 1800, building: 'Restoration', price: 2000, shortcut: 'wi', storeFrequency: 0, requiredLevel: 35},
     'carved wood': {ingredients: {planks: 5, 'measuring tapes': 2, drills: 2}, duration: 3600, building: 'Restoration', price: 2000, shortcut: 'cw', storeFrequency: 0, requiredLevel: 35},
-    'chiseled stone': {ingredients: {hammers: 2, minerals: 6, drills: 2}, duration: 9000, building: 'Restoration', price: 2000, shortcut: 'cs', storeFrequency: 0, requiredLevel: 35}
+    'chiseled stone': {ingredients: {hammers: 2, minerals: 6, drills: 2}, duration: 9000, building: 'Restoration', price: 2000, shortcut: 'cs', storeFrequency: 0, requiredLevel: 35},
+    'tiramisu': {ingredients: {vegetables: 1, 'sugar and spices': 1, cream: 1}, duration: 2700, building: 'Dessert Shop', price: 2000, shortcut: 'tm', storeFrequency: 0, requiredLevel: 35}
 }
 
 export function updateSettings(oldSettings) {

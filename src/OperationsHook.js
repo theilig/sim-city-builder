@@ -24,7 +24,7 @@ export const grabFromRunning = (pipelines, goodName, amount, listIndex) => {
             pipelines[building].goods[goodName] !== undefined &&
             pipelines[building].running.length > 0) {
             pipelines[building].running.forEach(op => {
-                if (op.good === goodName &&
+                if (op.good === goodName && (pipelines[building].isParallel === false || op.duration < 15 * 60) &&
                     (op.listIndex === undefined ||
                         (listIndex !== EPHEMERAL_LIST_INDEX && op.listIndex === EPHEMERAL_LIST_INDEX))) {
                     possibles.push(op)

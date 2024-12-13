@@ -1,6 +1,7 @@
 import React from 'react';
 import OperationCollection from "./OperationCollection";
 import {buildingData} from "./BuildingSettings";
+import {EPHEMERAL_LIST_INDEX} from "./RecommendationHook";
 
 function RecommendationList(props) {
     let maxCombine = 5;

@@ -62,11 +62,13 @@ function getMaxConcurrentOps(changes, changeTimes, changeIndex, duration, waitUn
 }
 
 function findBestTime(operations, operation, waitUntil, finishBy, cityBuildings) {
-    const duration = operation.duration
+    let duration = operation.duration
     const building = operation.building
     let limit = 1
     if (cityBuildings[building].isParallel) {
         limit = cityBuildings[building].slots
+        // We assume we can always watch an ad and get it in 15 minutes or less
+        duration = Math.min(operation.duration, 15 * 60)
     }
     if (operations.byBuilding[building] === undefined || operations.byBuilding[building].length === 0) {
         return Math.max(waitUntil, 0)
