@@ -94,7 +94,9 @@ export function useRecommendations() {
                                 blocked = descendant
                             } else if (pctLeft - (alreadyAdded / descendentsNeeded) < pct[goodNeeded]) {
                                 const numberToWaitFor = alreadyAdded - Math.ceil((pct[goodNeeded] - pctLeft) * descendentsNeeded)
-                                if (numberToWaitFor > 0) {
+                                if (numberToWaitFor > addedTimes[descendant].length) {
+                                    blocked = descendant
+                                } else if (numberToWaitFor > 0) {
                                     const neededIndex = numberToWaitFor - 1
                                     const localWait = addedTimes[descendant][neededIndex]
                                     if (localWait > waitUntil) {
@@ -190,13 +192,23 @@ export function useRecommendations() {
                     }
                 }
                 if (added.length > 50) {
-                    // only do buildings where running is empty
-                    neededLists = neededLists.filter(list => {
-                        const good = Object.keys(list.items)[0]
+                    // only do buildings where running is empty, and we have something we sort of need
+                    let newNeeded = []
+                    for (let k = 0; k < neededLists.length; k += 1) {
+                        const good = Object.keys(neededLists[k].items)[0]
                         const building = goodsData[good].building
-                        return buildingCounts[building] === 0 ||
-                            (buildingCounts[randomGeneratorKey] === 0 && running[randomGeneratorKey].currentBuilding === building)
-                    })
+                        if (pct[good] > 2) {
+                            continue
+                        }
+                        if (buildingCounts[building] === 0 ||
+                            (buildingCounts[randomGeneratorKey] === 0 && running[randomGeneratorKey].currentBuilding === building)) {
+                            newNeeded.push(neededLists[k])
+                        }
+                    }
+                    neededLists = newNeeded
+                }
+                if (added.length > 500) {
+                    neededLists = []
                 }
             }
         }

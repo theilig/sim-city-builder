@@ -1,10 +1,13 @@
 import React from 'react';
 import OperationCollection from "./OperationCollection";
 import {buildingData} from "./BuildingSettings";
+import {getExtras} from "./RecommendationUtilities";
 
 function FactoryRecommendations(props) {
     let opCollections = []
     const factories = Object.keys(buildingData).filter(f => buildingData[f].isParallel)
+    const nonFactories = Object.keys(buildingData).filter(f => !buildingData[f].isParallel)
+
     let emptySlots = {}
     let currentBuildingIndex = {}
     let running = {}
@@ -26,6 +29,18 @@ function FactoryRecommendations(props) {
             emptySlots[building] = props.pipelines[building].slots - runningCount
         }
     })
+    let recommendations = []
+    nonFactories.forEach(building => {
+        if (props.pipelines && props.pipelines[building]) {
+            const pipeline = props.pipelines[building].running
+            pipeline.forEach(op => {
+                if (op.lastUpdateTime === undefined) {
+                    recommendations.push(op)
+                }
+            })
+        }
+    })
+    let extraGoods = getExtras(recommendations)
     let done = false
     const runningKeys = Object.keys(running).sort()
     const runningStuff = runningKeys.map((good) => {
@@ -48,9 +63,13 @@ function FactoryRecommendations(props) {
                     for (let j=0; j<op.children.length; j+=1) {
                         const child = op.children[j]
                         const childBuilding = child.building
-                        if (running[child.good] === undefined || running[child.good].length === 0) {
+                        if (extraGoods[child.good] !== undefined && extraGoods[child.good] > 0) {
+                            extraGoods[child.good] -= 1
+                        } else if (running[child.good] !== undefined && running[child.good].length > 0) {
+                            running[child.good].pop()
+                        } else {
                             if (child.lastUpdateTime === undefined) {
-                                if (!child.purchase && emptySlots[childBuilding] && emptySlots[childBuilding] > 0) {
+                                if (emptySlots[childBuilding] && emptySlots[childBuilding] > 0) {
                                     emptySlots[childBuilding] -= 1
                                     if (opCollections[child.good] === undefined) {
                                         child.start = 0
@@ -72,8 +91,6 @@ function FactoryRecommendations(props) {
                                     }
                                 }
                             }
-                        } else {
-                            running[child.good].pop()
                         }
                     }
                 }

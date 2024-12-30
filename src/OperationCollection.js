@@ -32,7 +32,7 @@ function OperationCollection(props) {
     if (props.collection.goodToGo) {
         if (props.collection.ops[0].start === 0) {
             style.boxShadow = "0px 0px 0px 1px rgb(255, 0, 0)"
-        } else if (!props.collection.factory && props.collection.firstCollection) {
+        } else if (!props.collection.factory && props.collection.firstCollection && props.collection.goodToGo) {
             style.boxShadow = "0px 0px 0px 1px rgb(255, 255, 0)"
         }
     }

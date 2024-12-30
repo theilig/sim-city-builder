@@ -1,14 +1,14 @@
 import React from 'react';
 import OperationCollection from "./OperationCollection";
 import {buildingData} from "./BuildingSettings";
-import {EPHEMERAL_LIST_INDEX} from "./RecommendationHook";
+import {getExtras} from "./RecommendationUtilities";
 
 function RecommendationList(props) {
-    let maxCombine = 5;
-    let opCollections = []
     const factories = Object.keys(buildingData).filter(f => buildingData[f].isParallel)
-    const haveCollections = {}
+    let firstCollection = {}
     let remainingSlots = {}
+    let opCollections = []
+
     factories.forEach(building => {
         if (props.pipelines[building]) {
             let available = props.pipelines[building].slots
@@ -20,32 +20,47 @@ function RecommendationList(props) {
             remainingSlots[building] = available
         }
     })
+    let extraGoods = getExtras(props.recommendations)
     props.recommendations.forEach(op => {
-        let collection = undefined
-        let goodToGo = op.children.length === 0
-        const factory = factories.includes(op.building)
-        opCollections.forEach(possibleCollection => {
-            if (Math.abs(possibleCollection.start - op.start) < 600 && possibleCollection.good === op.good &&
-                possibleCollection.ops.length < maxCombine) {
-                collection = possibleCollection
-            }
-        })
-        if (!factory) {
-            if (collection) {
-                collection.ops.push(op)
-            } else {
-                const firstCollection = !(haveCollections[op.building] || false)
-                haveCollections[op.building] = true
-                opCollections.push({
-                    goodToGo: goodToGo,
-                    ops: [op],
-                    good: op.good,
-                    done: op.duration < 0,
-                    start: op.start,
-                    factory: factory,
-                    firstCollection: firstCollection
+        let goodToGo = true
+        if (op.children && op.children.length > 0) {
+            let localExtras = {...extraGoods}
+            let storageFound = 0
+            op.children.forEach(child => {
+                if (localExtras[child.good] === undefined || localExtras[child.good] === 0) {
+                    goodToGo = false
+                }
+                let gave = 0
+                op.storageUsed.forEach(item => {
+                    if (item.good === child.good) {
+                        gave += item.amount
+                    }
                 })
+                if (localExtras[child.good] !== undefined && localExtras[child.good] > gave) {
+                    localExtras[child.good] -= 1
+                    storageFound += 1
+                }
+            })
+            if (storageFound === op.children.length) {
+                extraGoods = localExtras
+                goodToGo = true
+                op.waitUntil = 0
+            } else {
+                goodToGo = !(op.children && op.children.length > 0)
             }
+        }
+        const factory = factories.includes(op.building)
+        if (!factory) {
+            opCollections.push({
+                goodToGo: goodToGo,
+                ops: [{...op}],
+                good: op.good,
+                done: op.duration < 0,
+                start: op.start,
+                factory: factory,
+                firstCollection: firstCollection[op.building] === undefined
+            })
+            firstCollection[op.building] = false
         }
     })
     opCollections = opCollections.slice(0, 49)

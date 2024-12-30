@@ -59,6 +59,7 @@ export function useProduction() {
             return {expectedTime: 0, itemsAdded: []}
         }
         let itemsAdded = []
+        let storageUsed = []
         itemsNeeded.forEach(item => {
             const result = produce(
                 item,
@@ -75,8 +76,9 @@ export function useProduction() {
             }
 
             itemsAdded = itemsAdded.concat(result.itemsAdded)
+            storageUsed = storageUsed.concat(result.storageUsed)
         })
-        return {expectedTime: finishBy, itemsAdded: itemsAdded}
+        return {expectedTime: finishBy, itemsAdded: itemsAdded, storageUsed: storageUsed}
     }
 
     function getMaxConcurrentOps(changes, changeTimes, changeIndex, duration) {
@@ -185,12 +187,17 @@ export function useProduction() {
         }
         let latestTime = 0
         let itemsAdded = []
+        let storageUsed = []
         if (goodsData[goodName] === undefined) {
             window.alert(goodName)
         }
         let ingredients = goodsData[goodName].ingredients
         if (!forceProduction) {
-            amount -= grabFromStorage(storage, goodName, amount)
+            const storageResult = grabFromStorage(storage, goodName, amount)
+            if (storageResult > 0) {
+                amount -= storageResult
+                storageUsed.push({good: goodName, amount: storageResult})
+            }
             if (amount > 0) {
                 const result = grabFromRunning(pipelines, goodName, amount, listIndex)
                 amount -= result.items.length
@@ -210,9 +217,11 @@ export function useProduction() {
              let newItem
              let final = preliminary
              let ingredientItemsAdded = []
+             let storageUsed = []
              if (Object.keys(ingredients).length > 0) {
                  const ingredientResult = addOrderInternal(ingredients, storage, pipelines, preliminary.start, waitUntil, listIndex, false, false)
                  ingredientItemsAdded = ingredientResult.itemsAdded
+                 storageUsed = ingredientResult.storageUsed
                  final = findBest(ingredientResult.expectedTime, finishBy)
                  localWaitUntil = ingredientResult.expectedTime
              } else {
@@ -221,12 +230,13 @@ export function useProduction() {
              newItem = addToPipeline(pipelines[final.pipeline], goodName, final.pipeline, final.start, localWaitUntil)
              newItem.children = ingredientItemsAdded
              newItem.listIndex = listIndex
+             newItem.storageUsed = storageUsed
              itemsAdded.push(newItem)
              if (final.start + final.duration > latestTime) {
                  latestTime = final.duration + final.start
              }
         }
-        return {expectedTime: latestTime, itemsAdded: itemsAdded}
+        return {expectedTime: latestTime, itemsAdded: itemsAdded, storageUsed: storageUsed}
     }
 
     const addToPipeline = (pipeline, good, building, startTime, waitUntil) => {

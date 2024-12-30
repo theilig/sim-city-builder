@@ -306,9 +306,11 @@ function App() {
           unusedStorage = getStorage(currentCity, allStorage)
           updatedRunning = getPipelines(currentCity, allPipes)
           if (unscheduledLists && unscheduledLists.length > 0) {
-            const result = calculateRecommendations(unusedStorage, updatedRunning, unscheduledLists)
-            if (result.listIndex !== undefined) {
-              recommendedLists.push(result)
+            for (let i=0; i<2 && i<unscheduledLists.length; i++) {
+              const result = calculateRecommendations(unusedStorage, updatedRunning, unscheduledLists)
+              if (result.listIndex !== undefined) {
+                recommendedLists.push(result)
+              }
             }
           } else {
             const stockingLists = calculateStockingList(settings.cities[currentCity], allStorage, allPipes)
