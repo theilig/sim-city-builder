@@ -149,10 +149,10 @@ function insertOperation(operations, operation, building, liveTokens, cityBuildi
                 if (token) {
                     const remainingSpeedup = token.endTime - Date.now() - startTime
                     if (remainingSpeedup > 0) {
-                        if (operation.duration > remainingSpeedup) {
-                            operation.end -= remainingSpeedup * token.speedMultiplier
+                        if (operation.duration > remainingSpeedup * token.speed) {
+                            operation.end -= remainingSpeedup * token.speed
                         } else {
-                            let newDuration = operation.duration / token.speedMultiplier
+                            let newDuration = operation.duration / token.speed
                             operation.end = startTime + newDuration
                         }
                     }

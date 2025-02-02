@@ -77,6 +77,10 @@ export function useRecommendations() {
             })
             if (neededLists.length) {
                 let goodNeeded = Object.keys(neededLists[0].items)[0]
+                if (need[goodNeeded] <= 0) {
+                    neededLists.splice(0, 1)
+                    continue
+                }
                 let blocked = goodNeeded
                 while (blocked !== undefined) {
                     blocked = undefined
@@ -108,90 +112,90 @@ export function useRecommendations() {
                     }
                     if (blocked) {
                         goodNeeded = blocked
-                    } else {
-                        let kickoffList = {}
-                        kickoffList[goodNeeded] = 1
-                        let adjustedStorage = {...currentStorage}
-                        if (waitUntil > 0) {
-                            const addedStuff = Object.keys(addedTimes)
-                            for (let k = 0; k < addedStuff.length; k += 1) {
-                                for (let l = 0; l < addedTimes[addedStuff[k]].length; l += 1) {
-                                    if (addedTimes[addedStuff[k]][l] <= waitUntil) {
-                                        adjustedStorage[addedStuff[k]] = (adjustedStorage[addedStuff[k]] || 0) + 1
-                                    }
+                    }
+                    let kickoffList = {}
+                    kickoffList[goodNeeded] = 1
+                    let adjustedStorage = {...currentStorage}
+                    if (waitUntil > 0) {
+                        const addedStuff = Object.keys(addedTimes)
+                        for (let k = 0; k < addedStuff.length; k += 1) {
+                            for (let l = 0; l < addedTimes[addedStuff[k]].length; l += 1) {
+                                if (addedTimes[addedStuff[k]][l] <= waitUntil) {
+                                    adjustedStorage[addedStuff[k]] = (adjustedStorage[addedStuff[k]] || 0) + 1
                                 }
                             }
                         }
-                        const result = addOrder(kickoffList, adjustedStorage, currentRunning, 0, waitUntil, EPHEMERAL_LIST_INDEX, true)
-                        currentStorage = result.updatedStorage
-                        if (waitUntil > 0) {
-                            const addedStuff = Object.keys(addedTimes)
-                            for (let k = 0; k < addedStuff.length; k += 1) {
-                                let removeCount = 0
-                                for (let l = 0; l < addedTimes[addedStuff[k]].length; l += 1) {
-                                    if (addedTimes[addedStuff[k]][l] <= waitUntil) {
-                                        if (currentStorage[addedStuff[k]] > 0) {
-                                            currentStorage[addedStuff[k]] -= 1
-                                        } else {
-                                            // We took something we added, get it out of the added times list
-                                            removeCount += 1
-                                        }
-                                    }
-                                }
-                                if (removeCount > 0) {
-                                    addedTimes[addedStuff[k]] = addedTimes[addedStuff[k]].slice(removeCount)
-                                }
-                            }
-                        }
-                        const newOp = result.itemsAdded[0]
-                        if (buildingCounts[newOp.building]) {
-                            buildingCounts[newOp.building] += 1
-                        } else {
-                            buildingCounts[newOp.building] = 1
-                        }
-                        currentRunning = result.updatedPipelines
-                        if (buildingCounts[newOp.building] > 11 && !running[newOp.building].isParallel) {
-                            neededLists.splice(0, 1)
-                        } else {
-                            added.push({items: kickoffList, listIndex: EPHEMERAL_LIST_INDEX, waitUntil: waitUntil})
-                            if (addedTimes[goodNeeded]) {
-                                addedTimes[goodNeeded].push(result.expectedTime)
-                            } else {
-                                addedTimes[goodNeeded] = [result.expectedTime]
-                            }
-                            const descendants = getDescendantGoods(goodNeeded)
-                            for (let k = 0; k < Object.keys(descendants).length; k += 1) {
-                                const descendant = Object.keys(descendants)[k]
-                                const numberNeeded = descendants[descendant]
-                                stockingLists.forEach(list => {
-                                    if (Object.keys(list.items)[0] === descendant) {
-                                        let added = false
-                                        for (let neededKey = 0; neededKey < neededLists.length; neededKey += 1) {
-                                            if (Object.keys(neededLists[neededKey].items)[0] === descendant) {
-                                                neededLists[neededKey].items[descendant] += numberNeeded
-                                                added = true
-                                                break
-                                            }
-                                        }
-                                        if (!added) {
-                                            let newNeed = {}
-                                            newNeed[descendant] = numberNeeded
-                                            neededLists.push({items: newNeed, region: 'sim.stocking'})
-                                        }
-                                    }
-                                })
-                                if (numberNeeded > 0) {
-                                    if (need[descendant] === undefined) {
-                                        need[descendant] = numberNeeded
+                    }
+                    const result = addOrder(kickoffList, adjustedStorage, currentRunning, 0, waitUntil, EPHEMERAL_LIST_INDEX, true)
+                    currentStorage = result.updatedStorage
+                    if (waitUntil > 0) {
+                        const addedStuff = Object.keys(addedTimes)
+                        for (let k = 0; k < addedStuff.length; k += 1) {
+                            let removeCount = 0
+                            for (let l = 0; l < addedTimes[addedStuff[k]].length; l += 1) {
+                                if (addedTimes[addedStuff[k]][l] <= waitUntil) {
+                                    if (currentStorage[addedStuff[k]] > 0) {
+                                        currentStorage[addedStuff[k]] -= 1
                                     } else {
-                                        need[descendant] += numberNeeded
+                                        // We took something we added, get it out of the added times list
+                                        removeCount += 1
                                     }
+                                }
+                            }
+                            if (removeCount > 0) {
+                                addedTimes[addedStuff[k]] = addedTimes[addedStuff[k]].slice(removeCount)
+                            }
+                        }
+                    }
+                    const newOp = result.itemsAdded[0]
+                    if (buildingCounts[newOp.building]) {
+                        buildingCounts[newOp.building] += 1
+                    } else {
+                        buildingCounts[newOp.building] = 1
+                    }
+                    currentRunning = result.updatedPipelines
+                    if (buildingCounts[newOp.building] > 11 && !running[newOp.building].isParallel) {
+                        neededLists.splice(0, 1)
+                    } else {
+                        added.push({items: kickoffList, listIndex: EPHEMERAL_LIST_INDEX, waitUntil: waitUntil})
+                        if (addedTimes[goodNeeded]) {
+                            addedTimes[goodNeeded].push(result.expectedTime)
+                        } else {
+                            addedTimes[goodNeeded] = [result.expectedTime]
+                        }
+                        const descendants = getDescendantGoods(goodNeeded)
+                        for (let k = 0; k < Object.keys(descendants).length; k += 1) {
+                            const descendant = Object.keys(descendants)[k]
+                            const numberNeeded = descendants[descendant]
+                            stockingLists.forEach(list => {
+                                if (Object.keys(list.items)[0] === descendant) {
+                                    let added = false
+                                    for (let neededKey = 0; neededKey < neededLists.length; neededKey += 1) {
+                                        if (Object.keys(neededLists[neededKey].items)[0] === descendant) {
+                                            neededLists[neededKey].items[descendant] += numberNeeded
+                                            added = true
+                                            break
+                                        }
+                                    }
+                                    if (!added) {
+                                        let newNeed = {}
+                                        newNeed[descendant] = numberNeeded
+                                        neededLists.push({items: newNeed, region: 'sim.stocking'})
+                                    }
+                                }
+                            })
+                            if (numberNeeded > 0) {
+                                if (need[descendant] === undefined) {
+                                    need[descendant] = numberNeeded
+                                } else {
+                                    need[descendant] += numberNeeded
                                 }
                             }
                         }
                     }
                 }
-                if (added.length > 50) {
+
+/*                if (added.length > 50) {
                     // only do buildings where running is empty, and we have something we sort of need
                     let newNeeded = []
                     for (let k = 0; k < neededLists.length; k += 1) {
@@ -206,7 +210,7 @@ export function useRecommendations() {
                         }
                     }
                     neededLists = newNeeded
-                }
+                }*/
                 if (added.length > 500) {
                     neededLists = []
                 }

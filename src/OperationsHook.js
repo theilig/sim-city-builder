@@ -81,7 +81,7 @@ export function useOperations() {
                 newOps.push(newOp)
             }
             if (op.lastUpdateTime && op.duration > 0) {
-                newOp.duration += (oldSpeedup.speed - 1) * Math.min(op.duration, oldSpeedup.remaining)
+                newOp.duration += (oldSpeedup.speed - 1) * Math.min(op.duration, oldSpeedup.remaining * oldSpeedup.speed)
             }
             newOp.duration -= (speed - 1) * Math.min(newBuilding.speedUp.remaining, op.duration / speed)
         })

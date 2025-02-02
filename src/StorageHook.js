@@ -137,7 +137,11 @@ export function useStorage() {
                 const building = goodsData[good].building
                 if (pipelines[cityName][building] &&
                     pipelines[cityName][building].goods[good] !== undefined) {
-                    newStorage[good] = oldStorage[good] || 0
+                    if (oldStorage) {
+                        newStorage[good] = oldStorage[good] || 0
+                    } else {
+                        newStorage[good] = 0
+                    }
                 }
             })
             updatedStorage[cityName] = newStorage

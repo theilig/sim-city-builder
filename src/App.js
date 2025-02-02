@@ -270,7 +270,6 @@ function App() {
       setSettings(loadedSettings)
       loadShoppingLists(loadedSettings.cities)
       const newStorage = loadStorage(Object.keys(loadedSettings.cities))
-
       const cities = Object.keys(loadedSettings.cities)
 
       if (cities.length === 0) {
@@ -293,7 +292,7 @@ function App() {
         let updatedTimes = {}
         let unusedStorage = getStorage(currentCity)
         let newPurchases = []
-        const unscheduledLists = getUnscheduledLists(recommendedLists, currentCity)
+        let unscheduledLists = getUnscheduledLists(recommendedLists, currentCity)
         if (Date.now() - updatedTime > 10000 || recommendedLists.length === 0 || (unscheduledLists && unscheduledLists.length > 0)) {
           const updateResult = updateAllRunningOps()
           const timeDelta = Date.now() - updatedTime
@@ -306,10 +305,13 @@ function App() {
           unusedStorage = getStorage(currentCity, allStorage)
           updatedRunning = getPipelines(currentCity, allPipes)
           if (unscheduledLists && unscheduledLists.length > 0) {
-            for (let i=0; i<2 && i<unscheduledLists.length; i++) {
+            for (let i=0; i<5 && i<unscheduledLists.length; i++) {
               const result = calculateRecommendations(unusedStorage, updatedRunning, unscheduledLists)
               if (result.listIndex !== undefined) {
                 recommendedLists.push(result)
+                unscheduledLists = unscheduledLists.filter(l => l.index !== result.listIndex)
+              } else {
+                i = unscheduledLists.length
               }
             }
           } else {
@@ -328,7 +330,9 @@ function App() {
 
           let newLists = deepCopy(recommendedLists)
           Object.keys(updatedTimes).forEach(key => {
-            newLists[parseInt(key)].expectedTime = updatedTimes[key]
+            if (newLists[parseInt(key)]) {
+              newLists[parseInt(key)].expectedTime = updatedTimes[key]
+            }
           })
           updateOperations(updatedRunning, newLists, newPurchases, currentCity, allPipes)
           updateUnassignedStorage(unusedStorage, currentCity, allStorage)

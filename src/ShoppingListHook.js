@@ -123,6 +123,9 @@ export function useShoppingLists() {
         let allShoppingLists = {...shoppingLists}
         let allPrioritySwitches = {...prioritySwitches}
         let allPriorityOrder = {...priorityOrder}
+        if (!Array.isArray(lists)) {
+            lists = []
+        }
         const order = sortLists(lists, switches, [])
         allShoppingLists[currentCity] = lists
         setShoppingLists(allShoppingLists)

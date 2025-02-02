@@ -57,42 +57,76 @@ function Storage(props) {
 
     const sortStorage = () => {
         const localStorage = props.storage || {}
-        const groups = [['Factory'], [], ['Green Factory', 'Eco Shop'], ['Coconut Farm', 'Tropical Products Store'], ['Fishery', 'Fish Marketplace'], ['Mulberry Grove', 'Silk Store']]
+        const groups = [
+            ['Factory', 'Green Factory', 'Fishery', 'Coconut Farm', 'Mulberry Grove'],
+            ["Farmer's Market", "Gardening Supplies", "Country Store"],
+            ["Hardware Store", "Fashion Store", "Restoration"],
+            ["Building Supplies Store", "Furniture Store", "Home Appliances"],
+            ['Eco Shop', 'Fish Marketplace', 'Tropical Products Store', 'Silk Store', "Dessert Shop"],
+            ['Donut Shop', 'Fast Food Restaurant'],
+            ['Sports Shop', 'Toy Shop']
+        ]
         let storageSorted = []
-        groups.forEach(group => {
-            let goodsToAdd = []
-            Object.keys(localStorage).forEach(good => {
-                if (goodsData[good]) {
-                    const building = goodsData[good].building
-                    const hasGroup = groups.find(g => g.includes(building))
-                    const thisGroup = group.includes(building)
-                    if ((hasGroup && thisGroup) || (!hasGroup && group.length === 0)) {
-                        goodsToAdd.push(good)
-                    }
-                }
-            })
-            goodsToAdd.sort((a, b) => {
-                if (localStorage[a] !== localStorage[b]) {
-                    return localStorage[b] - localStorage[a]
-                }
-                if (a < b) {
-                    return -1
-                } else {
-                    return 1
-                }
-            })
-            goodsToAdd.forEach(good => {
-                storageSorted.push(<div title={goodsData[good].shortcut} key={good}
-                            onClick={() => goodWasClicked(good, false)}
-                            onContextMenu={() => goodWasClicked(good, true)} style={{display: 'flex', width: '175px', alignItems: 'center'}}>
-                    <div style={{display: 'flex', width: '100px'}}>{good}</div>
-                    {wrap(localStorage[good], undefined, {width: '20px', alignItems: 'center'}, '', '', true)}
-                    {wrap(props.unassignedStorage[good], undefined, {width: '30px', textAlign: 'right'}, '(', ')', false)}
-                    {wrap(adjustments[good], undefined, {width: '10px'}, '+', '', false)}
-                </div>)
-            })
+        const overstock = {}
+        Object.keys(props.unassignedStorage).forEach(good => {
+            overstock[good] = props.unassignedStorage[good]
         })
-        return storageSorted
+        if (props.stockingLists) {
+            props.stockingLists.forEach(list => {
+                const item = Object.keys(list.items)[0]
+                const amount = list.amount
+                if (overstock[item] === undefined) {
+                    overstock[item] = -amount
+                } else {
+                    overstock[item] -= amount
+                }
+            })
+
+        }
+        let goodsToAdd = {}
+        Object.keys(localStorage).forEach(good => {
+            if (goodsData[good]) {
+                const building = goodsData[good].building
+                if (goodsToAdd[building] === undefined) {
+                    goodsToAdd[building] = []
+                }
+                goodsToAdd[building].push(good)
+            }
+         })
+        return <div style={{display: "flex", flexDirection: 'row', flexWrap: 'wrap'}}>
+            {groups.map(group => {
+                return <div style={{display: "flex", flexDirection: 'column'}}>
+                    {group.map(building => {
+                        if (goodsToAdd[building]) {
+                            return <div key={'storageStuff.' + building} style={{
+                                display: "flex",
+                                flexDirection: 'column',
+                                flexWrap: 'wrap',
+                                marginBottom: "10px"
+                            }}>
+                                {goodsToAdd[building].map(good => {
+                                    return <div title={goodsData[good].shortcut} key={good}
+                                                onClick={() => goodWasClicked(good, false)}
+                                                onContextMenu={() => goodWasClicked(good, true)}
+                                                style={{display: 'flex', width: '175px', alignItems: 'center'}}>
+                                        <div style={{display: 'flex', width: '100px'}}>{good}</div>
+                                        {wrap(localStorage[good], undefined, {
+                                            width: '20px',
+                                            alignItems: 'center'
+                                        }, '', '', true)}
+                                        {wrap(overstock[good], undefined, {
+                                            width: '30px',
+                                            textAlign: 'right'
+                                        }, '(', ')', false)}
+                                        {wrap(adjustments[good], undefined, {width: '10px'}, '+', '', false)}
+                                    </div>
+                                })}
+                            </div>
+                        }
+                    })}
+                </div>
+            })}
+        </div>
     }
 
     useEffect(() => {
@@ -104,58 +138,64 @@ function Storage(props) {
                 if (newStoredKeys.length !== 1) {
                     newStoredKeys = [value]
                 } else {
-                    newStoredKeys = [newStoredKeys[0] * 10 + value]
-                }
-            } else {
-                newStoredKeys.push(key)
-            }
-            if (newStoredKeys.length === 3) {
-                if (newStoredKeys[0] === 0) {
-                    newStoredKeys[0] = 1
-                }
-                const shortcut = newStoredKeys[1] + newStoredKeys[2]
-                Object.keys(goodsData).forEach(good => {
-                    if (goodsData[good].shortcut === shortcut) {
-                        updateCount(good, newStoredKeys[0])
+                                    newStoredKeys = [newStoredKeys[0] * 10 + value]
+                                }
+                            } else {
+                                newStoredKeys.push(key)
+                            }
+                            if (newStoredKeys.length === 3) {
+                                if (newStoredKeys[0] === 0) {
+                                    newStoredKeys[0] = 1
+                                }
+                                const shortcut = newStoredKeys[1] + newStoredKeys[2]
+                                Object.keys(goodsData).forEach(good => {
+                                    if (goodsData[good].shortcut === shortcut) {
+                                        updateCount(good, newStoredKeys[0])
+                                    }
+                                })
+                                newStoredKeys = [0]
+                            }
+                            setStoredKeys(newStoredKeys)
+                        }
+                        document.addEventListener('keydown', updateKeys);
+
+                        // Don't forget to clean up
+                        return function cleanup() {
+                        document.removeEventListener('keydown', updateKeys);
                     }
-                })
-                newStoredKeys = [0]
-            }
-            setStoredKeys(newStoredKeys)
-        }
-        document.addEventListener('keydown', updateKeys);
+                    }, [storedKeys, updateCount, props.goodsSettings]);
 
-        // Don't forget to clean up
-        return function cleanup() {
-            document.removeEventListener('keydown', updateKeys);
-        }
-    }, [storedKeys, updateCount, props.goodsSettings]);
-
-    return (
-        <div style={{display: "flex", flexDirection: 'column'}}>
-            <div style={{display: "flex"}}>
-                <div key={'storageStuff'} style={{display: "flex", flexDirection: 'column', flexWrap: 'wrap', height: '200px'}}>
-                    {sortStorage()}
-                </div>
-            </div>
-            <div style={{"marginTop": "25px", "display":"flex"}}>
-                <button onClick={() => makeShoppingList('Capital City')} style={{"display": "grid", "width": "100px", "backgroundColor":"#6699ff"}}>
-                    order
-                </button>
-                <button onClick={addGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"aqua"}}>
-                    have
-                </button>
-                <button onClick={removeGoods} style={{"display": "grid", "width": "100px", "backgroundColor":"rosybrown"}}>
-                    gone
-                </button>
-                <button onClick={(e) => makeGoods(true, e.shiftKey)} onContextMenu={(e) => makeGoods(false, e.shiftKey)} style={{"display": "grid", "width": "100px", "backgroundColor":"darksalmon"}}>
-                    make goods
-                </button>
-                <button onClick={() => props.clear(false)} onContextMenu={() => props.clear(true)} style={{"display": "grid", "width": "100px", "backgroundColor":"tomato"}}>
-                    reset
-                </button>
-            </div>
-        </div>
-    )
-}
-export default Storage;
+                        return (
+                        <div style={{display: "flex", flexDirection: 'column'}}>
+                            <div style={{display: "flex"}}>
+                                <div key={'storageStuff'} style={{display: "flex", flexWrap: 'wrap'}}>
+                                    {sortStorage()}
+                                </div>
+                            </div>
+                            <div style={{"marginTop": "25px", "display": "flex"}}>
+                                <button onClick={() => makeShoppingList('Capital City')}
+                                        style={{"display": "grid", "width": "100px", "backgroundColor": "#6699ff"}}>
+                                    order
+                                </button>
+                                <button onClick={addGoods}
+                                        style={{"display": "grid", "width": "100px", "backgroundColor": "aqua"}}>
+                                    have
+                                </button>
+                                <button onClick={removeGoods}
+                                        style={{"display": "grid", "width": "100px", "backgroundColor": "rosybrown"}}>
+                                    gone
+                                </button>
+                                <button onClick={(e) => makeGoods(true, e.shiftKey)}
+                                        onContextMenu={(e) => makeGoods(false, e.shiftKey)}
+                                        style={{"display": "grid", "width": "100px", "backgroundColor": "darksalmon"}}>
+                                    make goods
+                                </button>
+                                <button onClick={() => props.clear(false)} onContextMenu={() => props.clear(true)}
+                                        style={{"display": "grid", "width": "100px", "backgroundColor": "tomato"}}>
+                                    reset
+                                </button>
+                            </div>
+                        </div>
+                        )
+                        }
+                        export default Storage;

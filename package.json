@@ -18,7 +18,7 @@
     "react-scripts": "^5.0.1"
   },
   "scripts": {
-    "start": "react-scripts --openssl-legacy-provider start",
+    "start": "PORT=3001 react-scripts --openssl-legacy-provider start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "coverage": "react-scripts test --watchAll=false --coverage",
