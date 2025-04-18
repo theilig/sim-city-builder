@@ -25,7 +25,7 @@ export function useRecommendations() {
         return {}
     }
 
-    const createStockingRecommendations = (unassignedStorage, running, purchases, stockingLists) => {
+    const createStockingRecommendations = (unassignedStorage, running, purchases, stockingLists, goodsOrdered) => {
         let currentRunning = running
         let currentStorage = unassignedStorage
         const getDescendantGoods = (good) => {
@@ -45,11 +45,12 @@ export function useRecommendations() {
                 }
             })
         })
-        purchases.forEach(op => {
-            if (alreadyHave[op.good] === undefined) {
-                alreadyHave[op.good] = 1
+
+        Object.keys(goodsOrdered).forEach(orderedGood => {
+            if (alreadyHave[orderedGood] === undefined) {
+                alreadyHave[orderedGood] = -goodsOrdered[orderedGood]
             } else {
-                alreadyHave[op.good] += 1
+                alreadyHave[orderedGood] -= goodsOrdered[orderedGood]
             }
         })
         let neededLists = deepCopy(stockingLists)
@@ -112,6 +113,11 @@ export function useRecommendations() {
                     }
                     if (blocked) {
                         goodNeeded = blocked
+                        if (need[blocked] === undefined) {
+                            need[blocked] = 1
+                        } else {
+                            need[blocked] += 1
+                        }
                     }
                     let kickoffList = {}
                     kickoffList[goodNeeded] = 1
@@ -154,48 +160,46 @@ export function useRecommendations() {
                         buildingCounts[newOp.building] = 1
                     }
                     currentRunning = result.updatedPipelines
-                    if (buildingCounts[newOp.building] > 11 && !running[newOp.building].isParallel) {
-                        neededLists.splice(0, 1)
+
+                    added.push({items: kickoffList, listIndex: EPHEMERAL_LIST_INDEX, waitUntil: waitUntil})
+                    if (addedTimes[goodNeeded]) {
+                        addedTimes[goodNeeded].push(result.expectedTime)
                     } else {
-                        added.push({items: kickoffList, listIndex: EPHEMERAL_LIST_INDEX, waitUntil: waitUntil})
-                        if (addedTimes[goodNeeded]) {
-                            addedTimes[goodNeeded].push(result.expectedTime)
-                        } else {
-                            addedTimes[goodNeeded] = [result.expectedTime]
-                        }
-                        const descendants = getDescendantGoods(goodNeeded)
-                        for (let k = 0; k < Object.keys(descendants).length; k += 1) {
-                            const descendant = Object.keys(descendants)[k]
-                            const numberNeeded = descendants[descendant]
-                            stockingLists.forEach(list => {
-                                if (Object.keys(list.items)[0] === descendant) {
-                                    let added = false
-                                    for (let neededKey = 0; neededKey < neededLists.length; neededKey += 1) {
-                                        if (Object.keys(neededLists[neededKey].items)[0] === descendant) {
-                                            neededLists[neededKey].items[descendant] += numberNeeded
-                                            added = true
-                                            break
-                                        }
-                                    }
-                                    if (!added) {
-                                        let newNeed = {}
-                                        newNeed[descendant] = numberNeeded
-                                        neededLists.push({items: newNeed, region: 'sim.stocking'})
+                        addedTimes[goodNeeded] = [result.expectedTime]
+                    }
+                    const listDescendants = getDescendantGoods(goodNeeded)
+                    for (let k = 0; k < Object.keys(listDescendants).length; k += 1) {
+                        const descendant = Object.keys(listDescendants)[k]
+                        const numberNeeded = listDescendants[descendant]
+                        stockingLists.forEach(list => {
+                            if (Object.keys(list.items)[0] === descendant) {
+                                let added = false
+                                for (let neededKey = 0; neededKey < neededLists.length; neededKey += 1) {
+                                    if (Object.keys(neededLists[neededKey].items)[0] === descendant) {
+                                        neededLists[neededKey].items[descendant] += numberNeeded
+                                        added = true
+                                        break
                                     }
                                 }
-                            })
-                            if (numberNeeded > 0) {
-                                if (need[descendant] === undefined) {
-                                    need[descendant] = numberNeeded
-                                } else {
-                                    need[descendant] += numberNeeded
+                                if (!added) {
+                                    let newNeed = {}
+                                    newNeed[descendant] = numberNeeded
+                                    neededLists.push({items: newNeed, region: 'sim.stocking'})
                                 }
+                            }
+                        })
+                        if (numberNeeded > 0) {
+                            if (need[descendant] === undefined) {
+                                need[descendant] = numberNeeded
+                            } else {
+                                need[descendant] += numberNeeded
                             }
                         }
                     }
+
                 }
 
-/*                if (added.length > 50) {
+                if (added.length > 50) {
                     // only do buildings where running is empty, and we have something we sort of need
                     let newNeeded = []
                     for (let k = 0; k < neededLists.length; k += 1) {
@@ -210,7 +214,7 @@ export function useRecommendations() {
                         }
                     }
                     neededLists = newNeeded
-                }*/
+                }
                 if (added.length > 500) {
                     neededLists = []
                 }

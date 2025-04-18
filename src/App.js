@@ -316,7 +316,7 @@ function App() {
             }
           } else {
             const stockingLists = calculateStockingList(settings.cities[currentCity], allStorage, allPipes)
-            const stockingRecommendations = createStockingRecommendations(unusedStorage, updatedRunning, getPurchases(currentCity), stockingLists)
+            const stockingRecommendations = createStockingRecommendations(unusedStorage, updatedRunning, getPurchases(currentCity), stockingLists, updateResult.ordered)
             recommendedLists = recommendedLists.filter(l => l.listIndex !== EPHEMERAL_LIST_INDEX)
             recommendedLists = recommendedLists.concat(stockingRecommendations)
           }

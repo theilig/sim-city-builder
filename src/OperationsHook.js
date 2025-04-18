@@ -264,8 +264,10 @@ export function useOperations() {
         let allPipes = newPipes || running
         let newRunningOps = {...running}
         let addToStorage = {}
+        let ordered = {}
         Object.keys(allPipes.pipelines).forEach(city => {
             let localAdd = {}
+            let localOrdered = {}
             const pipelines = getPipelines(city, allPipes)
             let newCityRunning = {...pipelines}
             Object.keys(newCityRunning).forEach(building => {
@@ -283,6 +285,12 @@ export function useOperations() {
                             newOp.start = timeToStart
                         }
                         timeToStart = Math.max(0, newOp.start + newOp.duration)
+                        if (op.listIndex !== undefined && op.listIndex !== EPHEMERAL_LIST_INDEX) {
+                            if (localOrdered[op.good] === undefined) {
+                                localOrdered[op.good] = 0
+                            }
+                            localOrdered[op.good] += 1
+                        }
                         newOp.listIndex = undefined
                         if (newOp.duration > 0) {
                             newBuilding.running.push(newOp)
@@ -310,8 +318,9 @@ export function useOperations() {
             })
             newRunningOps.pipelines[city] = newCityRunning
             addToStorage[city] = localAdd
+            ordered[city] = localOrdered
         })
-        return {pipelines: newRunningOps, addToStorage: addToStorage};
+        return {pipelines: newRunningOps, addToStorage: addToStorage, ordered: ordered};
     }
 
     const getExpectedTimes = (currentCity, newPipes) => {
