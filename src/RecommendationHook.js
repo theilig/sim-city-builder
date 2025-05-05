@@ -1,5 +1,5 @@
 import {useProduction} from "./ProductionHook";
-import {deepCopy, goodsData, randomGeneratorKey} from "./BuildingSettings";
+import {buildingData, deepCopy, goodsData, randomGeneratorKey} from "./BuildingSettings";
 
 export const EPHEMERAL_LIST_INDEX = -1
 export function useRecommendations() {
@@ -26,10 +26,26 @@ export function useRecommendations() {
     }
 
     const createStockingRecommendations = (unassignedStorage, running, purchases, stockingLists, goodsOrdered) => {
+        const factoryGood = (goodName) => {
+            const building = goodsData[goodName].building
+            const data = buildingData[building]
+            return data.isParallel === true
+        }
         let currentRunning = running
         let currentStorage = unassignedStorage
         const getDescendantGoods = (good) => {
-            return {...goodsData[good].ingredients}
+            const allDescendents = {...goodsData[good].ingredients}
+            Object.keys(allDescendents).forEach(key => {
+                const addedDescendents = getDescendantGoods(key)
+                Object.keys(addedDescendents).forEach(descendant => {
+                    if (allDescendents[descendant] === undefined) {
+                        allDescendents[descendant] = allDescendents[key] * addedDescendents[descendant]
+                    } else {
+                        allDescendents[descendant] += allDescendents[key] * addedDescendents[descendant]
+                    }
+                })
+            })
+            return allDescendents
         }
         let alreadyHave = {...unassignedStorage}
         let buildingCounts = {}
@@ -53,170 +69,129 @@ export function useRecommendations() {
                 alreadyHave[orderedGood] -= goodsOrdered[orderedGood]
             }
         })
-        let neededLists = deepCopy(stockingLists)
+        let neededTotals = {}
+        stockingLists.forEach(list => {
+            const good = Object.keys(list.items)[0]
+            const needed = list.items[good]
+            const missing = Math.max(0, needed - (alreadyHave[good] || 0))
+            if (neededTotals[good] === undefined) {
+                 neededTotals[good] = needed
+            } else {
+                neededTotals[good] += needed
+            }
+            const descendants = getDescendantGoods(good)
+            for (let k = 0; k < Object.keys(descendants).length; k += 1) {
+                const descendant = Object.keys(descendants)[k]
+                const numberNeeded = descendants[descendant]
+                if (neededTotals[descendant] === undefined) {
+                    neededTotals[descendant] = numberNeeded * missing
+                } else {
+                    neededTotals[descendant] += numberNeeded * missing
+                }
+            }
+        })
         let added = []
         let addedTimes = {}
+        let addedUsed = {}
         let need = {}
         let pct = {}
-        while (neededLists.length > 0) {
+        let done = false
+        while (!done) {
+            done = true
             need = {}
             pct = {}
-            stockingLists.forEach(list => {
-                const good = Object.keys(list.items)[0]
-                const needed = list.items[good]
-                need[good] = needed - (alreadyHave[good] || 0) - (addedTimes[good] || []).length
-                pct[good] = ((alreadyHave[good] || 0) + (addedTimes[good] || []).length + 1) / needed
-            })
-            neededLists.sort((a, b) => {
-                const aGood = Object.keys(a.items)[0]
-                const bGood = Object.keys(b.items)[0]
-                if (pct[aGood] !== pct[bGood]) {
-                    return pct[aGood] - pct[bGood]
+            const neededGoods = Object.keys(neededTotals)
+            for (let i = 0; i < neededGoods.length; i += 1) {
+                const good = neededGoods[i]
+                const scheduled = (addedTimes[good] || []).length + (alreadyHave[good] || 0)
+                need[good] = neededTotals[good] - alreadyHave[good] - (addedTimes[good] || []).length
+                if (need[good] > 0 && !factoryGood(good)) {
+                    done = false
+                }
+                pct[good] = scheduled / neededTotals[good]
+            }
+            neededGoods.sort((a, b) => {
+                if (factoryGood(a) && !factoryGood(b)) {
+                    return 1
+                }
+                if (factoryGood(b)) {
+                    return -1
+                }
+                if (buildingCounts[goodsData[a].building] === 11) {
+                    return 1
+                }
+                if (buildingCounts[goodsData[b].building] === 11) {
+                    return -1
+                }
+                if (pct[a] !== pct[b]) {
+                    return pct[a] - pct[b]
                 } else {
-                    return goodsData[aGood].duration - goodsData[bGood].duration
+                    return goodsData[a].duration - goodsData[b].duration
                 }
             })
-            if (neededLists.length) {
-                let goodNeeded = Object.keys(neededLists[0].items)[0]
-                if (need[goodNeeded] <= 0) {
-                    neededLists.splice(0, 1)
-                    continue
+            if (!done) {
+                let goodNeeded = neededGoods[0]
+                const descendants = getDescendantGoods(goodNeeded)
+                let waitUntil = 0
+                for (let k = 0; k < Object.keys(descendants).length; k += 1) {
+                    const descendant = Object.keys(descendants)[k]
+                    const alreadyAdded = (addedTimes[descendant] || []).length
+                    const descendentsNeeded = descendants[descendant]
+                    const pctDone = pct[descendant] - (alreadyAdded - (addedUsed[descendant] || 0)) / neededTotals[descendant]
+                    if (pct[descendant] < pct[goodNeeded] && factoryGood(descendant) === false) {
+                        goodNeeded = descendant
+                        k = Object.keys(descendants).length
+                    } else if (factoryGood(descendant) === false && pctDone < pct[goodNeeded]) {
+                        const numberToWaitFor = Math.ceil((pct[goodNeeded] - pctDone) * neededTotals[descendant]) + descendentsNeeded + (addedUsed[descendant] || 0)
+                        if (addedTimes[descendant] === undefined || numberToWaitFor > addedTimes[descendant].length) {
+                            goodNeeded = descendant
+                            k = Object.keys(descendants).length
+                        } else if (numberToWaitFor > 0) {
+                            const neededIndex = numberToWaitFor - 1
+                            const localWait = addedTimes[descendant][neededIndex]
+                            if (localWait > waitUntil) {
+                                waitUntil = localWait
+                            }
+                        }
+                    }
                 }
-                let blocked = goodNeeded
-                while (blocked !== undefined) {
-                    blocked = undefined
-                    const descendants = getDescendantGoods(goodNeeded)
-                    let waitUntil = 0
-                    for (let k = 0; k < Object.keys(descendants).length; k += 1) {
-                        const descendant = Object.keys(descendants)[k]
-                        const alreadyAdded = (addedTimes[descendant] || []).length
-                        const numberNeeded = descendants[descendant]
-                        const descendentList = stockingLists.find(list => Object.keys(list.items)[0] === descendant)
-                        if (descendentList) {
-                            const descendentsNeeded = descendentList.items[descendant]
-                            const pctLeft = pct[descendant] - numberNeeded / descendentsNeeded
-                            if (pctLeft < pct[goodNeeded]) {
-                                blocked = descendant
-                            } else if (pctLeft - (alreadyAdded / descendentsNeeded) < pct[goodNeeded]) {
-                                const numberToWaitFor = alreadyAdded - Math.ceil((pct[goodNeeded] - pctLeft) * descendentsNeeded)
-                                if (numberToWaitFor > addedTimes[descendant].length) {
-                                    blocked = descendant
-                                } else if (numberToWaitFor > 0) {
-                                    const neededIndex = numberToWaitFor - 1
-                                    const localWait = addedTimes[descendant][neededIndex]
-                                    if (localWait > waitUntil) {
-                                        waitUntil = localWait
-                                    }
-                                }
+                let kickoffList = {}
+                kickoffList[goodNeeded] = 1
+                let adjustedStorage = {...currentStorage}
+                if (waitUntil > 0) {
+                    const addedStuff = Object.keys(addedTimes)
+                    for (let k = 0; k < addedStuff.length; k += 1) {
+                        for (let l = 0; l < addedTimes[addedStuff[k]].length; l += 1) {
+                            if (addedTimes[addedStuff[k]][l] <= waitUntil) {
+                                adjustedStorage[addedStuff[k]] = (adjustedStorage[addedStuff[k]] || 0) + 1
                             }
                         }
                     }
-                    if (blocked) {
-                        goodNeeded = blocked
-                        if (need[blocked] === undefined) {
-                            need[blocked] = 1
-                        } else {
-                            need[blocked] += 1
-                        }
-                    }
-                    let kickoffList = {}
-                    kickoffList[goodNeeded] = 1
-                    let adjustedStorage = {...currentStorage}
-                    if (waitUntil > 0) {
-                        const addedStuff = Object.keys(addedTimes)
-                        for (let k = 0; k < addedStuff.length; k += 1) {
-                            for (let l = 0; l < addedTimes[addedStuff[k]].length; l += 1) {
-                                if (addedTimes[addedStuff[k]][l] <= waitUntil) {
-                                    adjustedStorage[addedStuff[k]] = (adjustedStorage[addedStuff[k]] || 0) + 1
-                                }
-                            }
-                        }
-                    }
-                    const result = addOrder(kickoffList, adjustedStorage, currentRunning, 0, waitUntil, EPHEMERAL_LIST_INDEX, true)
-                    currentStorage = result.updatedStorage
-                    if (waitUntil > 0) {
-                        const addedStuff = Object.keys(addedTimes)
-                        for (let k = 0; k < addedStuff.length; k += 1) {
-                            let removeCount = 0
-                            for (let l = 0; l < addedTimes[addedStuff[k]].length; l += 1) {
-                                if (addedTimes[addedStuff[k]][l] <= waitUntil) {
-                                    if (currentStorage[addedStuff[k]] > 0) {
-                                        currentStorage[addedStuff[k]] -= 1
-                                    } else {
-                                        // We took something we added, get it out of the added times list
-                                        removeCount += 1
-                                    }
-                                }
-                            }
-                            if (removeCount > 0) {
-                                addedTimes[addedStuff[k]] = addedTimes[addedStuff[k]].slice(removeCount)
-                            }
-                        }
-                    }
-                    const newOp = result.itemsAdded[0]
-                    if (buildingCounts[newOp.building]) {
-                        buildingCounts[newOp.building] += 1
-                    } else {
-                        buildingCounts[newOp.building] = 1
-                    }
-                    currentRunning = result.updatedPipelines
-
-                    added.push({items: kickoffList, listIndex: EPHEMERAL_LIST_INDEX, waitUntil: waitUntil})
-                    if (addedTimes[goodNeeded]) {
-                        addedTimes[goodNeeded].push(result.expectedTime)
-                    } else {
-                        addedTimes[goodNeeded] = [result.expectedTime]
-                    }
-                    const listDescendants = getDescendantGoods(goodNeeded)
-                    for (let k = 0; k < Object.keys(listDescendants).length; k += 1) {
-                        const descendant = Object.keys(listDescendants)[k]
-                        const numberNeeded = listDescendants[descendant]
-                        stockingLists.forEach(list => {
-                            if (Object.keys(list.items)[0] === descendant) {
-                                let added = false
-                                for (let neededKey = 0; neededKey < neededLists.length; neededKey += 1) {
-                                    if (Object.keys(neededLists[neededKey].items)[0] === descendant) {
-                                        neededLists[neededKey].items[descendant] += numberNeeded
-                                        added = true
-                                        break
-                                    }
-                                }
-                                if (!added) {
-                                    let newNeed = {}
-                                    newNeed[descendant] = numberNeeded
-                                    neededLists.push({items: newNeed, region: 'sim.stocking'})
-                                }
-                            }
-                        })
-                        if (numberNeeded > 0) {
-                            if (need[descendant] === undefined) {
-                                need[descendant] = numberNeeded
-                            } else {
-                                need[descendant] += numberNeeded
-                            }
-                        }
-                    }
-
                 }
-
-                if (added.length > 50) {
-                    // only do buildings where running is empty, and we have something we sort of need
-                    let newNeeded = []
-                    for (let k = 0; k < neededLists.length; k += 1) {
-                        const good = Object.keys(neededLists[k].items)[0]
-                        const building = goodsData[good].building
-                        if (pct[good] > 2) {
-                            continue
-                        }
-                        if (buildingCounts[building] === 0 ||
-                            (buildingCounts[randomGeneratorKey] === 0 && running[randomGeneratorKey].currentBuilding === building)) {
-                            newNeeded.push(neededLists[k])
-                        }
-                    }
-                    neededLists = newNeeded
+                const result = addOrder(kickoffList, adjustedStorage, currentRunning, 0, waitUntil, EPHEMERAL_LIST_INDEX, true)
+                currentStorage = result.updatedStorage
+                const usedDescendants = getDescendantGoods(goodNeeded)
+                for (let k = 0; k < Object.keys(usedDescendants).length; k += 1) {
+                    const descendant = Object.keys(usedDescendants)[k]
+                    const numberNeeded = usedDescendants[descendant]
+                    addedUsed[descendant] = (addedUsed[descendant] || 0) + numberNeeded
                 }
-                if (added.length > 500) {
-                    neededLists = []
+                const newOp = result.itemsAdded[0]
+                if (buildingCounts[newOp.building]) {
+                    buildingCounts[newOp.building] += 1
+                } else {
+                    buildingCounts[newOp.building] = 1
+                }
+                currentRunning = result.updatedPipelines
+
+                added.push({items: kickoffList, listIndex: EPHEMERAL_LIST_INDEX, waitUntil: waitUntil})
+                if (addedTimes[goodNeeded]) {
+                    addedTimes[goodNeeded].push(result.expectedTime)
+                } else {
+                    addedTimes[goodNeeded] = [result.expectedTime]
+                }
+                if (added.length > 200) {
+                    done = true
                 }
             }
         }
