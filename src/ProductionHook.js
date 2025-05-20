@@ -15,8 +15,6 @@ export const adjustDuration = (start, duration, building) => {
     const speedUpTime = Math.min((speedUp.remaining - start) * speedUp.speed, duration)
     if (speedUpTime > 0) {
         return duration - speedUpTime + speedUpTime / speedUp.speed
-    } else if (building.isParallel) {
-        return Math.min(duration, 60 * 60)
     } else {
         return duration
     }

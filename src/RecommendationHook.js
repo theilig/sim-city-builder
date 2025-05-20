@@ -1,5 +1,6 @@
 import {useProduction} from "./ProductionHook";
 import {buildingData, deepCopy, goodsData, randomGeneratorKey} from "./BuildingSettings";
+import good from "./Good";
 
 export const EPHEMERAL_LIST_INDEX = -1
 export function useRecommendations() {
@@ -7,6 +8,10 @@ export function useRecommendations() {
         addOrder
     } = useProduction()
 
+    const calculateUtility = (currentStorage, currentTimes, goodsData) => {
+
+        return []
+    }
     const calculateRecommendations = (unassignedStorage, running, unscheduledLists) => {
         const possibleLists = unscheduledLists
         if (possibleLists.length > 0) {
@@ -70,10 +75,12 @@ export function useRecommendations() {
             }
         })
         let neededTotals = {}
+        let stockingTotals = {}
         stockingLists.forEach(list => {
             const good = Object.keys(list.items)[0]
             const needed = list.items[good]
             const missing = Math.max(0, needed - (alreadyHave[good] || 0))
+            stockingTotals[good] = needed
             if (neededTotals[good] === undefined) {
                  neededTotals[good] = needed
             } else {
@@ -93,13 +100,13 @@ export function useRecommendations() {
         let added = []
         let addedTimes = {}
         let addedUsed = {}
-        let need = {}
-        let pct = {}
         let done = false
         while (!done) {
             done = true
-            need = {}
-            pct = {}
+            let need = {}
+            let pct = {}
+            let stockingPct = {}
+
             const neededGoods = Object.keys(neededTotals)
             for (let i = 0; i < neededGoods.length; i += 1) {
                 const good = neededGoods[i]
@@ -109,6 +116,7 @@ export function useRecommendations() {
                     done = false
                 }
                 pct[good] = scheduled / neededTotals[good]
+                stockingPct[good] = scheduled / (stockingTotals[good] || 1)
             }
             neededGoods.sort((a, b) => {
                 if (factoryGood(a) && !factoryGood(b)) {
@@ -121,6 +129,12 @@ export function useRecommendations() {
                     return 1
                 }
                 if (buildingCounts[goodsData[b].building] === 11) {
+                    return -1
+                }
+                if (alreadyHave[a] >= 10) {
+                    return 1
+                }
+                if (alreadyHave[b] >= 10) {
                     return -1
                 }
                 if (pct[a] !== pct[b]) {
@@ -138,7 +152,7 @@ export function useRecommendations() {
                     const alreadyAdded = (addedTimes[descendant] || []).length
                     const descendentsNeeded = descendants[descendant]
                     const pctDone = pct[descendant] - (alreadyAdded - (addedUsed[descendant] || 0)) / neededTotals[descendant]
-                    if (pct[descendant] < pct[goodNeeded] && factoryGood(descendant) === false) {
+                    if (stockingPct[descendant] < stockingPct[goodNeeded] && factoryGood(descendant) === false) {
                         goodNeeded = descendant
                         k = Object.keys(descendants).length
                     } else if (factoryGood(descendant) === false && pctDone < pct[goodNeeded]) {
