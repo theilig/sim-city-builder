@@ -20,6 +20,17 @@ function RecommendationList(props) {
             remainingSlots[building] = available
         }
     })
+    let buildingCounts = {}
+    Object.keys(props.pipelines).forEach(building => {
+        if (props.pipelines[building].running.length > 0) {
+            buildingCounts[building] = 0
+            props.pipelines[building].running.forEach(op => {
+                if (op.lastUpdateTime) {
+                    buildingCounts[building] += 1
+                }
+            })
+        }
+    })
     let extraGoods = getExtras(props.recommendations)
     props.recommendations.forEach(op => {
         let goodToGo = true
@@ -48,6 +59,9 @@ function RecommendationList(props) {
             } else {
                 goodToGo = !(op.children && op.children.length > 0)
             }
+        }
+        if (buildingCounts[op.building] > 10) {
+            goodToGo = false
         }
         const factory = factories.includes(op.building)
         if (!factory) {

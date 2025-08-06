@@ -8,9 +8,48 @@ export function useRecommendations() {
         addOrder
     } = useProduction()
 
-    const calculateUtility = (currentStorage, currentTimes, goodsData) => {
+    const calculateUtility = (currentStorage, currentTimes, pipelines) => {
+        let util = []
+        const expDecay = (have, initialValue, valueAtTen, finalValue) => {
+            const k = Math.log((valueAtTen - finalValue) / (initialValue - finalValue)) / 10
+            return finalValue + (initialValue - finalValue) * Math.exp(k * have)
+        }
+        const frequentItem = (have, price) => {
+            return expDecay(have, 1.0, .8, .75) * price
+        }
+        const normalItem = (have, price) => {
+            return expDecay(have, 1.2, 1.0, .8) * price
+        }
+        const rareItem = (have, price) => {
+            return expDecay(have, 2.0, 1.4, 1.0) * price
+        }
+        const calculators = {normal: normalItem, frequent: frequentItem, rare: rareItem}
+        Object.keys(pipelines).forEach((building) => {
+            Object.keys(pipelines[building].goods).forEach(good => {
+                const goodData = pipelines[building].goods[good]
+                const alreadyHave = currentStorage[good] || 0
+                const utility = goodData.utility
+                if (util[good] === undefined) {
+                    util[good] = {derived: []}
+                }
+                util[good].n = calculators[goodData.storeFrequency](alreadyHave, utility)
+                util[good].n_plus = calculators[goodData.storeFrequency](alreadyHave + 1, utility)
+            })
+        })
+        Object.keys(pipelines).forEach((building) => {
+            Object.keys(pipelines[building].goods).forEach(good => {
+                const goodData = pipelines[building].goods[good]
+                const ingredients = Object.keys(goodData.ingredients)
+                let cost = 0
+                ingredients.forEach(ingredient => {
+                    cost += util[ingredient].n * goodData.ingredients[ingredient]
+                })
+                util[good].cost = cost
+                util[good].rate = (util[good].n_plus - cost) / goodData.duration
+            })
+        })
 
-        return []
+        return util
     }
     const calculateRecommendations = (unassignedStorage, running, unscheduledLists) => {
         const possibleLists = unscheduledLists
@@ -52,16 +91,33 @@ export function useRecommendations() {
             })
             return allDescendents
         }
+        const clearFactoryReqs = (pipelines) => {
+            const newPipelines = deepCopy(pipelines)
+            Object.keys(newPipelines).forEach(building => {
+                const pipeline = newPipelines[building]
+                const newPipe = {...pipeline}
+                newPipe.running = []
+                pipeline.running.forEach(op => {
+                    if (op.listIndex === undefined || op.listIndex === EPHEMERAL_LIST_INDEX || pipeline.isParallel === false) {
+                        newPipe.running.push(op)
+                    }
+                })
+                newPipelines[building] = newPipe
+            })
+            return newPipelines
+        }
         let alreadyHave = {...unassignedStorage}
         let buildingCounts = {}
+        let addedTimes = {}
+
         Object.keys(running).forEach(building => {
             buildingCounts[building] = running[building].running.length
             running[building].running.forEach(op => {
                 if (op.listIndex === undefined || op.listIndex === EPHEMERAL_LIST_INDEX) {
-                    if (alreadyHave[op.good] === undefined) {
-                        alreadyHave[op.good] = 1
+                    if (addedTimes[op.good] === undefined) {
+                        addedTimes[op.good] = [op.start + op.duration]
                     } else {
-                        alreadyHave[op.good] += 1
+                        addedTimes[op.good].push(op.start + op.duration)
                     }
                 }
             })
@@ -79,7 +135,7 @@ export function useRecommendations() {
         stockingLists.forEach(list => {
             const good = Object.keys(list.items)[0]
             const needed = list.items[good]
-            const missing = Math.max(0, needed - (alreadyHave[good] || 0))
+            const missing = Math.max(0, needed - (alreadyHave[good] || 0) - (addedTimes[good] || []).length)
             stockingTotals[good] = needed
             if (neededTotals[good] === undefined) {
                  neededTotals[good] = needed
@@ -98,7 +154,6 @@ export function useRecommendations() {
             }
         })
         let added = []
-        let addedTimes = {}
         let addedUsed = {}
         let done = false
         while (!done) {
@@ -196,7 +251,7 @@ export function useRecommendations() {
                 } else {
                     buildingCounts[newOp.building] = 1
                 }
-                currentRunning = result.updatedPipelines
+                currentRunning = clearFactoryReqs(result.updatedPipelines)
 
                 added.push({items: kickoffList, listIndex: EPHEMERAL_LIST_INDEX, waitUntil: waitUntil})
                 if (addedTimes[goodNeeded]) {
@@ -204,11 +259,66 @@ export function useRecommendations() {
                 } else {
                     addedTimes[goodNeeded] = [result.expectedTime]
                 }
+                if (added.length % 40 === 0) {
+                    Object.keys(running).forEach(building => {
+                        if (running[building].isParallel === false && (buildingCounts[building] === undefined || buildingCounts[building] === 0)) {
+                            let bestGood;
+                            let bestValue = 0
+                            Object.keys(running[building].goods).forEach(good => {
+                                const goodData = running[building].goods[good]
+                                kickoffList = {}
+                                kickoffList[good] = 1
+                                let adjustedPrice = goodData.price
+                                if (goodData.storeFrequency === 'frequent') {
+                                    adjustedPrice /= 1.2
+                                } else if (goodData.storeFrequency === 'rare') {
+                                    adjustedPrice *= 1.2
+                                }
+                                const result = addOrder(kickoffList, {}, currentRunning, 0, 0, EPHEMERAL_LIST_INDEX, true)
+                                const value = adjustedPrice
+                                if (bestGood === undefined || value > bestValue) {
+                                    bestGood = good
+                                    bestValue = value
+                                }
+                                if (value > bestValue) {
+                                    bestGood = good
+                                    bestValue = value
+                                }
+                            })
+                            if (bestGood && bestValue > 500) {
+                                kickoffList = {}
+                                kickoffList[bestGood] = 1
+                                added.push({items: kickoffList, listIndex: EPHEMERAL_LIST_INDEX, waitUntil: 0})
+                                buildingCounts[goodsData[bestGood].building] = (buildingCounts[goodsData[bestGood].building] || 0) + 1
+                            }
+                        }
+                    })
+                }
                 if (added.length > 200) {
                     done = true
                 }
             }
         }
+/*        let util = calculateUtility(alreadyHave, addedTimes, running)
+        let goods = Object.keys(util)
+        goods.sort((a, b) => util[b].rate - util[a].rate)
+        goods.forEach((good) => {
+            const goodData = goodsData[good]
+            const building = goodData.building
+            if (buildingCounts[goodData.building] === undefined) {
+                buildingCounts[goodData.building] = 0
+            }
+            if (buildingData[building].isParallel === false && buildingCounts[goodData.building] === 0 && util[good].rate > 0) {
+                let adjustedStorage = {...currentStorage}
+                let kickoffList = {}
+                kickoffList[good] = 1
+                const result = addOrder(kickoffList, adjustedStorage, currentRunning, 0, 0, EPHEMERAL_LIST_INDEX, true)
+                currentStorage = result.updatedStorage
+                buildingCounts[goodData.building] += 1
+                currentRunning = clearFactoryReqs(result.updatedPipelines)
+                added.push({items: kickoffList, listIndex: EPHEMERAL_LIST_INDEX, waitUntil: 0})
+            }
+        })*/
         return added
     }
     return {
