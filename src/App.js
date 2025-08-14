@@ -375,25 +375,7 @@ function App() {
     const unusedStorage = getUnusedStorage(currentCity)
     const prioritySwitches = getPrioritySwitches(currentCity)
     const priorityOrder = getPriorityOrder(currentCity)
-    const purchases = getPurchases(currentCity)
-    let purchasesDisplay = {}
-    purchases.forEach(purchase => {
-      if (purchasesDisplay[purchase.good]) {
-        purchasesDisplay[purchase.good].count += 1
-        if (purchasesDisplay[purchase.good].start > purchase.start) {
-          purchasesDisplay[purchase.good].start = purchase.start
-        }
-      } else {
-        purchasesDisplay[purchase.good] = {count: 1, start: purchase.start}
-      }
-    })
-    let purchaseKeys = Object.keys(purchasesDisplay)
-    purchaseKeys.sort((a, b) => {
-      if (purchasesDisplay[a].start !== purchasesDisplay[b].start) {
-        return purchasesDisplay[a].start - purchasesDisplay[b].start
-      }
-      return purchasesDisplay[b].count - purchasesDisplay[a].count
-    })
+
 
     let vuDisplay = ''
     let buildings = {}
@@ -440,24 +422,12 @@ function App() {
           />
           <div style={{display: 'flex'}}>
             <FactoryRecommendations key={"faclist"} recommendations={getRecommended(currentCity)} pipelines={running}
-                                    purchases={purchases}
                                     startOp={(opList) => startOperations(opList)}
                                     finishOp={(opList) => finishOperations(opList)}
             />
             <Reminders key={"reminders"} reminders={reminders} reset={(name) => resetReminder(name)} />
           </div>
-          <div>Purchases</div>
-          <div style={{display: 'flex'}}>
-            {purchaseKeys.map(purchaseKey => {
-              let style = {marginRight: '5px'}
-              if (purchasesDisplay[purchaseKey].start <= 0) {
-                style.backgroundColor = 'white'
-                style.color = 'steelblue'
-              }
-              return <div key={purchaseKey} style={style}>{purchasesDisplay[purchaseKey].count + ' ' + purchaseKey}</div>
-            })}
-          </div>
-          <div>&nbsp;</div>
+
           <div style={{display: "flex", width: "100%"}}>
             <div style={{display: "flex", flexDirection: "column"}}>
               <div>Shopping Lists</div>
