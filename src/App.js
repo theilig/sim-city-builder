@@ -13,6 +13,7 @@ import RecommendationList from "./RecommendationList";
 import {deepCopy, goodsData, randomGeneratorKey} from "./BuildingSettings";
 import FactoryRecommendations from "./FactoryRecommendations";
 import Reminders from "./Reminders";
+import TrainSchedule from "./TrainSchedule";
 
 function App() {
   const [loaded, setLoaded] = useState(false)
@@ -426,6 +427,7 @@ function App() {
                                     finishOp={(opList) => finishOperations(opList)}
             />
             <Reminders key={"reminders"} reminders={reminders} reset={(name) => resetReminder(name)} />
+            <TrainSchedule key={"trainschedule"} />
           </div>
 
           <div style={{display: "flex", width: "100%"}}>
