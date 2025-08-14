@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 
 const TRAINS = [
-  { name: 'Northwest Railways', interval: 58 },
-  { name: 'Sim Rail Grade', interval: 63 },
-  { name: 'ES Super Sim', interval: 58 },
-  { name: 'LM Grade 23', interval: 26 },
-  { name: 'Llama Line 350', interval: 27 },
-  { name: 'Quail QP1', interval: 18 },
-  { name: 'Flying Sim', interval: 12 },
-  { name: 'Simeo Plus B', interval: 8 }
+  { name: 'Northwest Railways', interval: 58, earnings: 167 },
+  { name: 'Sim Rail Grade', interval: 63, earnings: 254 },
+  { name: 'ES Super Sim', interval: 58, earnings: 185 },
+  { name: 'LM Grade 23', interval: 26, earnings: 102 },
+  { name: 'Llama Line 350', interval: 27, earnings: 141 },
+  { name: 'Quail QP1', interval: 18, earnings: 59 },
+  { name: 'Flying Sim', interval: 12, earnings: 52 },
+  { name: 'Simeo Plus B', interval: 8, earnings: 30 }
 ];
 
 function TrainSchedule() {
@@ -17,40 +17,42 @@ function TrainSchedule() {
     TRAINS.forEach(train => {
       initialState[train.name] = {
         sent: false,
-        timeRemaining: 0
+        endTime: 0
       };
     });
     return initialState;
   });
 
+  const [sendHistory, setSendHistory] = useState([]);
+  const [, forceUpdate] = useState({});
+
   useEffect(() => {
     const interval = setInterval(() => {
-      setTrainStates(prevStates => {
-        const newStates = { ...prevStates };
-        Object.keys(newStates).forEach(trainName => {
-          if (newStates[trainName].sent && newStates[trainName].timeRemaining > 0) {
-            newStates[trainName].timeRemaining -= 10; // Reduce by 10 seconds
-            if (newStates[trainName].timeRemaining <= 0) {
-              newStates[trainName].sent = false;
-              newStates[trainName].timeRemaining = 0;
-            }
-          }
-        });
-        return newStates;
-      });
+      // Force re-render to update timers
+      forceUpdate({});
     }, 10000); // Update every 10 seconds
 
     return () => clearInterval(interval);
   }, []);
 
   const sendTrain = (trainName, intervalMinutes) => {
+    const train = TRAINS.find(t => t.name === trainName);
+    const now = Date.now();
+    
     setTrainStates(prevStates => ({
       ...prevStates,
       [trainName]: {
         sent: true,
-        timeRemaining: intervalMinutes * 60 // Convert minutes to seconds
+        endTime: now + (intervalMinutes * 60 * 1000) // Convert minutes to milliseconds
       }
     }));
+    
+    // Record send in history
+    setSendHistory(prevHistory => [...prevHistory, {
+      trainName,
+      earnings: train.earnings,
+      timestamp: now
+    }]);
   };
 
   const resetTrain = (trainName) => {
@@ -58,9 +60,44 @@ function TrainSchedule() {
       ...prevStates,
       [trainName]: {
         sent: false,
-        timeRemaining: 0
+        endTime: 0
       }
     }));
+  };
+
+  const resetEarningsTracking = () => {
+    const now = Date.now();
+    const newSendHistory = [];
+    
+    TRAINS.forEach(train => {
+      const state = trainStates[train.name] || { sent: false, endTime: 0 };
+      const isSent = state.sent && state.endTime > now;
+      
+      if (isSent) {
+        // Train is currently running - add prorated earnings for remaining time
+        const remainingMinutes = (state.endTime - now) / (60 * 1000);
+        const proratedEarnings = (remainingMinutes / train.interval) * train.earnings;
+        
+        // Add the prorated earnings as if earned at the end of the current run
+        newSendHistory.push({
+          trainName: train.name,
+          earnings: proratedEarnings,
+          timestamp: state.endTime
+        });
+        
+        // Then add subsequent full runs starting from when this one completes
+        let nextSendTime = state.endTime + (train.interval * 60 * 1000);
+        newSendHistory.push({
+          trainName: train.name,
+          earnings: train.earnings,
+          timestamp: nextSendTime
+        });
+      }
+      // Note: Unsent trains are NOT added to sendHistory
+      // They only affect max calculation, not actual earnings
+    });
+    
+    setSendHistory(newSendHistory);
   };
 
   const formatTime = (seconds) => {
@@ -69,16 +106,56 @@ function TrainSchedule() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  // Calculate actual earnings per minute based on send history (last 60 minutes)
+  const now = Date.now();
+  
+  // Calculate theoretical maximum earnings per minute if all trains sent optimally from start
+  // Assumes 1 minute to send initial batch, then sent immediately when available
+  const sessionStartTime = sendHistory[0]?.timestamp || now;
+  const minutesElapsed = Math.max(1, (now - sessionStartTime) / (60 * 1000));
+  
+  let maxEarningsPerMinute;
+  
+  if (sendHistory.length === 0) {
+    // Fresh page load - show potential if all trains sent in next minute
+    maxEarningsPerMinute = TRAINS.reduce((total, train) => total + train.earnings, 0);
+  } else {
+    // Calculate sustainable earning rate: initial burst + continuous cycling
+    const initialBurst = TRAINS.reduce((total, train) => total + train.earnings, 0); // 990
+    const cycleRate = TRAINS.reduce((total, train) => total + (train.earnings / train.interval), 0); // 30.6 per minute
+    
+    if (minutesElapsed <= 1) {
+      maxEarningsPerMinute = initialBurst; // Show the 990 potential
+    } else {
+      // Total theoretical earnings: 990 initial + continuous earning at cycle rate
+      // At time T: 990 + T * 30.6, so average per minute = (990 + T * 30.6) / T
+      const totalEarnings = initialBurst + (minutesElapsed * cycleRate);
+      maxEarningsPerMinute = totalEarnings / minutesElapsed;
+    }
+  }
+  
+  const oneHourAgo = now - (60 * 60 * 1000);
+  const recentSends = sendHistory.filter(send => send.timestamp >= oneHourAgo);
+  const totalEarnings = recentSends.reduce((total, send) => total + send.earnings, 0);
+  const actualMinutesElapsed = Math.max(1, (now - (sendHistory[0]?.timestamp || now)) / (60 * 1000));
+  const actualEarningsPerMinute = sendHistory.length > 0 ? totalEarnings / Math.min(60, actualMinutesElapsed) : 0;
+
   // Sort trains: unsent trains by interval (highest to lowest), then sent trains by time remaining (lowest to highest)
   const sortedTrains = [...TRAINS].sort((a, b) => {
-    const stateA = trainStates[a.name] || { sent: false, timeRemaining: 0 };
-    const stateB = trainStates[b.name] || { sent: false, timeRemaining: 0 };
+    const stateA = trainStates[a.name] || { sent: false, endTime: 0 };
+    const stateB = trainStates[b.name] || { sent: false, endTime: 0 };
+    
+    // Check if trains are actually still sent (endTime hasn't passed)
+    const isSentA = stateA.sent && stateA.endTime > now;
+    const isSentB = stateB.sent && stateB.endTime > now;
     
     // If both are sent or both are unsent, sort accordingly
-    if (stateA.sent === stateB.sent) {
-      if (stateA.sent) {
+    if (isSentA === isSentB) {
+      if (isSentA) {
         // Both sent: sort by time remaining (lowest to highest)
-        return stateA.timeRemaining - stateB.timeRemaining;
+        const remainingA = stateA.endTime - now;
+        const remainingB = stateB.endTime - now;
+        return remainingA - remainingB;
       } else {
         // Both unsent: sort by interval (highest to lowest)
         return b.interval - a.interval;
@@ -86,7 +163,7 @@ function TrainSchedule() {
     }
     
     // Unsent trains come before sent trains
-    return stateA.sent ? 1 : -1;
+    return isSentA ? 1 : -1;
   });
 
   // Split trains into two columns
@@ -94,7 +171,11 @@ function TrainSchedule() {
   const rightColumn = sortedTrains.slice(4, 8);
 
   const renderTrain = (train) => {
-    const state = trainStates[train.name] || { sent: false, timeRemaining: 0 };
+    const state = trainStates[train.name] || { sent: false, endTime: 0 };
+    
+    // Calculate if train is actually still sent and remaining time
+    const isSent = state.sent && state.endTime > now;
+    const remainingTime = isSent ? Math.max(0, Math.ceil((state.endTime - now) / 1000)) : 0;
     return (
       <div 
         key={train.name} 
@@ -104,7 +185,7 @@ function TrainSchedule() {
           alignItems: 'center',
           marginBottom: '8px',
           padding: '5px',
-          backgroundColor: state.sent ? '#ffcccc' : '#ccffcc',
+          backgroundColor: isSent ? '#ffcccc' : '#ccffcc',
           cursor: 'pointer'
         }}
         onContextMenu={(e) => {
@@ -115,14 +196,14 @@ function TrainSchedule() {
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 'bold', color: '#666' }}>{train.name}</div>
           <div style={{ fontSize: '0.8em', color: '#666' }}>
-            Every {train.interval} minutes
+            Every {train.interval} minutes • Earns {train.earnings}
           </div>
         </div>
         <div style={{ marginLeft: '10px' }}>
-          {state.sent ? (
+          {isSent ? (
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '0.8em', color: '#666' }}>Next in:</div>
-              <div style={{ fontWeight: 'bold' }}>{formatTime(state.timeRemaining)}</div>
+              <div style={{ fontWeight: 'bold' }}>{formatTime(remainingTime)}</div>
             </div>
           ) : (
             <button 
@@ -161,6 +242,26 @@ function TrainSchedule() {
         </div>
         <div style={{ flex: 1 }}>
           {rightColumn.map(renderTrain)}
+        </div>
+      </div>
+      <div style={{ marginTop: '10px', fontSize: '0.9em', color: '#666', display: 'flex', gap: '20px' }}>
+        <div 
+          style={{ cursor: 'pointer' }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            resetEarningsTracking();
+          }}
+        >
+          Max per minute: {maxEarningsPerMinute.toFixed(1)}
+        </div>
+        <div 
+          style={{ cursor: 'pointer' }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            resetEarningsTracking();
+          }}
+        >
+          Actual per minute: {actualEarningsPerMinute.toFixed(1)}
         </div>
       </div>
     </div>
