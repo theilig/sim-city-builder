@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 const TRAINS = [
   { name: 'Northwest Railways', interval: 58, earnings: 167 },
-  { name: 'Sim Rail Grade', interval: 63, earnings: 254 },
+  { name: 'Sim Rail Grade', interval: 58, earnings: 270 },
   { name: 'ES Super Sim', interval: 58, earnings: 185 },
   { name: 'LM Grade 23', interval: 26, earnings: 102 },
   { name: 'Llama Line 350', interval: 27, earnings: 141 },
