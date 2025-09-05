@@ -6,7 +6,7 @@ const TRAINS = [
   { name: 'ES Super Sim', interval: 58, earnings: 185 },
   { name: 'LM Grade 23', interval: 26, earnings: 102 },
   { name: 'Llama Line 350', interval: 27, earnings: 141 },
-  { name: 'Quail QP1', interval: 18, earnings: 59 },
+  { name: 'Quill QP1', interval: 18, earnings: 59 },
   { name: 'Flying Sim', interval: 12, earnings: 52 },
   { name: 'Simeo Plus B', interval: 8, earnings: 30 }
 ];

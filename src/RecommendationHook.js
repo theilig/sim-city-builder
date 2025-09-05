@@ -266,23 +266,35 @@ export function useRecommendations() {
                             let bestValue = 0
                             Object.keys(running[building].goods).forEach(good => {
                                 const goodData = running[building].goods[good]
+                                let cost = 0
                                 kickoffList = {}
                                 kickoffList[good] = 1
-                                let adjustedPrice = goodData.price
-                                if (goodData.storeFrequency === 'frequent') {
-                                    adjustedPrice /= 1.2
-                                } else if (goodData.storeFrequency === 'rare') {
-                                    adjustedPrice *= 1.2
-                                }
-                                const result = addOrder(kickoffList, {}, currentRunning, 0, 0, EPHEMERAL_LIST_INDEX, true)
-                                const value = adjustedPrice
-                                if (bestGood === undefined || value > bestValue) {
-                                    bestGood = good
-                                    bestValue = value
-                                }
-                                if (value > bestValue) {
-                                    bestGood = good
-                                    bestValue = value
+                                let haveGoods = true
+                                Object.keys(goodData.ingredients).forEach(ingredient => {
+                                    if (pct[ingredient] < .5 + goodData.ingredients[ingredient] * .1) {
+                                        haveGoods = false
+                                    }
+                                    cost += goodData.price * goodData.ingredients[ingredient]
+                                })
+                                if (haveGoods) {
+                                    let adjustedPrice = goodData.price
+                                    if (goodData.storeFrequency === 'frequent') {
+                                        adjustedPrice /= 1.2
+                                    } else if (goodData.storeFrequency === 'rare') {
+                                        adjustedPrice *= 1.2
+                                    }
+                                    const value = adjustedPrice - cost
+                                    if (adjustedPrice > cost) {
+                                        const result = addOrder(kickoffList, {}, currentRunning, 0, 0, EPHEMERAL_LIST_INDEX, true)
+                                        if (bestGood === undefined || value > bestValue) {
+                                            bestGood = good
+                                            bestValue = value
+                                        }
+                                        if (value > bestValue) {
+                                            bestGood = good
+                                            bestValue = value
+                                        }
+                                    }
                                 }
                             })
                             if (bestGood && bestValue > 500) {

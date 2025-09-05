@@ -101,13 +101,31 @@ function FactoryRecommendations(props) {
     opCollectionKeys.sort((a, b) => {
         return opCollections[a].parentStart - opCollections[b].parentStart
     })
+
+    // Create all items including both pending and running
+    const allItems = []
+
+    // Add operation collections (pending items) - these should already be combined by good
+    opCollectionKeys.forEach((good) => {
+        const collection = opCollections[good]
+        allItems.push(<OperationCollection key={`pending-${good}`} collection={collection} startOp={props.startOp} finishOp={props.finishOp} />)
+    })
+
+    // Add all running items
+    allItems.push(...runningStuff)
+
+    const midpoint = Math.ceil(allItems.length / 2)
+    const leftColumn = allItems.slice(0, midpoint)
+    const rightColumn = allItems.slice(midpoint)
+
     return (
-        <div style={{display: 'flex', flexDirection: 'column', flexWrap: 'wrap', height: '300px', width: '200px'}}>
-            {opCollectionKeys.map((good) => {
-                const collection = opCollections[good]
-                return <OperationCollection key={good} collection={collection} startOp={props.startOp} finishOp={props.finishOp} />
-            })}
-            <div>{runningStuff}</div>
+        <div style={{display: 'flex', gap: '10px', maxWidth: '400px'}}>
+            <div style={{display: 'flex', flexDirection: 'column', flex: 1}}>
+                {leftColumn}
+            </div>
+            <div style={{display: 'flex', flexDirection: 'column', flex: 1}}>
+                {rightColumn}
+            </div>
         </div>
     )
 }
