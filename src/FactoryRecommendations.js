@@ -11,7 +11,8 @@ function FactoryRecommendations(props) {
     let emptySlots = {}
     let currentBuildingIndex = {}
     let running = {}
-    factories.forEach(building => {
+        const displayFactories = ["Factory"]
+    displayFactories.forEach(building => {
         let runningCount = 0
         if (props.pipelines && props.pipelines[building]) {
             const pipeline = props.pipelines[building].running

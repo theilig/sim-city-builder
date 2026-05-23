@@ -131,12 +131,14 @@ export const goodsData = {
     'game consoles': {ingredients: {'electrical components': 3, glass: 3, 'lighting systems': 1}, duration: 2240, building: 'Toy Shop', price: 2000, shortcut: 'gc', storeFrequency: 'frequent', requiredLevel: 35, display: 'games', utility: 2000},
     'wool shirts': {ingredients: {textiles: 4, 'measuring tapes': 2, paint: 2}, duration: 4500, building: 'Country Store', price: 1700, shortcut: 'ws', storeFrequency: 'frequent', requiredLevel: 35, utility: 1700},
     'picnic baskets': {ingredients: {'fruit and berries': 4, textiles: 4, glue: 2}, duration: 3600, building: 'Country Store', price: 6000, shortcut: 'pb', storeFrequency: 'frequent', requiredLevel: 35, utility: 6000},
+    'apple jam': {ingredients: {seeds: 4, glass: 2, flour: 4}, duration: 3600, building: 'Country Store', price: 2500, shortcut: 'aj', storeFrequency: 'normal', requiredLevel: 70, utility: 2500},
     'wrought iron': {ingredients: {metal: 4, hammers: 2, chemicals: 2}, duration: 1800, building: 'Restoration', price: 560, shortcut: 'wi', storeFrequency: 'frequent', requiredLevel: 35, utility: 560},
     'carved wood': {ingredients: {planks: 5, 'measuring tapes': 2, drills: 2}, duration: 3600, building: 'Restoration', price: 2800, shortcut: 'cw', storeFrequency: 'frequent', requiredLevel: 35, utility: 2800},
     'chiseled stone': {ingredients: {hammers: 2, minerals: 6, drills: 2}, duration: 9000, building: 'Restoration', price: 2300, shortcut: 'cs', storeFrequency: 'frequent', requiredLevel: 35, utility: 2300},
     'tapestry': {ingredients: {textiles: 4, glue: 2, paint: 2}, duration: 12600, building: 'Restoration', price: 2560, shortcut: 'ty', storeFrequency: 'normal', requiredLevel: 67, utility: 2560},
     'tiramisu': {ingredients: {vegetables: 1, 'sugar and spices': 1, cream: 1}, duration: 2700, building: 'Dessert Shop', price: 1250, shortcut: 'tm', storeFrequency: 'normal', requiredLevel: 35, utility: 1250},
     'churros': {ingredients: {flour: 2, 'cooking utensils': 1}, duration: 2100, building: 'Dessert Shop', price: 1750, shortcut: 'cu', storeFrequency: 'normal', requiredLevel: 62, utility: 1750},
+    profiterole: {ingredients: {donuts: 2, 'bread rolls': 2, 'cream': 1}, duration: 2100, building: 'Dessert Shop', price: 6550, shortcut: 'pr', storeFrequency: 'frequent', requiredLevel: 71, utility: 6550},
 }
 
 export function updateSettings(oldSettings) {
